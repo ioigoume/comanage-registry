@@ -33,4 +33,4 @@ session_start();
 
 unset($_SESSION['Auth']);
 
-header("Location: " . "/registry/users/logout");
+header("Location: " . "/registry.sso/Logout?return=%2Fregistry%2Fpages%2Fpublic%2Floggedout");

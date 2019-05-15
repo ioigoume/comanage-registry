@@ -30,26 +30,26 @@ App::uses('CakeEmail', 'Network/Email');
 class CoInvite extends AppModel {
   // Define class name for cake
   public $name = "CoInvite";
-  
+
   // Current schema version for API
   public $version = "1.0";
-  
+
   // Add behaviors
   public $actsAs = array('Containable',
                          'Changelog' => array('priority' => 5));
-  
+
   // Association rules from this model to other models
   public $belongsTo = array("CoPerson",
                             "EmailAddress");
-  
+
   public $hasOne = array("CoPetition");
-  
+
   // Default display field for cake generated views
   public $displayField = "invitation";
-  
+
   // Default ordering for find operations
   public $order = "expires";
-  
+
   // Validation rules for table elements
   public $validate = array(
     'invitation' => array(
@@ -76,7 +76,7 @@ class CoInvite extends AppModel {
       'allowEmpty' => true
     )
   );
-  
+
   /**
    * Process the reply to an invite.
    *
@@ -88,27 +88,27 @@ class CoInvite extends AppModel {
    * @throws OutOfBoundsException
    * @throws RuntimeException
    */
-  
+
   public function processReply($inviteId, $confirm, $loginIdentifier=null) {
     // Start a transaction
     $dbc = $this->getDataSource();
     $dbc->begin();
-    
+
     $args = array();
     $args['conditions']['CoInvite.invitation'] = $inviteId;
     $args['contain'] = array('CoPerson', 'CoPetition', 'EmailAddress');
-    
+
     $invite = $this->find('first', $args);
-    
+
     if(!empty($invite)) {
       $verifyEmail = !empty($invite['CoInvite']['email_address_id']);
-      
+
       // Check invite validity
-      
+
       if(time() < strtotime($invite['CoInvite']['expires'])) {
         if($verifyEmail) {
           // Verifying an email address
-          
+
           try {
             // XXX Note we're passing a bunch of stuff just so verify() can create a history record,
             // which we do below anyway. Refactor as part of CO-753.
@@ -123,33 +123,33 @@ class CoInvite extends AppModel {
           }
         } elseif(isset($invite['CoPetition']['id'])) {
           // Before we can delete the invitation, we need to unlink it from the petition
-          
+
           $this->CoPetition->id = $invite['CoPetition']['id'];
           $this->CoPetition->saveField('co_invite_id', null);
         } else {
           // Default (ie: non-enrollment flow) behavior: update CO Person
-          
+
           $this->CoPerson->id = $invite['CoPerson']['id'];
-          
+
           if(!$this->CoPerson->saveField('status', $confirm ? StatusEnum::Active : StatusEnum::Declined)) {
             $dbc->rollback();
             throw new RuntimeException(_txt('er.cop.nf', array($invite['CoPerson']['id'])));
           }
         }
-        
+
         // Mark the email address associated with this invite as verified.
-        
+
         if($confirm) {
           // We're actually verifying an org identity email address even though we're
           // getting to the EmailAddress object via CoPerson
-          
+
           $orgId = null;
-          
+
           if(isset($invite['CoPetition']['enrollee_org_identity_id'])) {
             $orgId = $invite['CoPetition']['enrollee_org_identity_id'];
           } elseif(empty($invite['CoPetition'])) {
             // Try to find the org identity associated with this invite
-            
+
             $args = array();
             $args['conditions']['CoOrgIdentityLink.co_person_id'] = $invite['CoPerson']['co_person_id'];
             $args['conditions']['EmailAddress.mail'] = $invite['CoInvite']['mail'];
@@ -158,18 +158,28 @@ class CoInvite extends AppModel {
             $args['joins'][0]['type'] = 'INNER';
             $args['joins'][0]['conditions'][0] = 'CoOrgIdentityLink.org_identity_id=EmailAddress.org_identity_id';
             $args['contain'] = false;
-            
+
             // This *should* generate one result...
             $link = $this->CoPerson->CoOrgIdentityLink->find('first', $args);
-            
+
             if(!empty($link['CoOrgIdentityLink']['org_identity_id'])) {
               $orgId = $link['CoOrgIdentityLink']['org_identity_id'];
             }
           }
-          
+
           if($orgId) {
             try {
               $this->CoPerson->EmailAddress->verify($orgId, null, $invite['CoInvite']['mail'], $invite['CoPetition']['enrollee_co_person_id']);
+
+              $args = array();
+              $args['conditions']['EmailAddress.co_person_id'] = $invite['CoInvite']['co_person_id'];
+              $args['conditions']['EmailAddress.mail'] = $invite['CoInvite']['mail'];
+              $args['conditions']['EmailAddress.deleted'] = false;
+              $args['contain'] = false;
+              $cp_email = $this->CoPerson->EmailAddress->find('first', $args);
+              if(isset($cp_email['EmailAddress']['id'])){
+                $this->CoPerson->EmailAddress->verify(null, $invite['CoInvite']['co_person_id'], $invite['CoInvite']['mail'], $invite['CoPetition']['enrollee_co_person_id']);
+              }
             }
             catch(Exception $e) {
               $dbc->rollback();
@@ -177,19 +187,19 @@ class CoInvite extends AppModel {
             }
           }
         }
-        
+
         // Toss the invite
         $this->delete($invite['CoInvite']['id']);
       } else {
         if(!empty($invite['CoPetition']['id'])) {
           // Before we can delete the invitation, we need to unlink it from the petition
-          
+
           $this->CoPetition->id = $invite['CoPetition']['id'];
           $this->CoPetition->saveField('co_invite_id', null);
         }
-        
+
         $this->delete($invite['CoInvite']['id']);
-        
+
         // Record a history record that the invitation expired
         try {
           $this->CoPerson->HistoryRecord->record($invite['CoInvite']['co_person_id'],
@@ -203,14 +213,14 @@ class CoInvite extends AppModel {
           $dbc->rollback();
           throw new RuntimeException($e->getMessage());
         }
-        
+
         // Commit here, don't roll back!
         $dbc->commit();
         throw new OutOfBoundsException(_txt('er.inv.exp'));
       }
-      
+
       // Create a history record
-      
+
       if($verifyEmail) {
         // XXX Note that EmailAddress->verify() will also record almost the same history message on success.
         // This should probably be refactored as part of CO-753.
@@ -230,7 +240,7 @@ class CoInvite extends AppModel {
         $htxt = _txt(($confirm ? 'rs.inv.conf-a' : 'rs.inv.dec-a'),
                      array($invite['CoInvite']['mail']));
       }
-      
+
       try {
         $this->CoPerson->HistoryRecord->record($hcopid,
                                                $hcoprid,
@@ -247,10 +257,10 @@ class CoInvite extends AppModel {
       $dbc->rollback();
       throw new InvalidArgumentException(_txt('er.inv.nf'));
     }
-    
+
     $dbc->commit();
   }
-  
+
   /**
    * Create and send an invitation. Any existing invitation for the CO Person will be removed.
    *
@@ -272,7 +282,7 @@ class CoInvite extends AppModel {
    * @throws RuntimeException
    * @todo The function signature has evolved organically and is a bit of a mess, clean up as part of CO-753
    */
-  
+
   public function send($coPersonId,
                        $orgIdentityID,
                        $actorPersonId,
@@ -287,7 +297,7 @@ class CoInvite extends AppModel {
                        $bcc=null,
                        $subs=array()) {
     // Toss any prior invitations for $coPersonId to $toEmail
-    
+
     try {
       $this->deleteAll(array('CoInvite.co_person_id' => $coPersonId,
                              'CoInvite.mail' => $toEmail),
@@ -298,7 +308,7 @@ class CoInvite extends AppModel {
     catch(Exception $e) {
       throw new RuntimeException($e->getMessage());
     }
-    
+
     $invite = array();
     $invite['CoInvite']['co_person_id'] = $coPersonId;
     $invite['CoInvite']['invitation'] = Security::generateAuthKey();
@@ -308,15 +318,15 @@ class CoInvite extends AppModel {
     if($emailAddressID) {
       $invite['CoInvite']['email_address_id'] = $emailAddressID;
     }
-    
+
     $this->create($invite);
-    
+
     if($this->save()) {
       // Try to send the invite
-      
+
       // Set up and send the invitation via email
       $email = new CakeEmail('default');
-      
+
       $substitutions = array_merge($subs, array(
         'CO_NAME'   => $coName,
         'INVITE_URL' => Router::url(array(
@@ -326,7 +336,7 @@ class CoInvite extends AppModel {
                                    ),
                                    true)
       ));
-      
+
       try {
         if($template) {
           if($subject) {
@@ -334,23 +344,23 @@ class CoInvite extends AppModel {
           } else {
             $msgSubject = _txt('em.invite.subject', array($coName));
           }
-          
+
           $msgBody = processTemplate($template, $substitutions);
-          
+
           // If this enrollment has a default email address set, use it, otherwise leave in the default for the site.
           if($fromEmail) {
             $email->from($fromEmail);
           }
-          
+
           // If cc's or bcc's were set, convert to an array
           if($cc) {
             $email->cc(explode(',', $cc));
           }
-          
+
           if($bcc) {
             $email->bcc(explode(',', $bcc));
           }
-          
+
           $email->emailFormat('text')
                 ->to($toEmail)
                 ->subject($msgSubject)
@@ -360,7 +370,7 @@ class CoInvite extends AppModel {
             'co_name'   => $coName,
             'invite_id' => $invite['CoInvite']['invitation']
           );
-          
+
           $email->template('coinvite', 'basic')
                 ->emailFormat('text')
                 ->to($toEmail)
@@ -377,9 +387,9 @@ class CoInvite extends AppModel {
       } catch(Exception $e) {
         throw new RuntimeException($e->getMessage());
       }
-      
+
       // Create a history record
-      
+
       if($emailAddressID) {
         $haction = ActionEnum::EmailAddressVerifyReqSent;
         $htxt = _txt('rs.ev.sent', array($toEmail));
@@ -387,7 +397,7 @@ class CoInvite extends AppModel {
         $haction = ActionEnum::InvitationSent;
         $htxt = _txt('rs.inv.sent', array($toEmail));
       }
-      
+
       try {
         $this->CoPerson->HistoryRecord->record($coPersonId,
                                                null,
@@ -399,7 +409,7 @@ class CoInvite extends AppModel {
       catch(Exception $e) {
         throw new RuntimeException($e->getMessage());
       }
-      
+
       return $this->id;
     } else {
       throw new RuntimeException(_txt('er.db.save'));

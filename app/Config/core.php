@@ -116,7 +116,7 @@
  * Turn off all caching application-wide.
  *
  */
-	//Configure::write('Cache.disable', true);
+	Configure::write('Cache.disable', true);
 
 /**
  * Enable cache checking.
@@ -210,7 +210,7 @@
 
 /**
  * Security.cipherSeed is a random numeric string (digits only) used to encrypt/decrypt strings.
- * It is read from the file app/Config/security.seed and should be at least 29 
+ * It is read from the file app/Config/security.seed and should be at least 29
  * characters long. If the file is not present or readable a default is used
  * but this is not recommended.
  */
@@ -266,7 +266,7 @@
 	Configure::write('Acl.database', 'default');
 
 /**
- * Edit this line and correct your server timezone to fix 
+ * Edit this line and correct your server timezone to fix
  * any date & time related errors.
  * Actually, leave this at UTC to ensure database records are consistent.
  */

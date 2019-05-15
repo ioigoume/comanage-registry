@@ -18,7 +18,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
+ * 
  * @link          http://www.internet2.edu/comanage COmanage Project
  * @package       registry
  * @since         COmanage Registry v0.9
@@ -27,9 +27,9 @@
 
 App::uses("SPTController", "Controller");
 
-class CoVomsProvisionerTargetsController extends SPTController {
-	// Class name, used by Cake
-	public $name = "CoVomsProvisionerTargets";
+class CoSshKeyProvisionerTargetsController extends SPTController {
+  // Class name, used by Cake
+  public $name = "CoSshKeyProvisionerTargets";
 
   // Establish pagination parameters for HTML views
   public $paginate = array(
@@ -39,13 +39,37 @@ class CoVomsProvisionerTargetsController extends SPTController {
     )
   );
 
-  public $uses = array("VomsProvisioner.CoVomsProvisionerTarget");
+  public $uses = array("SshKeyProvisioner.CoSshKeyProvisionerTarget");
 
-	// Create notification pop up after saving
-	function checkWriteFollowups($reqdata, $curdata = null, $origdata = null) {
-		$this->Flash->set(_txt('rs.updated-a3', array(_txt('ct.co_voms_provisioner_targets.1'))), array('key' => 'success'));
-		return true;
-	}
+  // Create notification pop up after saving
+  /**
+   * @param $reqdata
+   * @param null $curdata
+   * @param null $origdata
+   * @return bool
+   */
+  function checkWriteFollowups($reqdata, $curdata = null, $origdata = null) {
+    $fn = "checkWriteFollowups";
+    $this->log(get_class($this)."::{$fn}::@", LOG_DEBUG);
+
+    // TODO do not forget to see what happens here
+    $this->Flash->set(_txt('rs.updated-a3', array(_txt('ct.co_ssh_key_provisioner_target.1'))), array('key' => 'success'));
+    return true;
+  }
+
+  /**
+   * @param $reqdata
+   * @param null $curdata
+   * @return bool
+   */
+  function checkWriteDependencies($reqdata, $curdata = null)
+  {
+    $fn = "checkWriteDependencies";
+    $this->log(get_class($this)."::{$fn}::@", LOG_DEBUG);
+
+    return true;
+  }
+
 
   /**
    * Authorization for this Controller, called by Auth component

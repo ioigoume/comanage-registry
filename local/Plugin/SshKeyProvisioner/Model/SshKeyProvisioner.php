@@ -18,14 +18,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
+ * 
  * @link          http://www.internet2.edu/comanage COmanage Project
  * @package       registry-plugin
  * @since         COmanage Registry v0.9
  * @license       Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
  */
 
-class VomsProvisioner extends AppModel {
+class SshKeyProvisioner extends AppModel {
   // Required by COmanage Plugins
   public $cmPluginType = "provisioner";
 
@@ -38,11 +38,13 @@ class VomsProvisioner extends AppModel {
 
   /**
    * Expose menu items.
-   *
+   * 
    * @ since COmanage Registry v0.9.2
    * @ return Array with menu location type as key and array of labels, controllers, actions as values.
    */
   public function cmPluginMenus() {
+    $fn = "cmPluginMenus";
+    $this->log(get_class($this)."::{$fn}::@", LOG_DEBUG);
     return array();
   }
 }
