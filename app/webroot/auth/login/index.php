@@ -18,7 +18,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * @link          http://www.internet2.edu/comanage COmanage Project
  * @package       registry
  * @since         COmanage Registry v0.1
@@ -31,11 +31,16 @@
 // Since this page isn't part of the framework, we need to reconfigure
 // to access the Cake session.
 
-session_name("CAKEPHP");
+$sid = "";
+foreach ($_COOKIE as $key => $value){
+  if(strpos($key, "co_registry_sid") !== false){
+    $sid .= $key;
+  }
+}
+session_name($sid);
 session_start();
 
 // Set the user
-
 if(empty($_SERVER['REMOTE_USER'])) {
   print	"ERROR: REMOTE_USER is empty. Please check your configuration.";
   exit;
