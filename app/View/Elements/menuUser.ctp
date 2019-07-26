@@ -19,7 +19,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * @link          http://www.internet2.edu/comanage COmanage Project
  * @package       registry
  * @since         COmanage Registry v3.0.0
@@ -152,10 +152,12 @@
         // This rendering is a bit different from how render_plugin_menus() does it...
         foreach(array_keys($menuContent['plugins']) as $plugin) {
           if(isset($menuContent['plugins'][$plugin]['coperson'])) {
-            foreach(array_keys($menuContent['plugins'][$plugin]['coperson']) as $label) {
-              print '<li> 
-                       <a href="#">'.$label.'</a>
-                       <span class="sf-sub-indicator"> »</span>
+            foreach($menuContent['plugins'][$plugin]['coperson'] as $label => $service) {
+              $modelName = rtrim($service['controller'],"s");
+              $link = "/registry/" . $modelName . "/" . $service['controller'] . "/" . $service['action'] . "/co:" . $cur_co['Co']['id'];
+              print '<li class="mdl-menu__item mdl-js-ripple-effect" tabindex="-1" data-upgraded=",MaterialRipple" style="transition-delay: 0.0211268s;">
+                       <a href="' . $link . '">'.$label.'</a>
+                       <span class="mdl-menu__item-ripple-container"></span>
                        <ul>';
 
               foreach($menuContent['cos'] as $co) {
