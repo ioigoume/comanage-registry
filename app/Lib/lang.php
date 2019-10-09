@@ -18,13 +18,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * @link          http://www.internet2.edu/comanage COmanage Project
  * @package       registry
  * @since         COmanage Registry v0.1
  * @license       Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
  */
-  
+ 
 global $cm_lang, $cm_texts, $cm_texts_orig;
 
 // XXX move this to a master config
@@ -197,6 +197,7 @@ $cm_texts['en_US'] = array(
   'ef.step.approve'                  => 'Approval',
   'ef.step.checkEligibility'         => 'Check Eligibility',
   'ef.step.collectIdentifier'        => 'Record Identifier',
+  'ef.step.duplicateCheck'           => 'Check Duplicates',
   'ef.step.deny'                     => 'Denial',
   'ef.step.finalize'                 => 'Finalize',
   'ef.step.petitionerAttributes'     => 'Collect Petitioner Attributes',
@@ -731,7 +732,7 @@ original notification at
   
   'en.status.org' => array(
     OrgIdentityStatusEnum::Removed => 'Removed',
-    OrgIdentityStatusEnum::Synced  => 'Synced' 
+    OrgIdentityStatusEnum::Synced  => 'Synced'
   ),
   
   'en.status.prov' => array(
@@ -835,7 +836,7 @@ original notification at
   'er.co.fail' =>     'Unable to find CO',
   'er.co.gr.admin' => 'CO created, but failed to create initial admin group',
   'er.co.gr.members' => 'CO created, but failed to create initial members group',
-  'er.co.gr.adminmembers' => 'CO created, but failed to create initial admin and members groups',      
+  'er.co.gr.adminmembers' => 'CO created, but failed to create initial admin and members groups',
   'er.co.none' =>     'No COs found (did you run setup.php?)',
   'er.co.notmember' => 'Not a Member',
   'er.co.mismatch' => 'Requested CO does not match CO of %1$s %2$s',
@@ -1045,7 +1046,7 @@ original notification at
   'fd.conditions' =>  'Conditions',
   'fd.copy-a' =>      'Copy of %1$s',
   'fd.cou' =>         'COU',
-  'fd.cou.nopar'  =>  'No COUs are available to be assigned parent',  
+  'fd.cou.nopar'  =>  'No COUs are available to be assigned parent',
   'fd.cou-a' =>       '%1$s COU',
   'fd.co_group.auto' => 'Automatic',
   'fd.co_group.group_type' => 'Group Type',
@@ -1278,7 +1279,7 @@ original notification at
   'fd.language' =>    'Language',
   'fd.lan.desc' =>    'Lowercase alphanumeric characters only',
   'fd.lan.res.desc' => 'Lowercase alphanumeric characters only<br />Must not be a reserved word',
-  'fd.link.location' => 'Link Location',  
+  'fd.link.location' => 'Link Location',
   'fd.link.order' =>  'Link Order',
   'fd.link.title' =>  'Link Title',
   'fd.link.url' =>    'Link URL',
@@ -1664,7 +1665,7 @@ original notification at
   'op.find.link' =>   'Find an Organizational Identity to Link to %1$s',
   'op.gr.memadd' =>   'Manage %1$s Group Memberships',
   'op.gr.reconcile' => 'Reconcile',
-  'op.gr.reconcile.all' => 'Reconcile All Members Groups',      
+  'op.gr.reconcile.all' => 'Reconcile All Members Groups',
   'op.gr.reconcile.all.confirm' => 'Are you sure you wish to reconcile all members groups?',
   'op.gr.reconcile.confirm' => 'Are you sure you wish to reconcile this group?',
   'op.gr.reconcile.wait' => 'Requesting reconcilation, please wait...',
@@ -1870,7 +1871,7 @@ original notification at
   'rs.pt.create' =>   'Petition Created',
   'rs.pt.create.from' => 'Petition created from enrollment flow "%1$s"',
   'rs.pt.create.not' => 'Petition created for %1$s from enrollment flow "%2$s"',
-  'rs.pt.create.self' => 'Petition Created. You may need to check your email for further information.', 
+  'rs.pt.create.self' => 'Petition Created. You may need to check your email for further information.',
   'rs.pt.deny' =>     'Petition Denied',
   'rs.pt.dupe' =>     'Petition Flagged as Duplicate',
   'rs.pt.final' =>    'Petition Finalized',

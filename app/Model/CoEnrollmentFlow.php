@@ -394,7 +394,7 @@ class CoEnrollmentFlow extends AppModel {
         if($coPersonId
            && $Role->isCoGroupMember($coPersonId, $coEF['CoEnrollmentFlow']['authz_co_group_id'])) {
           return true;
-        } 
+        }
         break;
       case EnrollmentAuthzEnum::CoOrCouAdmin:
         if($coPersonId
@@ -546,7 +546,7 @@ class CoEnrollmentFlow extends AppModel {
       $ret['petitionerAttributes']['enabled'] = RequiredEnum::Optional;
     }
     $ret['petitionerAttributes']['role'] = EnrollmentRole::Petitioner;
-        
+    
     // If email confirmation is requested, run sendConfirmation and its helper waitForConfirmation.
     // We can only collect identifiers if email confirmation and authentication are both set.
     // Also enable the re-entry point following email delivery.
@@ -561,8 +561,10 @@ class CoEnrollmentFlow extends AppModel {
       if(isset($ef['CoEnrollmentFlow']['require_authn'])
        && $ef['CoEnrollmentFlow']['require_authn']) {
         $ret['collectIdentifier']['enabled'] = RequiredEnum::Required;
+        $ret['duplicateCheck']['enabled'] = RequiredEnum::Required;
       } else {
         $ret['collectIdentifier']['enabled'] = RequiredEnum::NotPermitted;
+        $ret['duplicateCheck']['enabled'] = RequiredEnum::NotPermitted;
       }
       
       $ret['checkEligibility']['role'] = EnrollmentRole::Enrollee;
@@ -579,6 +581,7 @@ class CoEnrollmentFlow extends AppModel {
     $ret['waitForConfirmation']['role'] = EnrollmentRole::Petitioner;
     $ret['processConfirmation']['role'] = EnrollmentRole::Enrollee;
     $ret['collectIdentifier']['role'] = EnrollmentRole::Enrollee;
+    $ret['duplicateCheck']['role'] = EnrollmentRole::Enrollee;
     
     if($ret['sendConfirmation']['enabled'] == RequiredEnum::Required) {
       $ret['sendApproverNotification']['role'] = EnrollmentRole::Enrollee;

@@ -18,7 +18,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * @link          http://www.internet2.edu/comanage COmanage Project
  * @package       registry
  * @since         COmanage Registry v0.5
@@ -152,7 +152,8 @@ class CoPetitionsController extends StandardController {
     // execution continues at finalize if approval not required
     // processConfirmation is re-entry point following confirmation
     'processConfirmation'          => 'collectIdentifier',
-    'collectIdentifier'            => 'checkEligibility',
+    'collectIdentifier'            => 'duplicateCheck',
+    'duplicateCheck'               => 'checkEligibility',
     // approve is re-entry point following approval
     'approve'                      => 'sendApprovalNotification',
     'sendApprovalNotification'     => 'finalize',
@@ -544,6 +545,17 @@ class CoPetitionsController extends StandardController {
   }
   
   /**
+   * Duplicate Check following collect Identifier
+   *
+   * @since  COmanage Registry v3.4
+   * @param  Integer $id CO Petition ID
+   */
+  
+  public function duplicateCheck($id) {
+    $this->dispatch('duplicateCheck', $id);
+  }
+  
+  /**
    * Execute an OIS plugin in Identify mode
    *
    * @since  COmanage Registry v3.1.0
@@ -589,7 +601,7 @@ class CoPetitionsController extends StandardController {
                     PetitionActionEnum::StepFailed,
                     $e->getMessage());
            
-      $this->performRedirect(); 
+      $this->performRedirect();
     }
     
     // Make sure we don't issue a redirect
@@ -756,7 +768,7 @@ class CoPetitionsController extends StandardController {
                           $e->getMessage());
             
             // Don't redirect since it will mask the actual error
-            //$this->performRedirect(); 
+            //$this->performRedirect();
           }
           
           // Make sure we don't issue a redirect
@@ -978,7 +990,7 @@ class CoPetitionsController extends StandardController {
           'controller' => Inflector::underscore($plugin) . '_co_petitions',
           'action'     => $action,
           $id,
-          'oisid'      => $authsources[$current]['OrgIdentitySource']['id'] 
+          'oisid'      => $authsources[$current]['OrgIdentitySource']['id']
         );
         
         // If we're in an unauthenticated flow, we need to append a token.
@@ -1080,7 +1092,7 @@ class CoPetitionsController extends StandardController {
     
     // The step is done
     
-    $this->redirect($this->generateDoneRedirect('approve', $id));    
+    $this->redirect($this->generateDoneRedirect('approve', $id));
   }
   
   /**
@@ -1096,7 +1108,7 @@ class CoPetitionsController extends StandardController {
     
     // The step is done
     
-    $this->redirect($this->generateDoneRedirect('checkEligibility', $id));    
+    $this->redirect($this->generateDoneRedirect('checkEligibility', $id));
   }
   
   /**
@@ -1151,8 +1163,24 @@ class CoPetitionsController extends StandardController {
     
     // The step is done
     
-    $this->redirect($this->generateDoneRedirect('collectIdentifier', $id));    
+    $this->redirect($this->generateDoneRedirect('collectIdentifier', $id));
   }
+  
+  
+  /**
+   * Execute CO Petition 'collectIdentifier' step
+   *
+   * @since  COmanage Registry v0.9.4
+   * @param Integer $id CO Petition ID
+   * @throws Exception
+   */
+  
+  protected function execute_duplicateCheck($id) {
+    // The step is done
+    
+    $this->redirect($this->generateDoneRedirect('duplicateCheck', $id));
+  }
+  
   
   /**
    * Execute CO Petition 'deny' step
@@ -1173,8 +1201,8 @@ class CoPetitionsController extends StandardController {
     
     // The step is done
     
-    $this->redirect($this->generateDoneRedirect('deny', $id));    
-  }  
+    $this->redirect($this->generateDoneRedirect('deny', $id));
+  }
   
   /**
    * Execute CO Petition 'finalize' step
@@ -1208,7 +1236,7 @@ class CoPetitionsController extends StandardController {
     
     // The step is done
     
-    $this->redirect($this->generateDoneRedirect('finalize', $id));  
+    $this->redirect($this->generateDoneRedirect('finalize', $id));
   }
   
   /**
@@ -1288,7 +1316,7 @@ class CoPetitionsController extends StandardController {
       // Send finalization notification, if configured. We do this here rather
       // than in execute_finalize so the provisioners have a chance to run
       // before the notification goes out.
-        
+      
       $this->CoPetition->sendApprovalNotification($id, $this->Session->read('Auth.User.co_person_id'), 'finalize');
     }
     // else petition is declined/denied, no need to fire provisioners or send finalization message
@@ -1649,7 +1677,7 @@ class CoPetitionsController extends StandardController {
       }
     }
     
-    // We're done, complete the step    
+    // We're done, complete the step
     $this->redirect($this->generateDoneRedirect('selectOrgIdentity', $id));
   }
   
@@ -1681,7 +1709,7 @@ class CoPetitionsController extends StandardController {
     $this->CoPetition->sendApproverNotification($id, $this->Session->read('Auth.User.co_person_id'));
     
     $this->CoPetition->updateStatus($id,
-                                    PetitionStatusEnum::PendingApproval, 
+                                    PetitionStatusEnum::PendingApproval,
                                     $this->Session->read('Auth.User.co_person_id'));
     
     // The step is done
@@ -1701,7 +1729,7 @@ class CoPetitionsController extends StandardController {
     $this->CoPetition->sendConfirmation($id, $this->Session->read('Auth.User.co_person_id'));
     
     $this->CoPetition->updateStatus($id,
-                                    PetitionStatusEnum::PendingConfirmation, 
+                                    PetitionStatusEnum::PendingConfirmation,
                                     $this->Session->read('Auth.User.co_person_id'));
     
     // The step is done
@@ -1952,7 +1980,7 @@ class CoPetitionsController extends StandardController {
                    // we don't have a CO Person ID for the user (so we're in an
                    // Org Identity context, such as search by Org Identity ID)
                    || ($pool
-                       && !$roles['copersonid'] 
+                       && !$roles['copersonid']
                        && ($roles['admin'] || $roles['subadmin']))
                    || $this->Role->isApprover($roles['copersonid']));
     
@@ -2006,6 +2034,7 @@ class CoPetitionsController extends StandardController {
       // The petition then gets handed off to the enrollee
       $p['processConfirmation'] = $isEnrollee;
       $p['collectIdentifier'] = $isEnrollee;
+      $p['duplicateCheck'] = $isEnrollee;
       // OIS Plugin steps for collectIdentifier get the same permissions
       $p['collectIdentifierIdentify'] = $p['collectIdentifier'];
       // Eligibility steps could be triggered by petitioner or enrollee, according to configuration
@@ -2449,7 +2478,7 @@ class CoPetitionsController extends StandardController {
                     PetitionActionEnum::StepFailed,
                     $e->getMessage());
            
-      $this->performRedirect(); 
+      $this->performRedirect();
     }
     
     // Make sure we don't issue a redirect
@@ -2501,7 +2530,7 @@ class CoPetitionsController extends StandardController {
   
   /**
    * View a CO Petition.
-   * 
+   *
    * @since  COmanage Registry v0.9.4
    * @param  Integer $id CO Petition ID
    */
