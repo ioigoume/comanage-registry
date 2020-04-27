@@ -2755,7 +2755,59 @@ class CoPetition extends AppModel {
       throw new InvalidArgumentException(_txt('er.pt.status', array($curStatus, $newStatus)));
     }
   }
-  
+
+  /**
+   * @param $eofId
+   * @return array
+   */
+  public function getEnvSourcesIdentLogin($eofId) {
+    if(is_array(CakePlugin::loaded('EnvSource'))) {
+      return array();
+    }
+    $this->EnvSource = ClassRegistry::init('EnvSource');
+    $columns = array_keys($this->EnvSource->schema());
+    $envLoginFields = array_filter($columns, static function ($column) {
+      return (strpos($column, '_login') !== false);
+    });
+
+    $args = array();
+    $args['joins'][0]['table'] = 'org_identity_sources';
+    $args['joins'][0]['alias'] = 'OrgIdentitySource';
+    $args['joins'][0]['type'] = 'INNER';
+    $args['joins'][0]['conditions'][0] = 'OrgIdentitySource.id=EnvSource.org_identity_source_id';
+    $args['joins'][0]['conditions'][1]['OrgIdentitySource.deleted'] = false;
+    $args['joins'][1]['table'] = 'co_enrollment_sources';
+    $args['joins'][1]['alias'] = 'CoEnrollmentSource';
+    $args['joins'][1]['type'] = 'INNER';
+    $args['joins'][1]['conditions'][0] = 'OrgIdentitySource.id=CoEnrollmentSource.org_identity_source_id';
+    $args['joins'][1]['conditions'][1]['CoEnrollmentSource.deleted'] = false;
+    $args['conditions']['CoEnrollmentSource.co_enrollment_flow_id'] = $eofId;
+    $args['fields'] = array_values($envLoginFields);
+    $args['contain'] = false;
+
+    // Find only the first since each EOF has only one EnvSource linked to it
+    $configuredEnvLoginIdentifiers = $this->EnvSource->find('first', $args);
+    if(empty($configuredEnvLoginIdentifiers)) {
+      return array();
+    }
+    $configuredEnvLoginIdentifiers = array_filter($configuredEnvLoginIdentifiers['EnvSource'], static function($value) {
+      return ($value === true);
+    });
+
+    $this->log(__METHOD__ . '::Configured Login Identifiers => ' . print_r($configuredEnvLoginIdentifiers), LOG_DEBUG);
+
+    $IdentifierEnumArray = array_keys(IdentifierEnum::getConstants());
+    $envSourceFieldName = array_keys($configuredEnvLoginIdentifiers);
+    $envSourcesIdentLogin = array_filter($IdentifierEnumArray, static function ($ident) use ($envSourceFieldName) {
+      $identToLower = strtolower($ident);
+      $matches  = preg_grep ('/_' . $identToLower. '_/', $envSourceFieldName);
+      return !empty($matches);
+    });
+
+    $this->log(__METHOD__ . "::$envSourcesIdentLogin => " . print_r($envSourcesIdentLogin), LOG_DEBUG);
+    return !empty($envSourcesIdentLogin) ? array_keys($envSourcesIdentLogin) : array();
+  }
+
   /**
    * Validate an identifier obtained via authentication, possibly attaching it to the
    * Org Identity. Duplicate Org Identities may also be consolidated.
@@ -2772,7 +2824,7 @@ class CoPetition extends AppModel {
   
   public function validateIdentifier($id, $loginIdentifier, $actorCoPersonId) {
     // Find the enrollment flow associated with this petition to determine some configuration parameters.
-    // It's arguable that we should pass certain actions back to the controller ta handle, such as
+    // It's arguable that we should pass certain actions back to the controller to handle, such as
     // handling duplicates, but for now it's easier to handle this all in one transaction.
     // Perhaps some refactoring may make sense in the future, though.
     
@@ -2788,6 +2840,11 @@ class CoPetition extends AppModel {
       throw new InvalidArgumentException(_txt('er.notfound',
                                               array('ct.co_enrollment_flows.1', $args['conditions']['CoEnrollmentFlow.id'])));
     }
+
+    // Find if the EOF is associated with an ENVSource. In the ENVSource plugin we define the attributes that will be flagged as login
+    // Retrieve the list of Identifier types that we configured as Login
+    // Perhaps do this with contain.
+    $envSourceLoginIdenti = $this->getEnvSourcesIdentLogin($enrollmentFlow["CoEnrollmentFlow"]["id"]);
     
     if(!$loginIdentifier) {
       // If authn is required but loginidentifier is null, throw an exception
