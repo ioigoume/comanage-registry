@@ -335,6 +335,24 @@ class UsersController extends AppController {
         // Note we're performing CO specific work here, even though we're not in a CO context yet.
         
         $this->OrgIdentitySource->syncByIdentifier($u);
+
+        // Update App.base if CMP admin just logged in
+        if(!empty($this->Session->read('Auth.User.cos'))) {
+          $cos = $this->Session->read('Auth.User.cos');
+          $co_names = array_keys($cos);
+          if(in_array('COmanage', $co_names)) {
+            $args = array();
+            $args['conditions']['CmpEnrollmentConfiguration.name'] = 'CMP Enrollment Configuration';
+            $args['conditions']['CmpEnrollmentConfiguration.status'] = StatusEnum::Active;
+            $args['fields'] = array('CmpEnrollmentConfiguration.id');
+            $args['contain'] = false;
+
+            $cmp = $this->CmpEnrollmentConfiguration->find('first', $args);
+            $this->CmpEnrollmentConfiguration->id = $cmp["CmpEnrollmentConfiguration"]["id"];
+            $this->CmpEnrollmentConfiguration->saveField('app_base', $this->webroot);
+          }
+
+        }
         
         $this->redirect($this->Auth->redirectUrl());
       } else {
