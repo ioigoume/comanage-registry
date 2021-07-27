@@ -1,4 +1,6 @@
 <?php
+// app/Console/cake BulkEmail igtf_update "RCIAM User Community" "From Title" "My subject text" "Follow the instruction <a href='#'>here</a>"
+// app/Console/cake BulkEmail expiration_policy_admins_notify "RCIAM User Community" "From Title" "My subject text" "Follow the instruction <a href='#'>here</a>"
 
 App::uses('CakeEmail', 'Network/Email');
 
@@ -43,6 +45,24 @@ where mail.verified = true
   and (cc.issuer = '' or cc.issuer is null)
 GROUP BY people.id;
 EOT;
+
+    private $cou_admins_query = <<<EOT
+select distinct cc.name as cou_name, cea.mail as email
+from cm_co_groups as ccg
+         inner join cm_cous as cc on ccg.cou_id = cc.id and
+                                     not ccg.deleted and not cc.deleted and
+                                     ccg.co_group_id is null and cc.cou_id is null
+         inner join cm_co_group_members ccgm on ccg.id = ccgm.co_group_id and
+                                                not ccgm.deleted and ccgm.co_group_member_id is null and
+                                                ccgm.member is true
+         inner join cm_email_addresses cea on ccgm.co_person_id = cea.co_person_id and
+                                              cea.email_address_id is null and not cea.deleted
+where ccg.group_type = 'A'
+  and cc.co_id = 2
+  and ccg.status = 'A'
+order by cc.name;
+EOT;
+
 
     /**
      * @var string[]
@@ -153,6 +173,51 @@ EOT;
         }
     }
 
+    public function execute_expiration_policy_admins_notify() {
+      $dbc = $this->EmailAddress->getDataSource();
+      $this->message_body = "Dear %cou_name% Administrator\\n\\n"
+        . "We would like to let you know that on the 1st of August 2021 we will inform all VO members who have exceeded their one year approved membership, "
+        . "about its upcoming expiration. There will be a grace period during which EGI Check-in will send a notification email once per week until mid September. "
+        . "On the 15th of September, "
+        . "a final notification will be sent informing users who haven't taken any action to renew their membership that their membership has expired.\\n\\n" . PHP_EOL . PHP_EOL
+        . "The notifications will also include all appropriate instructions and links the users need so as to re-apply for a membership. "
+        . "According to our procedures a user willing to renew his/her membership will need to repeat the VO enrollment flow process. "
+        . "At the end of the Enrollment flow, any of the VO Administrators will be able to approve or deny the membership extension.\\n\\n"
+        . "Please note that a user with expired membership is not eligible for VO membership entitlements and as a result the user will "
+        . "not have access to VO resources relying on these entitlements.\\n\\n"
+        . "For more information about VO expiration polices please refer to our documentation[https://docs.egi.eu/users/check-in/vos/#expiration-policy]\\n\\n"
+        . "Thank you,\\n"
+        . "EGI Check-in team";
+
+      try {
+        $results = $this->EmailAddress->query($this->cou_admins_query);
+        $email_list = array();
+        if(!empty($results)) {
+          $email_list = Hash::combine(
+            $results,
+            '{n}.{n}.email',
+            '{n}.{n}.cou_name',
+          );
+        }
+        foreach($email_list as $mail => $cou_name) {
+          $current_body = $this->message_body;
+          if(strpos($current_body, '%cou_name%') !== false) {
+            $current_body = str_replace('%cou_name%', $cou_name, $current_body);
+          }
+
+          $this->sendEmail(
+            $this->from,
+            $mail,
+            $this->subject,
+            $current_body
+          );
+        }
+      }
+      catch(Exception $e) {
+        $this->out($e->getMessage());
+      }
+    }
+
     /**
      * @param $fromMail
      * @param $toMail
@@ -168,10 +233,13 @@ EOT;
 
         $this->out('Sending email to:' . $toMail);
         $this->Email->from($fromMail)
-            ->emailFormat('html')
+            ->emailFormat('both')
             ->to($toMail)
             ->subject($subject)
-            ->send($messageBody);
+            ->template('custom', 'basic')
+            ->viewVars(array('text' => $messageBody));
+        $this->Email->send();
+
         $this->out('Wait ' . $this->wait_sec . 'sec ...');
         sleep($this->wait_sec);
     }
