@@ -1800,6 +1800,8 @@ original notification at
   'fd.xp.count.cond.desc' => 'This Expiration Policy will apply up to the specified number of times',
   'fd.xp.disable' => 'Disable Expiration',
   'fd.xp.disable.desc' => 'Disable automatic (scheduled) expirations<br />This setting does not impact manual expirations',
+  'fd.xp.every_xday.cond' => 'Run policy every XX days',
+  'fd.xp.every_xday.cond.desc' => 'This Expiration Policy will apply every XX days.',
   'fd.xp.notify_coadmin.act' => 'Notify CO Administrator(s)',
   'fd.xp.notify_coadmin.act.desc' => 'The CO Administrator(s) will be notified when this Expiration Policy is applied',
   'fd.xp.notify_cogroup.act' => 'Notify CO Group',
