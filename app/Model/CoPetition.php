@@ -1781,6 +1781,7 @@ class CoPetition extends AppModel {
       
       if($this->EnrolleeCoPersonRole->saveAssociated($coRoleData, array("validate" => false,
                                                                         "atomic" => true,
+                                                                        'trustStatus' => true,
                                                                         "provision" => false))) {
         $coPersonRoleId = $this->EnrolleeCoPersonRole->id;
         
@@ -2580,7 +2581,8 @@ class CoPetition extends AppModel {
           $curCoPersonRoleStatus = $this->EnrolleeCoPersonRole->field('status');
           
           // This will also trigger recalculation of overall CO Person status
-          $this->EnrolleeCoPersonRole->saveField('status', $newCoPersonStatus, array('provision' => false));
+          $this->EnrolleeCoPersonRole->saveField('status', $newCoPersonStatus, array('provision' => false,
+                                                                                     'trustStatus' => true));
           
           try {
             // Create a history record
