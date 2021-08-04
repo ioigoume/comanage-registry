@@ -112,7 +112,10 @@ class CoPetitionsController extends StandardController {
   
   // Cached copy of enrollment flow ID, once determined
   protected $cachedEnrollmentFlowID = -1;
-  
+
+  // Abort a pending petition and continue to a new
+  protected $abort = null;
+
   // Index of next steps. This ordering may be a bit unintuitive, since often a
   // step leads to a next step when the predecessor is not configured to run.
   // There are also steps that result in temporarily exiting the flow, so what
@@ -245,6 +248,9 @@ class CoPetitionsController extends StandardController {
     if($this->enrollmentFlowID() > -1) {
       $steps = $this->CoPetition->CoEnrollmentFlow->configuredSteps($this->enrollmentFlowID());
     }
+    if(isset($this->request->params['named']['abort'])) {
+      $this->abort = 1;
+    }
     
     if(!$this->request->is('restful')) {
       // Under certain circumstances, we may wish to drop authentication.
@@ -264,6 +270,12 @@ class CoPetitionsController extends StandardController {
         }
         
         $this->set('pool_org_identities', $pool);
+        // For pending petitions
+        if($this->cachedEnrollmentFlowID > -1 && !empty($this->request->params['named']['op']) && $this->request->params['named']['op'] == 'resume') {
+          //Get COU name
+          $cou_name = $this->CoPetition->CoEnrollmentFlow->retrieveCoCouName($this->cachedEnrollmentFlowID, $this->cur_co['Co']['id']);
+          $this->set('vv_cou_name', $cou_name);
+        }
       } elseif(isset($steps[$this->action])) {
         if($steps[$this->action]['role'] == EnrollmentRole::Petitioner
            || $steps[$this->action]['role'] == EnrollmentRole::Enrollee) {
@@ -343,7 +355,7 @@ class CoPetitionsController extends StandardController {
         }
       }
     }
-    
+
     parent::beforeFilter();
     
     // Dynamically adjust validation rules to include the current CO ID for dynamic types.
@@ -687,7 +699,9 @@ class CoPetitionsController extends StandardController {
   protected function dispatch($step, $id=null) {
     // Determine the relevant enrollment flow ID
     $efId = $this->enrollmentFlowID();
-    
+    if(isset($this->request->params['named']['abort'])) {
+      $this->abort = 1;
+    }
     if($efId == -1) {
       $this->Flash->set(_txt('er.coef.unk'), array('key' => 'error'));
       $this->performRedirect();
@@ -726,6 +740,48 @@ class CoPetitionsController extends StandardController {
                                                             array('CoEnrollmentFlow.id' => $efId)));
       
       if(isset($this->request->params['named']['done'])) {
+        // Check if pending petitions handler is enabled
+        if ($this->Co->CoSetting->pendingpetitionsHandlerEnabled($this->cur_co['Co']['id'])) {
+          // Check if step is "start" and if there are any pending petitions
+          if($step == 'start' && empty($this->request->params['named']['abort'])) {
+            $co_id = $this->CoPetition->CoEnrollmentFlow->field('co_id', array('CoEnrollmentFlow.id' => $efId));
+            $cou_eofs = $this->CoPetition->CoEnrollmentFlow->getEnrollmentFlows($co_id, true);
+            //If Enrollement flow is a COU Enrollment flow
+            if(array_key_exists($this->request->params['named']['coef'], $cou_eofs)) {
+              // Get the pending petition(s) of this EOF
+              $petitions = $this->CoPetition->getPendingPetitionsByCoPersonIdAndEnrollmentFlow($_SESSION["Auth"]["User"]["co_person_id"], $this->request->params['named']['coef']);
+              
+              // If petition already exists then redirect user to another page
+              if(!empty($petitions) && count($petitions) == 1 && !empty($petitions[0]['CoPetition']['coef_next_step'])) {
+                // Redirect to petition view page only if coef_next_step has value
+                $petition_redirect = [
+                  'controller' => 'co_petitions',
+                  'plugin' => null,
+                  'action' => 'view/',
+                  $petitions[0]['CoPetition']['id'],
+                  'pending' => 'true'
+                ];         
+                $this->redirect($petition_redirect);  
+              }
+              else if(!empty($petitions) && count($petitions) > 1) {
+                // Redirect to petitions index page
+                $petition_redirect = [
+                  'controller' => 'co_petitions',
+                  'plugin' => null,
+                  'action' => 'index/',
+                  'coef' => $this->request->params['named']['coef'],
+                  'co' => $this->cur_co['Co']['id'],
+                  'op' => 'resume'
+                ];
+                $this->redirect($petition_redirect);
+              }
+            }
+          }
+          else if(!empty($this->request->params['named']['abort'])) {
+            unset($this->request->params['named']['abort']);
+          }
+        }
+        
         // Run the next plugin, if applicable
         
         $plugins = $this->loadAvailablePlugins('enroller', 'simple');
@@ -766,6 +822,7 @@ class CoPetitionsController extends StandardController {
             $redirect[] = $this->parseCoPetitionId();
           } else {
             $redirect['coef'] = $efId;
+            $redirect['abort'] = $this->abort;
           }
           
           // If there is a token attached to the petition, insert it into the URL
@@ -1970,6 +2027,7 @@ class CoPetitionsController extends StandardController {
       $ret[] = $id;
     } else {
       $ret['coef'] = $this->cachedEnrollmentFlowID;
+      $ret['abort'] = $this->abort;
     }
     
     $token = $this->parseToken();
@@ -2091,8 +2149,7 @@ class CoPetitionsController extends StandardController {
     
     // Delete an existing CO Petition?
     // For now, this is restricted to CMP and CO Admins, until we have a better policy
-    $p['delete'] = $roles['cmadmin'] || $roles['coadmin'];
-    
+    $p['delete'] = $roles['cmadmin'] || $roles['coadmin'] || $isPetitioner || $isEnrollee;
     // Flag an existing CO Petition as a duplicate?
     $p['dupe'] = $isApprover;
     
@@ -2125,6 +2182,9 @@ class CoPetitionsController extends StandardController {
                        && ($roles['admin'] || $roles['subadmin']))
                    || $this->Role->isApprover($roles['copersonid']));
     
+    if(!empty($this->params['named']['op']) && $this->params['named']['op'] == 'resume') {
+      $p['index'] = $p['index'] || $roles['user'];
+    }
     // Search all existing CO Petitions?
     $p['search'] = $p['index'];
     
@@ -2133,10 +2193,11 @@ class CoPetitionsController extends StandardController {
                     || $roles['coadmin']
                     || ($canInitiate && $roles['couadmin'])
                     || $isPetitioner);
-    
+    $p['notifyapprovers'] = true;
+
     // View an existing CO Petition? We allow the usual suspects to view a Petition, even
     // if they don't have permission to edit it. Also approvers need to be able to see the Petition.
-    $p['view'] = ($roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin'] || $isApprover);
+    $p['view'] = ($roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin'] || $isApprover || $isPetitioner || $isEnrollee);
     
     if($this->action == 'index' && $p['index']) {
       // These permissions may not be exactly right, but they only apply when rendering
@@ -2223,7 +2284,10 @@ class CoPetitionsController extends StandardController {
         $p['redirectOnConfirm'] = false;
       }
     }
-    
+
+    $p['isEnrollee'] = ($curEnrollee && ($curEnrollee == $roles['copersonid']))
+                      || ($enrolleeToken != '' && $enrolleeToken == $this->parseToken());
+
     $this->set('permissions', $p);
     return $p[$this->action];
   }
@@ -2315,6 +2379,11 @@ class CoPetitionsController extends StandardController {
     // Because we're using Linkable behavior to join deeply nested models, we need to
     // explicitly state which fields can be used for sorting.
     
+    // If op = resume is present then show only petitions related to the specific coef and to the specific person
+    if(!empty($this->params['named']['op']) && $this->params['named']['op'] == 'resume') {
+      $pagcond['conditions']['CoPetition.co_enrollment_flow_id'] = $this->params['named']['coef'];
+      $pagcond['conditions']['CoPetition.enrollee_co_person_id'] = $coPersonId;
+    }
     $pagcond['sortlist'] = array(
       'ApproverPrimaryName.family',
       'CoPetition.created',
@@ -2416,7 +2485,16 @@ class CoPetitionsController extends StandardController {
         'action'      => 'view',
         $this->request->params['pass'][0]
       ));
-    } elseif($this->viewVars['permissions']['index']) {
+    }
+    elseif($this->action == 'delete' && $this->abort == true) {
+      $this->redirect(array(
+        'controller' => 'co_petitions',
+        'action' => 'start',
+        'coef' => $this->cachedEnrollmentFlowID,
+        'done' => 'core'
+      ));
+    }
+    elseif($this->viewVars['permissions']['index']) {
       // For admins, return to the list of petitions pending approval. For admins,
       // this is probably where they'll want to go. For others, they probably won't
       // have permission and will end up at /... we might want to fix that at
@@ -2700,7 +2778,57 @@ class CoPetitionsController extends StandardController {
   public function start() {
     $this->dispatch('start');
   }
-  
+
+  /**
+   * For Models that accept a CO ID, find the provided CO ID.
+   * - precondition: A coid must be provided in $this->request (params or data)
+   *
+   * @since  COmanage Registry v3.1.x
+   * @return Integer The CO ID if found, or -1 if not
+   */
+
+  public function parseCOID($data = null) {
+    if($this->action == 'notifyapprovers') {
+      if(isset($this->request->params['named']['co'])) {
+        return $this->request->params['named']['co'];
+      }
+    }
+    
+    return parent::parseCOID();
+  }
+
+   /**
+   * Notify Approvers
+   *
+   * @return CakeResponse|null
+   */
+  public function notifyapprovers()
+  {
+    $this->log(__METHOD__ . '::@', LOG_DEBUG);
+    $this->autoRender = false; // We don't render a view in this example
+    $this->layout = null;
+    if (!$this->request->is('ajax')) {
+      return;
+    }
+    if (!empty($this->response->body())) {
+      $this->Flash->set(_txt('er.rciam_stats_viewer.db.blackhauled'), array('key' => 'error'));
+      return $this->response;
+    }
+    $response = array();
+    if($this->CoPetition->sendApproverNotification($this->request->query['ptid'], $this->Session->read('Auth.User.co_person_id'), true) == true) {
+      $status = 200;
+    } 
+    else {
+      $status = 500;
+      $response[] = "Something went wrong. Please try again later.";
+     }
+
+    $this->response->statusCode((int)$status);
+    $this->response->body(json_encode($response));
+    $this->response->type('json');
+    return $this->response;
+    
+  }
   /**
    * View a CO Petition.
    *
@@ -2711,7 +2839,22 @@ class CoPetitionsController extends StandardController {
   function view($id) {
     // The current step is determined by the status of the petition
     $this->set('vv_current_step', $this->CoPetition->currentStep($id));
-    
+    // Pull the coef_next_step of the petition
+    $coef_next_step = $this->CoPetition->field('coef_next_step', array('CoPetition.id' => $id));
+    // This is only for petitionerAttributes after save, the step is done
+    if (strpos($coef_next_step, ':done') !== false) {
+      $coef_next_step = explode(':done', $coef_next_step)[0];
+      $this->set('vv_done_step', true);
+    }
+    $this->set('vv_coef_next_step', $coef_next_step);
+    // Set pending to true if there is on url, as possibly user is coming from creating new enrollemnt flow and
+    // has pending enrollment flow
+    $this->set('vv_pending_coef', !empty($this->request->params['named']['pending']) ? $this->request->params['named']['pending'] : false);
+    if($this->cachedEnrollmentFlowID > -1 && $this->request->params['named']['pending']) {
+      //Get COU name
+      $cou_name = $this->CoPetition->CoEnrollmentFlow->retrieveCoCouName($this->cachedEnrollmentFlowID, $this->cur_co['Co']['id']);
+      $this->set('vv_cou_name', $cou_name);
+    }    
     parent::view($id);
     
     // Set the title

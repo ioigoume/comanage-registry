@@ -123,6 +123,11 @@ class AppController extends Controller {
     // XXX CO-351 Placeholder
     $this->Session->write('Config.language', 'eng');
     Configure::write('Config.language', $this->Session->read('Config.language'));
+    // CSRF token should expire along with the Session. This is the default in CAKEPHP 3.7.x+
+    // https://book.cakephp.org/3/en/controllers/middleware.html#csrf-middleware
+    // https://github.com/cakephp/cakephp/issues/13532
+    // - expiry, How long the CSRF token should last. Defaults to browser session.
+    $this->Security->csrfUseOnce = false;
     
     // Tell the Auth module to call the controller's isAuthorized() function.
     $this->Auth->authorize = array('Controller');

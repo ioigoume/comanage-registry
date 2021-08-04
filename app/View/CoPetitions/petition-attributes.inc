@@ -84,7 +84,7 @@
     
     <?php if($tandc && $vv_tandc_mode == TAndCEnrollmentModeEnum::ExplicitConsent): ?>
     for(var i = 0;i < tandcids.length;i++) {
-      if(!document.getElementById('CoTermsAndConditions'+tandcids[i]).checked) {
+      if(document.getElementById('CoTermsAndConditions'+tandcids[i]) != null && !document.getElementById('CoTermsAndConditions'+tandcids[i]).checked) {
         allagreed = 0;
       }
     }
@@ -107,7 +107,7 @@
     // Disable checkboxes until individual T&C are reviewed
     for(var i = 0;i < tandcids.length;i++) {
       // If the box is already ticked (eg: if the form re-renders), make sure it remains enabled
-      if(!document.getElementById('CoTermsAndConditions'+tandcids[i]).checked) {
+      if(document.getElementById('CoTermsAndConditions'+tandcids[i]) != null && !document.getElementById('CoTermsAndConditions'+tandcids[i]).checked) {
         document.getElementById('CoTermsAndConditions'+tandcids[i]).disabled = true;
       }
     }

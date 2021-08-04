@@ -147,7 +147,12 @@ class CoSetting extends AppModel {
                             ElectStrategyEnum::Manual)),
       'required' => false,
       'allowEmpty' => true
-    )
+    ),
+    'enable_pending_petition_handler' => array(
+      'rule' => 'boolean',
+      'required' => false,
+      'allowEmpty' => true
+    ),
   );
   
   // Default values for each setting
@@ -168,6 +173,7 @@ class CoSetting extends AppModel {
     'email_verified_attr'   => VoPersonAttributes::voPersonVerifiedEmail,
     'org_identities_actions'=> null,
     'group_validity_sync_window' => DEF_GROUP_SYNC_WINDOW,
+    'enable_pending_petition_handler' => false,
   );
   
   /**
@@ -441,7 +447,18 @@ class CoSetting extends AppModel {
   public function petitionUiImprovedEnabled($coId) {
     return (boolean)$this->lookupValue($coId, 'enable_eof_ui');
   }
+
+  /**
+   * Determine if pending petitions handler is enabled for the specified CO.
+   *
+   * @param  integer $coId CO ID
+   * @return boolean True if enabled, false otherwise
+   */
   
+  public function pendingpetitionsHandlerEnabled($coId) {
+    return (boolean)$this->lookupValue($coId, 'enable_pending_petition_handler');
+  }
+
   /**
    * Determine if Org Identity Sync is enabled for the specified CO.
    *

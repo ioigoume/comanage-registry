@@ -1255,4 +1255,79 @@ class CoEnrollmentFlow extends AppModel {
     
     return $ret;
   }
+
+  /**
+   * retrieveCoCouName
+   *
+   * @param  Integer $eof_id
+   * @param  Integer $co_id
+   * @return String
+   */
+  public function retrieveCoCouName($eof_id, $co_id) {
+    // Currently i exclude all the EOF that refer to COU enrollment
+    $this->CoEnrollmentAttribute = ClassRegistry::init('CoEnrollmentAttribute');
+    $args = array();
+    $args['joins'][0]['table'] = 'co_enrollment_attribute_defaults';
+    $args['joins'][0]['alias'] = 'CoEnrollmentAttributeDefault';
+    $args['joins'][0]['type'] = 'INNER';
+    $args['joins'][0]['conditions'][0] = 'CoEnrollmentAttributeDefault.co_enrollment_attribute_id=CoEnrollmentAttribute.id';
+    $args['joins'][0]['conditions'][1] = 'CoEnrollmentAttribute.attribute iLIKE \'%cou%\'';
+    $args['joins'][0]['conditions'][2] = 'CoEnrollmentAttribute.co_enrollment_flow_id=' . $eof_id;
+    $args['joins'][0]['conditions'][3] = 'CoEnrollmentAttributeDefault.value ~ \'^[0-9]+$\'';
+    $args['joins'][0]['conditions'][4]['CoEnrollmentAttribute.deleted'] = false;
+    $args['joins'][0]['conditions'][5]['CoEnrollmentAttributeDefault.deleted'] = false;
+    $args['joins'][1]['table'] = 'cous';
+    $args['joins'][1]['alias'] = 'Cou';
+    $args['joins'][1]['type'] = 'INNER';
+    $args['joins'][1]['conditions'][0] = 'Cou.id=cast(CoEnrollmentAttributeDefault.value as integer)';
+    $args['joins'][1]['conditions'][1]['Cou.deleted'] = false;
+    $args['fields'] = array('Cou.name');
+    $args['contain'] = false;
+    $cou_eof = $this->CoEnrollmentAttribute->find('all',$args);
+    
+    if (empty($cou_eof[0]["Cou"]["name"])) {
+      // We picked a non COU EOF so use the name of the CO Id
+      $this->Co = ClassRegistry::init('Co');
+      $this->Co->id = $co_id;
+      return $this->Co->field('name');
+    }
+    
+    return $cou_eof[0]["Cou"]["name"];
+  }
+
+  /**
+   * @param Integer $co_id
+   * @param boolean $include_cou (NULL: return ALL, False: return only CO EOFs, True: return only COU EOFs)
+   * @return mixed
+   */
+  public function getEnrollmentFlows($co_id, $include_cou = NULL)
+  {
+    if(!is_null($include_cou)) {
+      // I exclude all the EOF that refer to COU enrollment
+      $this->CoEnrollmentAttribute = ClassRegistry::init('CoEnrollmentAttribute');
+      $args = array();
+      $args['conditions']['CoEnrollmentAttribute.attribute LIKE'] = '%cou%';
+      $args['conditions']['CoEnrollmentAttribute.deleted'] = false;
+      $args['fields'] = array('CoEnrollmentAttribute.co_enrollment_flow_id');
+      $args['contain'] = false;
+      $cou_eof = $this->CoEnrollmentAttribute->find('list', $args);
+      unset($args);
+    }
+    $args = array();
+    $args['conditions']['CoEnrollmentFlow.co_id'] = $co_id;
+    $args['conditions']['CoEnrollmentFlow.deleted'] = false;
+    $args['conditions']['CoEnrollmentFlow.status'] = EnrollmentFlowStatusEnum::Active;
+    if(!is_null($include_cou) && $include_cou == FALSE) {
+      // Get the enrollment flows from the current CO filtered out from the COUs
+      $args['conditions']['NOT']['CoEnrollmentFlow.id'] = $cou_eof;
+    }
+    else if(!is_null($include_cou) && $include_cou) {
+      // Get only COU enrollment flows
+      $args['conditions']['CoEnrollmentFlow.id IN'] = $cou_eof;
+    }
+    $args['fields'] = array('CoEnrollmentFlow.id', 'CoEnrollmentFlow.name');
+    $args['contain'] = false;
+    $this->CoEnrollmentFlow = ClassRegistry::init('CoEnrollmentFlow');
+    return $this->CoEnrollmentFlow->find('list', $args);
+  }
 }
