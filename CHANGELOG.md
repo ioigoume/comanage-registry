@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Assign value false to unset `cond_any_cou` checkbox in expiration policies configuration
 - CoPersonRole Status Fix during Petition
 - Expiration Policy have to implement Changelog Behavior
+- lang.php localization do not apply to Job Shells
 
 ### Changed
 

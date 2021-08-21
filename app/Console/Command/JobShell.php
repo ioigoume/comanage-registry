@@ -30,6 +30,7 @@ class JobShell extends AppShell {
                     'CoExpirationPolicy',
                     'CoGroupMember',
                     'CoSetting',
+                    'CoLocalization',
                     'OrgIdentitySource');
   
   public function getOptionParser() {
@@ -112,6 +113,9 @@ class JobShell extends AppShell {
     // especially if we want to run things on an other than nightly/daily schedule.
     
     _bootstrap_plugin_txt();
+
+    // Load localizations
+    $this->CoLocalization->load($this->params['coid']);
     
     // First, pull a set of COs
     
