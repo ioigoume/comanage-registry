@@ -175,19 +175,7 @@ EOT;
 
     public function execute_expiration_policy_admins_notify() {
       $dbc = $this->EmailAddress->getDataSource();
-      $this->message_body = "Dear %cou_name% Administrator\\n\\n"
-        . "We would like to let you know that on the 1st of August 2021 we will inform all VO members who have exceeded their one year approved membership, "
-        . "about its upcoming expiration. There will be a grace period during which EGI Check-in will send a notification email once per week until mid September. "
-        . "On the 15th of September, "
-        . "a final notification will be sent informing users who haven't taken any action to renew their membership that their membership has expired.\\n\\n" . PHP_EOL . PHP_EOL
-        . "The notifications will also include all appropriate instructions and links the users need so as to re-apply for a membership. "
-        . "According to our procedures a user willing to renew his/her membership will need to repeat the VO enrollment flow process. "
-        . "At the end of the Enrollment flow, any of the VO Administrators will be able to approve or deny the membership extension.\\n\\n"
-        . "Please note that a user with expired membership is not eligible for VO membership entitlements and as a result the user will "
-        . "not have access to VO resources relying on these entitlements.\\n\\n"
-        . "For more information about VO expiration polices please refer to our documentation[https://docs.egi.eu/users/check-in/vos/#expiration-policy]\\n\\n"
-        . "Thank you,\\n"
-        . "EGI Check-in team";
+      $this->message_body = "Email Message Body";
 
       try {
         $results = $this->EmailAddress->query($this->cou_admins_query);
@@ -196,7 +184,7 @@ EOT;
           $email_list = Hash::combine(
             $results,
             '{n}.{n}.email',
-            '{n}.{n}.cou_name',
+            '{n}.{n}.cou_name'
           );
         }
         foreach($email_list as $mail => $cou_name) {
