@@ -106,13 +106,13 @@ class AppController extends Controller {
   /**
    * Callback before other controller methods are invoked or views are rendered.
    * - precondition:
-   * - postcondition: Auth component is configured 
+   * - postcondition: Auth component is configured
    * - postcondition:
    *
    * @since  COmanage Registry v0.1
    * @throws UnauthorizedException (REST)
    * @throws InvalidArgumentException
-   */   
+   */
   
   public function beforeFilter() {
     // Load plugin specific texts. We have to do this here because when lang.php is
@@ -217,29 +217,6 @@ class AppController extends Controller {
         $this->set('vv_tz', date_default_timezone_get());
       }
 
-      // Apply platform localization variables. These are the ones in COManage CO
-      // Load dynamic texts. We do this here because lang.php doesn't have access to models yet.
-      global $cm_texts;
-      global $cm_lang;
-
-      $args = array();
-      $args['joins'][0]['table'] = 'cos';
-      $args['joins'][0]['alias'] = 'Co';
-      $args['joins'][0]['type'] = 'INNER';
-      $args['joins'][0]['conditions'][0] = 'CoLocalization.co_id=Co.id';
-      $args['conditions']['Co.name'] = 'COmanage';
-      $args['conditions']['Co.status'] = StatusEnum::Active;
-      $args['conditions']['CoLocalization.language'] = $cm_lang;
-      $args['fields'] = array('CoLocalization.lkey', 'CoLocalization.text');
-      $args['contain'] = false;
-
-      $this->loadModel('CoLocalization');
-      $ls = $this->CoLocalization->find('list', $args);
-
-      if(!empty($ls)) {
-        $cm_texts[$cm_lang] = array_merge($cm_texts[$cm_lang], $ls);
-      }
-
       // Before we do anything else, check to see if a CO was provided.
       // (It might impact our authz decisions.) Note that some models (eg: MVPAs)
       // might specify a CO, but might not. As of v0.6, we no longer redirect to
@@ -261,8 +238,8 @@ class AppController extends Controller {
         if(!isset($this->Co)) {
           // There might be a CO object under another object (eg: CoOrgIdentityLink),
           // but it's easier if we just explicitly load the model
-          
-          $this->loadModel('Co');
+
+          $this->Co = ClassRegistry::init('Co');
         }
         
         $args = array();
@@ -273,25 +250,9 @@ class AppController extends Controller {
         
         if(!empty($this->cur_co)) {
           $this->set("cur_co", $this->cur_co);
-          
-          // Load dynamic texts. We do this here because lang.php doesn't have access to models yet.
-          
-          global $cm_texts;
-          global $cm_lang;
-          
-          $this->loadModel('CoLocalization');
-          
-          $args = array();
-          $args['conditions']['CoLocalization.co_id'] = $coid;
-          $args['conditions']['CoLocalization.language'] = $cm_lang;
-          $args['fields'] = array('CoLocalization.lkey', 'CoLocalization.text');
-          $args['contain'] = false;
-          
-          $ls = $this->CoLocalization->find('list', $args);
-          
-          if(!empty($ls)) {
-            $cm_texts[$cm_lang] = array_merge($cm_texts[$cm_lang], $ls);
-          }
+
+          // Load Localizations
+          $this->Co->CoLocalization->load($this->cur_co['Co']['id']);
           
           // Perform a bit of a sanity check before we get any further
           try {
@@ -668,11 +629,11 @@ class AppController extends Controller {
     } elseif($redirectMode != "calculate") {
       switch($rc) {
         case -1:
-          $this->Flash->set(_txt('er.person.noex'), array('key' => 'error'));            
+          $this->Flash->set(_txt('er.person.noex'), array('key' => 'error'));
           $this->redirect($redirect);
           break;
         case 0:
-          $this->Flash->set(_txt('er.person.none'), array('key' => 'error'));            
+          $this->Flash->set(_txt('er.person.none'), array('key' => 'error'));
           $this->redirect($redirect);
           break;
       }
@@ -714,7 +675,7 @@ class AppController extends Controller {
    */
 
   function getNavLinks() {
-    // Get CMP-level navigation links 
+    // Get CMP-level navigation links
     $this->loadModel('NavigationLink');
 
     $params = array('fields'     => array('NavigationLink.title', 'NavigationLink.url'),
@@ -859,7 +820,7 @@ class AppController extends Controller {
         $coTheme = $settings['CoTheme'];
       }
     }
-      
+    
     if($coTheme) {
       $this->set('vv_theme_hide_title', $coTheme['hide_title']);
       $this->set('vv_theme_hide_footer_logo', $coTheme['hide_footer_logo']);
@@ -875,7 +836,7 @@ class AppController extends Controller {
       if(!empty($coTheme['footer'])) {
         $this->set('vv_theme_footer', $coTheme['footer']);
       }
-    }    
+    }
   }
   
   /**
@@ -1023,7 +984,7 @@ class AppController extends Controller {
     
     // Manage CO expiration policies?
     $p['menu']['coxp'] = $roles['cmadmin'] || $roles['coadmin'];
-      
+    
     // Admin COmanage?
     $p['menu']['admin'] = $roles['cmadmin'];
     

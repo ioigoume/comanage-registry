@@ -332,7 +332,8 @@ class CoPersonRole extends AppModel {
     
     // If the validity of the role was changed, change the status appropriately
     
-    if(!empty($this->data[$this->alias]['status'])) {
+    if(!empty($this->data[$this->alias]['status'])
+       && (isset($options['trustStatus']) && !$options['trustStatus'])) {
       if(!empty($this->data[$this->alias]['valid_from'])) {
         if(strtotime($this->data[$this->alias]['valid_from']) < time()
            && $this->data[$this->alias]['status'] == StatusEnum::Pending) {

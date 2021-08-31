@@ -6,7 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [unreleased]
 
 ### Fixed
-- Assign value false to unset checkbox in expiration policies configuration
+
+- Assign value false to unset `cond_any_cou` checkbox in expiration policies configuration
+- CoPersonRole Status Fix during Petition
+- Expiration Policy have to implement Changelog Behavior
+- lang.php localization do not apply to Job Shells
+- Enable Email Verification by unpriviledged users
+
+### Changed
+
+- Calculate change diff and pass in provisioning data
 
 ## [3.2.0-rciam] - 2021-07-15
 
