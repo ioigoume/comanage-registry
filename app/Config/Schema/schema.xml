@@ -967,6 +967,7 @@
     <field name="act_notification_subject" type="C" size="256" />
     <field name="act_notification_body" type="X" size="4000" />
     <field name="act_status" type="C" size="2" />
+    <field name="act_notify_mode" type="C" size="2" />
     <field name="status" type="C" size="2" />
     <field name="created" type="T" />
     <field name="modified" type="T" />

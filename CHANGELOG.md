@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [unreleased]
+
+### Added
+
+- Supress Expiration Notification for users who renewed their membership
+
 ## [3.2.1-rciam] - 2021-09-02
 
 ### Fixed
@@ -20,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [3.2.0-rciam] - 2021-07-15
 
 ### Added
+
 - Hierarchy representation of COUs option at LDAP Provisioner
 - Attribute Options at LDAP Provisioner
 - voPerson object class at LDAP Provisioner
@@ -27,17 +34,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - (@COU_ENROLL_URL) Message Template placeholder. Contains the list of active Enrollment Flows for a COU
 
 ### Changed
+
 - Construct entitlements using LdapSyncEntitlements class
 - Use Country (ISO 3166-1) for CO Person Role Country attribute
 - Allow Country attribute to be the only required Address field during user registration
 - Expiration policies can be configured to apply to all COUs
 
 ### Fixed
+
 - Show stored values at LDAP Provisioner configuration page
 
 ## [3.1.0-rciam] - 2021-06-30
 
 ### Added
+
 - Subject DN attribute in user's profile
 - RC Auth (DN linking) Plugin:
   - Associate subject DN of certificate issued by RCauth to user profile
@@ -78,6 +88,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - REST API query COU by name
 
 ### Changed
+
 - Update email and subject DN when the user logs into registry
 - Use new [EGI theme](https://github.com/EGI-Foundation/comanage-registry-themeegi)
 - Changed the way we load plugins from config. This extention will allow plugins to inject bootstrapping and routes
@@ -90,6 +101,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Show CO People linked to OrgIdenity in OrgIdentity Index View
 
 ### Fixed
+
 - Prevent users from submitting multiple registration requests
 - Handle multiple attribute values for email and subject DN on registration
 - Pagination functionality added in order to handle any error(s) occurred while managing large group memberships

@@ -513,6 +513,40 @@
               ?>
             </div>
           </li>
+
+          <li>
+            <div class="field-name">
+              <div class="field-title">
+                <?php print ($e ? $this->Form->label('act_notify_mode', _txt('fd.xp.notify.act.mode')) : _txt('fd.xp.notify_cogroup.act')); ?>
+              </div>
+              <div class="field-desc"><?php print _txt('fd.xp.notify.act.mode.desc'); ?></div>
+            </div>
+            <div class="field-info">
+              <?php
+              global $cm_lang, $cm_texts;
+              $attrs = array();
+              $attrs['value'] = (!empty($co_expiration_policies[0]['CoExpirationPolicy']['act_notify_mode'])
+                ? $co_expiration_policies[0]['CoExpirationPolicy']['act_notify_mode']
+                : "");
+              $attrs['empty'] = true;
+
+              if($e) {
+                print $this->Form->select('act_notify_mode',
+                                          $cm_texts[ $cm_lang ]['en.expiration.policy'],
+                                          $attrs);
+
+                if($this->Form->isFieldError('act_notify_mode')) {
+                  print $this->Form->error('act_notify_mode');
+                }
+              } else {
+                if(!empty($co_expiration_policies[0]['CoExpirationPolicy']['act_notify_mode'])) {
+                  print filter_var($vv_co_groups[ $co_expiration_policies[0]['CoExpirationPolicy']['act_notify_mode'] ],FILTER_SANITIZE_SPECIAL_CHARS);
+                }
+              }
+              ?>
+            </div>
+          </li>
+
           <li>
             <div class="field-name">
               <div class="field-title">

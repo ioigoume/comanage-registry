@@ -504,7 +504,11 @@ original notification at
   'en.extattr' =>     array(ExtendedAttributeEnum::Integer => 'Integer',
                             ExtendedAttributeEnum::Timestamp => 'Timestamp',
                             ExtendedAttributeEnum::Varchar32 => 'String (32)'),
-  
+
+  'en.expiration.policy' => array(
+    ExpirationPolicyEnum::SkipNotify => 'Skip Notify',
+  ),
+
   'en.group.type' => array(
     GroupEnum::Standard      => 'Standard',
     GroupEnum::ActiveMembers => 'Active Members',
@@ -1805,6 +1809,8 @@ original notification at
   'fd.xp.notify_coperson.act.desc' => 'The CO Person whose Role is affected will be notified when this Expiration Policy is applied',
   'fd.xp.notify_sponsor.act' => 'Notify Sponsor',
   'fd.xp.notify_sponsor.act.desc' => 'The Sponsor of the affected Role will be notified when this Expiration Policy is applied',
+  'fd.xp.notify.act.mode' => 'Notification Mode',
+  'fd.xp.notify.act.mode.desc' => 'Send notifications according to the selected mode',
   'fd.xp.nbody' =>    'Notification Email Body',
   'fd.xp.nbody.desc' => 'Body for email message sent for notification (max 4000 characters)',
   'fd.xp.nmt' =>      'Notification Email Message Template',

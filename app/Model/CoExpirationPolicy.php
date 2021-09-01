@@ -24,18 +24,18 @@
  * @since         COmanage Registry v0.9.2
  * @license       Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
  */
-  
+
 class CoExpirationPolicy extends AppModel {
   // Define class name for cake
   public $name = "CoExpirationPolicy";
-  
+
   // Current schema version for API
   public $version = "1.0";
-  
+
   // Add behaviors
   public $actsAs = array('Containable',
                          'Changelog' => array('priority' => 5));
-  
+
   // Association rules from this model to other models
   public $belongsTo = array(
     "ActCou" => array(
@@ -56,14 +56,14 @@ class CoExpirationPolicy extends AppModel {
       'foreignKey' => 'cond_cou_id'
     )
   );
-  
+
   public $hasMany = array(
     "CoExpirationCount" => array('dependent' => true)
   );
-  
+
   // Default display field for cake generated views
   public $displayField = "description";
-  
+
   // Validation rules for table elements
   public $validate = array(
     'co_id' => array(
@@ -226,6 +226,11 @@ class CoExpirationPolicy extends AppModel {
         'allowEmpty' => true
       )
     ),
+    'act_notify_mode' => array(
+      'rule' => array('inList', array(ExpirationPolicyEnum::SkipNotify)),
+      'required' => false,
+      'allowEmpty' => true
+    ),
     'status' => array(
       'rule' => array('inList', array(SuspendableStatusEnum::Active,
                                       SuspendableStatusEnum::Suspended)),
@@ -233,7 +238,120 @@ class CoExpirationPolicy extends AppModel {
       'message' => 'A valid status must be selected'
     )
   );
-  
+
+  /**
+   * Retrieve matching CO Person Role records
+   * @param  integer $coId CO ID
+   * @param  array $policy
+   * @return array|null CoPersonRole Record
+   */
+  public function retrieveCoPersonRecords($coId, $policy) {
+    $args = array();
+    if(!empty($policy['CoExpirationPolicy']['cond_affiliation'])) {
+      $args['conditions']['CoPersonRole.affiliation'] = $policy['CoExpirationPolicy']['cond_affiliation'];
+    }
+    // Note only one of after and before is permitted
+    // We use strlen because we want the literal string 0 but not an empty string.
+    if(strlen($policy['CoExpirationPolicy']['cond_after_expiry']) > 0) {
+      // Imagine today is June 10 and cond_after_expiry is 7 days (ie: give someone a week grace
+      // period after expiration). What we want are valid through dates from June 3 and earlier.
+      $args['conditions']['CoPersonRole.valid_through <'] =
+        date('Y-m-d H:i:s', strtotime("-" . $policy['CoExpirationPolicy']['cond_after_expiry'] . " days"));
+    } elseif(strlen($policy['CoExpirationPolicy']['cond_before_expiry']) > 0) {
+      // Imagine today is June 5 and cond_before_expiry is 3 days (ie: notify someone 3 days
+      // before expiration). What we want are valid_through dates between now (6/5) and 3 days
+      // from now (6/8).
+      $args['conditions']['CoPersonRole.valid_through BETWEEN ? AND ?'] =
+        array(date('Y-m-d H:i:s', time()),
+          date('Y-m-d H:i:s', strtotime("+" . $policy['CoExpirationPolicy']['cond_before_expiry'] . " days")));
+    }
+    if(!empty($policy['CoExpirationPolicy']['cond_cou_id'])) {
+      $args['conditions']['CoPersonRole.cou_id'] = $policy['CoExpirationPolicy']['cond_cou_id'];
+    } elseif (isset($policy['CoExpirationPolicy']['cond_any_cou']) && $policy['CoExpirationPolicy']['cond_any_cou'] === true) {
+      $args['conditions'][] = 'CoPersonRole.cou_id IS NOT NULL';
+    }
+    if(!empty($policy['CoExpirationPolicy']['cond_status'])) {
+      $args['conditions']['CoPersonRole.status'] = $policy['CoExpirationPolicy']['cond_status'];
+    }
+    if(isset($p['CoExpirationPolicy']['cond_sponsor_invalid'])
+      && $p['CoExpirationPolicy']['cond_sponsor_invalid']) {
+      // Here we make sure a sponsor was specified and then check to see if the
+      // sponsor is not active
+      $args['conditions'][] = 'CoPersonRole.sponsor_co_person_id IS NOT NULL';
+      $args['joins'][0]['table'] = 'co_people';
+      $args['joins'][0]['alias'] = 'SponsorCoPerson';
+      $args['joins'][0]['type'] = 'INNER';
+      $args['joins'][0]['conditions'][0] = 'SponsorCoPerson.id=CoPersonRole.sponsor_co_person_id';
+      $args['conditions']['SponsorCoPerson.status !='] = StatusEnum::Active;
+    }
+    // Restrict matching records to the requested CO
+    $args['conditions']['CoPerson.co_id'] = $coId;
+    $args['contain']['CoPerson'] = array('PrimaryName', 'Identifier');
+    $args['contain']['SponsorCoPerson'] = 'PrimaryName';
+    $args['contain'][] = 'Cou';
+
+    return $this->Co->CoPerson->CoPersonRole->find('all', $args);
+  }
+
+  /**
+   * Get the co_person_id and get all the identical roles. If count is more than one then skip notification
+   * - Count all duplicates for sponsor_co_person_id, cou_id, affiliation, title, o, ou
+   * - We iterate through one role at a time so we do not know if there will another role that which will trigger a notification
+   * - use hash to extract role ids grouped by co_person_id
+   *
+   * @param integer $copersonid
+   * @param []      $policy
+   * @return [integer]  Array of CoPersonRole Ids which are identical
+   */
+  public function getPersonRolesMatch($copersonid, $policy) {
+    if(empty($copersonid)) {
+      return null;
+    }
+
+    // Update Virtual fields
+    $this->CoPersonRole = ClassRegistry::init('CoPersonRole');
+    $this->CoPersonRole->virtualFields ['count'] = "COUNT(*)";
+    $this->CoPersonRole->virtualFields ['agg_ids'] = "STRING_AGG(CAST(CoPersonRole.id AS TEXT), ',')";
+
+    $args = array();
+    $args['conditions']['CoPersonRole.co_person_id'] = $copersonid;
+    if(!empty($policy['CoExpirationPolicy']['cond_status'])) {
+      $args['conditions']['CoPersonRole.status'][] = $policy['CoExpirationPolicy']['cond_status'];
+    }
+    $args['conditions']['NOT']['CoPersonRole.status'][] = StatusEnum::Expired;
+    $args['fields'] = array(
+      'CoPersonRole.agg_ids',
+      'CoPersonRole.sponsor_co_person_id',
+      'CoPersonRole.cou_id',
+      'CoPersonRole.affiliation',
+      'CoPersonRole.title',
+      // 'CoPersonRole.o',  // This is a Framework Bug. The Framework can not construct a query field when the column consists of only on letter
+      'CoPersonRole.ou',
+      'CoPersonRole.count',
+    );
+    $args['group'] = array(
+      'CoPersonRole.sponsor_co_person_id',
+      'CoPersonRole.cou_id',
+      'CoPersonRole.affiliation',
+      'CoPersonRole.title',
+      // 'CoPersonRole.o',  // This is a Framework Bug. The Framework can not construct a query field when the column consists of only on letter
+      'CoPersonRole.ou',
+    );
+    $args['having'] = array('CoPersonRole.count > 1');
+    $args['contain'] = false;
+
+    $people_roles = $this->CoPersonRole->find('all', $args);
+    $this->CoPersonRole->virtualFields = array();
+    $role_groups = array();
+    if(!empty($people_roles)) {
+      foreach ($people_roles as $person) {
+        $role_groups[] = explode(",", $person['CoPersonRole']['agg_ids']);
+      }
+    }
+
+    return $role_groups;
+  }
+
   /**
    * Execute expiration policies for the specified CO.
    *
@@ -242,69 +360,53 @@ class CoExpirationPolicy extends AppModel {
    * @param  AppShell $appShell If set, log progress via this provided AppShell
    * @return boolean True on success
    */
-  
+
   public function executePolicies($coId, $appShell=null) {
     // Select all policies where status=active
-    
+
     $args = array();
     $args['conditions']['CoExpirationPolicy.co_id'] = $coId;
     $args['conditions']['CoExpirationPolicy.status'] = SuspendableStatusEnum::Active;
     $args['contain'] = array('ActCou', 'ActNotifyMessageTemplate');
-    
+
     $policies = $this->find('all', $args);
-    
+
     if(!empty($policies)) {
       foreach($policies as $p) {
         // First, retrieve matching CO Person Role records
-        
-        $args = array();
-        if(!empty($p['CoExpirationPolicy']['cond_affiliation'])) {
-          $args['conditions']['CoPersonRole.affiliation'] = $p['CoExpirationPolicy']['cond_affiliation'];
+        $roles = $this->retrieveCoPersonRecords($coId, $p);
+        // Aggregate the roles to expire per user
+        $roles_to_expire = array();
+        if(!empty($roles)) {
+          // Extract [co_person_id => [co_person_role_id]]
+          foreach($roles as $role) {
+            $roles_to_expire[ $role['CoPersonRole']['co_person_id'] ][] = $role['CoPersonRole']['id'];
+          }
         }
-        // Note only one of after and before is permitted
-        // We use strlen because we want the literal string 0 but not an empty string.
-        if(strlen($p['CoExpirationPolicy']['cond_after_expiry']) > 0) {
-          // Imagine today is June 10 and cond_after_expiry is 7 days (ie: give someone a week grace
-          // period after expiration). What we want are valid through dates from June 3 and earlier.
-          $args['conditions']['CoPersonRole.valid_through <'] =
-            date('Y-m-d H:i:s', strtotime("-" . $p['CoExpirationPolicy']['cond_after_expiry'] . " days"));
-        } elseif(strlen($p['CoExpirationPolicy']['cond_before_expiry']) > 0) {
-          // Imagine today is June 5 and cond_before_expiry is 3 days (ie: notify someone 3 days
-          // before expiration). What we want are valid_through dates between now (6/5) and 3 days
-          // from now (6/8).
-          $args['conditions']['CoPersonRole.valid_through BETWEEN ? AND ?'] =
-            array(date('Y-m-d H:i:s', time()),
-                  date('Y-m-d H:i:s', strtotime("+" . $p['CoExpirationPolicy']['cond_before_expiry'] . " days")));
-        }
-        if(!empty($p['CoExpirationPolicy']['cond_cou_id'])) {
-          $args['conditions']['CoPersonRole.cou_id'] = $p['CoExpirationPolicy']['cond_cou_id'];
-        } elseif (isset($p['CoExpirationPolicy']['cond_any_cou']) && $p['CoExpirationPolicy']['cond_any_cou'] === true) {
-          $args['conditions'][] = 'CoPersonRole.cou_id IS NOT NULL';
-        }
-        if(!empty($p['CoExpirationPolicy']['cond_status'])) {
-          $args['conditions']['CoPersonRole.status'] = $p['CoExpirationPolicy']['cond_status'];
-        }
-        if(isset($p['CoExpirationPolicy']['cond_sponsor_invalid'])
-           && $p['CoExpirationPolicy']['cond_sponsor_invalid']) {
-          // Here we make sure a sponsor was specified and then check to see if the
-          // sponsor is not active
-          $args['conditions'][] = 'CoPersonRole.sponsor_co_person_id IS NOT NULL';
-          $args['joins'][0]['table'] = 'co_people';
-          $args['joins'][0]['alias'] = 'SponsorCoPerson';
-          $args['joins'][0]['type'] = 'INNER';
-          $args['joins'][0]['conditions'][0] = 'SponsorCoPerson.id=CoPersonRole.sponsor_co_person_id';
-          $args['conditions']['SponsorCoPerson.status !='] = StatusEnum::Active;
-        }
-        // Restrict matching records to the requested CO
-        $args['conditions']['CoPerson.co_id'] = $coId;
-        $args['contain']['CoPerson'] = array('PrimaryName', 'Identifier');
-        $args['contain']['SponsorCoPerson'] = 'PrimaryName';
-        $args['contain'][] = 'Cou';
-        
-        $roles = $this->Co->CoPerson->CoPersonRole->find('all', $args);
 
         if(!empty($roles)) {
           foreach($roles as $role) {
+            // XXX Here i should test for other roles of the same nature
+            if($p['CoExpirationPolicy']['act_notify_mode'] === ExpirationPolicyEnum::SkipNotify) {
+              // Get the Identical Role IDs per CO Person
+              $identicals_role_groups = $this->getPersonRolesMatch($role['CoPersonRole']['co_person_id'], $p);
+              $flatten_ident = Hash::flatten($identicals_role_groups);
+              if (!empty($identicals_role_groups)
+                && in_array($role['CoPersonRole']['id'], $flatten_ident)) {
+                $fkey = array_search($role['CoPersonRole']['id'], $flatten_ident);
+                $key = explode('.', $fkey, 2);
+                $group = $identicals_role_groups[$key[0]];
+                // How many are identical
+                $group_len = count($group);
+                // Check how many from the identical intersect with the ones that are eligible to expire
+                $eligible_identical_inter = array_intersect($roles_to_expire[$role['CoPersonRole']['co_person_id']], $group);
+                $identical_remaining = array_diff($group, $eligible_identical_inter);
+                $identical_remaining_cnt = count($identical_remaining);
+                if ($identical_remaining_cnt > 0) {
+                  continue;
+                }
+              }
+            }
             if(!empty($p['CoExpirationPolicy']['cond_count'])) {
               // Make sure we haven't already sent the specified number of notifications.
               // It's a bit tricky to do this as part of the find, so we do it here.
@@ -701,7 +803,7 @@ class CoExpirationPolicy extends AppModel {
         }
       }
     }
-    
+
     return true;
   }
 
@@ -756,7 +858,7 @@ class CoExpirationPolicy extends AppModel {
 
         return false;
     }
-  
+
   /**
    * Check if a given extended type is in use by any Expiration Policy.
    *
@@ -766,28 +868,28 @@ class CoExpirationPolicy extends AppModel {
    * @param  Integer CO ID
    * @return Boolean True if the extended type is in use, false otherwise
    */
-  
+
   public function typeInUse($attribute, $attributeName, $coId) {
     // Note we are effectively overriding AppModel::typeInUse().
-    
+
     // Inflect the model names
     $attr = explode('.', $attribute, 2);
-    
+
     $mname = Inflector::underscore($attr[0]);
-    
+
     if($attr[0] == 'CoPersonRole' && $attr[1] == 'affiliation') {
       // We need to check both conditions and actions
-      
+
       $args = array();
       $args['conditions']['OR']['CoExpirationPolicy.act_affiliation'] = $attributeName;
       $args['conditions']['OR']['CoExpirationPolicy.cond_affiliation'] = $attributeName;
       $args['conditions']['CoExpirationPolicy.co_id'] = $coId;
       $args['contain'] = false;
-      
+
       return (boolean)$this->find('count', $args);
     }
     // else nothing to do
-    
+
     return false;
   }
 }

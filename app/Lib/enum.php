@@ -315,6 +315,10 @@ class ExtendedAttributeEnum {
   const Varchar32 = 'VARCHAR(32)';
 }
 
+class ExpirationPolicyEnum {
+  const SkipNotify = 'S';
+}
+
 class IdentifierAssignmentEnum
 {
   const Random     = 'R';
