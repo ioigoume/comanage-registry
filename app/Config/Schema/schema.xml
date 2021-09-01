@@ -1541,6 +1541,7 @@
     <field name="deleted" type="L" />
     <field name="actor_identifier" type="C" size="256" />
     <field name="targetnew" type="C" size="1024" />
+    <field name="coef_next_step" type="C" size="256" />
     
     <index name="co_petitions_i1">
       <col>co_id</col>

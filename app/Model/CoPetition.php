@@ -159,7 +159,11 @@ class CoPetition extends AppModel {
                                       PetitionStatusEnum::PendingConfirmation)),
       'required' => true,
       'message' => 'A valid status must be selected'
-    )
+    ),
+    'coef_next_step' => array(
+      'required' => false,
+      'allowEmpty' => true
+    ),
   );
   
   // Enum type hints
@@ -1999,6 +2003,7 @@ class CoPetition extends AppModel {
                         'id'         => $id));
     }
     
+    $this->saveField('coef_next_step', 'petitionerAttributes:done');
     // Commit
     $dbc->commit();
     

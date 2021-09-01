@@ -181,6 +181,10 @@
                 <div class="field-name"><?php print _txt('ct.co_enrollment_flows.1'); ?></div>
                 <div class="field-info"><?php print $co_petitions[0]['CoEnrollmentFlow']['name']; ?></div>
               </li>
+              <li>
+                <div class="field-name"><?php print _txt('ct.co_petition.coef_next_step'); ?></div>
+                <div class="field-info"><?php print !empty($co_petitions[0]['CoPetition']['coef_next_step']) ? $co_petitions[0]['CoPetition']['coef_next_step'] : ""; ?></div>
+              </li>
               <?php if($co_petitions[0]['CoPetition']['status'] == PetitionStatusEnum::PendingConfirmation
                        && !empty($co_petitions[0]['CoInvite']['expires'])): ?>
               <li>

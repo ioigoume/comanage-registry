@@ -968,6 +968,11 @@ class CoPetitionsController extends StandardController {
         'action'     => $this->nextSteps[$step],
         $ptid
       );
+
+      // Save next step
+      $this->CoPetition->id = $ptid;
+      $this->CoPetition->saveField('coef_next_step', $this->nextSteps[$step]);
+      
       // RCIAM-57
       if(isset($target_service_url) && $target_service_url != ""){
         $redirect = array_merge($redirect, array( '?' => ['targetnew'=>$target_service_url] ));

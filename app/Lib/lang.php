@@ -133,6 +133,7 @@ $cm_texts['en_US'] = array(
   'ct.co_petition_history_records.pl' => 'CO Petition History Records',
   'ct.co_petitions.1' =>        'CO Petition',
   'ct.co_petitions.pl' =>       'CO Petitions',
+  'ct.co_petition.coef_next_step'  => 'Enrollment Flow Next Step',
   'ct.co_pipelines.1' =>        'Pipeline',
   'ct.co_pipelines.pl' =>       'Pipelines',
   'ct.co_provisioning_targets.1'  => 'Provisioning Target',
