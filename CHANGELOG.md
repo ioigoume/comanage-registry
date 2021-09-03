@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 
 - Supress Expiration Notification for users who renewed their membership
+- Save enrollment flow's next step for every petition
 
 ## [3.2.1-rciam] - 2021-09-02
 
