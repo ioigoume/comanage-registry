@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [unreleased]
+
+### Fixed
+
+- COU administrators get permission denied when filtering COU population
+
 ## [3.2.2-rciam] - 2021-09-06
 
 ### Added
