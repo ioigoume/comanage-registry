@@ -5,10 +5,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [unreleased]
 
+### Added
+
+- Run Expiration Policies every xx days for each User
+
+### Fixed
+
+- Ldap Provisioner: Make Attribute Scope field for eduPersonUniqueId as an optional field
+
+## [3.2.3-rciam] - 2021-09-06
+
 ### Fixed
 
 - COU administrators get permission denied when filtering COU population
-- Ldap Provisioner: Make Attribute Scope field for eduPersonUniqueId as an optional field
 
 ## [3.2.2-rciam] - 2021-09-06
 

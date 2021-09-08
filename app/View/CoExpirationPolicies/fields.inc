@@ -292,6 +292,20 @@
           <li>
             <div class="field-name">
               <div class="field-title">
+                <?php print ($e ? $this->Form->label('cond_every_xdays', _txt('fd.xp.every_xday.cond')) : _txt('fd.xp.every_xday.cond')); ?>
+              </div>
+              <div class="field-desc"><?php print _txt('fd.xp.every_xday.cond.desc'); ?></div>
+            </div>
+            <div class="field-info">
+              <?php
+              print ($e ? $this->Form->input('cond_every_xdays', $args)
+                : filter_var($co_expiration_policies[0]['CoExpirationPolicy']['cond_every_xdays'],FILTER_SANITIZE_SPECIAL_CHARS));
+              ?>
+            </div>
+          </li>
+          <li>
+            <div class="field-name">
+              <div class="field-title">
                 <?php print ($e ? $this->Form->label('cond_status', _txt('fd.status')) : _txt('fd.status')); ?>
               </div>
               <div class="field-desc"><?php print _txt('fd.xp.status.cond.desc'); ?></div>
