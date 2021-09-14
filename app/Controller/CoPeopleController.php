@@ -915,6 +915,7 @@ class CoPeopleController extends StandardController {
     
     if(!empty($this->params['named']['Search.givenName'])
        || !empty($this->params['named']['Search.familyName'])) {
+      $pagcond['conditions']['Name.primary_name'] = true;
       $pagcond['joins'][] = array(
         'table' => 'names',
         'alias' => 'Name',
@@ -975,16 +976,8 @@ class CoPeopleController extends StandardController {
     
     // Filter by COU
     if(!empty($this->params['named']['Search.couid'])) {
-      // If a CO Person has more than one role, this search will cause them go show up once
-      // per role in the results (select co_people.id,co_person_roles.id where co_person_role.cou_id=#
-      // will generate one row per co_person_role_id). In order to fix this, we can use
-      // aggregate functions and grouping, like this:
-      //      $pagcond['fields'] = array('CoPerson.id',
-      //                                 'MIN(CoPersonRole.id)');
-      //      $pagcond['group'] = array('CoPerson.id', 'Co.id', 'PrimaryName.family', 'PrimaryName.given');
-      // This produces the correct results, however Cake then goes into an infinite loop
-      // trying to pull some related data for the results. So for now, we just leave duplicates
-      // in the search results.
+      $this->paginate['fields'] = array( "DISTINCT CoPerson.id","PrimaryName.given","PrimaryName.family","CoPerson.status");
+
       $pagcond['conditions']['CoPersonRole.cou_id'] = $this->params['named']['Search.couid'];
       $pagcond['joins'][] = array(
         'table' => 'co_person_roles',
