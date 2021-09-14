@@ -62,6 +62,7 @@ class CoPersonRole extends AppModel {
     // A person can have one or more address
     "Address" => array('dependent' => true),
     "CoExpirationCount" => array('dependent' => true),
+    "CoExpirationDaysCount" => array('dependent' => true),
     "CoPetition" => array(
       'dependent' => true,
       'foreignKey' => 'enrollee_co_person_role_id'

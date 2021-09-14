@@ -527,9 +527,6 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                   // Append scope if set, skip otherwise
                   if(!empty($coProvisioningTargetData['CoLdapProvisionerTarget']['scope_suffix'])) {
                     $scope = '@' . $coProvisioningTargetData['CoLdapProvisionerTarget']['scope_suffix'];
-                  } else {
-                    // Don't add this attribute since we don't have a scope
-                    break;
                   }
                 }
                 
@@ -1842,7 +1839,6 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
             'multiple'  => false,
             'extendedtype' => 'identifier_types',
             'defaulttype' => IdentifierEnum::Enterprise,
-            'requirescope' => true
           )
         )
       ),

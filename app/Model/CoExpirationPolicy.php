@@ -58,7 +58,8 @@ class CoExpirationPolicy extends AppModel {
   );
 
   public $hasMany = array(
-    "CoExpirationCount" => array('dependent' => true)
+    "CoExpirationCount" => array('dependent' => true),
+    "CoExpirationDaysCount" => array('dependent' => true),
   );
 
   // Default display field for cake generated views
@@ -113,6 +114,11 @@ class CoExpirationPolicy extends AppModel {
       'allowEmpty' => true
     ),
     'cond_count' => array(
+      'rule' => 'numeric',
+      'required' => false,
+      'allowEmpty' => true
+    ),
+    'cond_every_xdays' => array(
       'rule' => 'numeric',
       'required' => false,
       'allowEmpty' => true
@@ -407,6 +413,25 @@ class CoExpirationPolicy extends AppModel {
                 }
               }
             }
+
+            // XXX Days passed since last notification sent
+            if(!empty($p['CoExpirationPolicy']['cond_every_xdays'])) {
+              $days_cnt = $this->CoExpirationDaysCount->days_diff($p['CoExpirationPolicy']['id'],
+                                                                  $role['CoPersonRole']['id']);
+              if(!is_null($days_cnt)
+                 && ($p['CoExpirationPolicy']['cond_every_xdays'] - $days_cnt > 0)) {
+                $this->log(__METHOD__ . ":: "
+                           . $days_cnt . " / " . $p['CoExpirationPolicy']['cond_every_xdays']
+                           . " days until next notification, for CoPerson " . $role['CoPersonRole']['id'], LOG_INFO);
+                continue;
+              } else {
+                // Store the date
+                $this->CoExpirationDaysCount->date_store($p['CoExpirationPolicy']['id'],
+                                                         $role['CoPersonRole']['id']);
+              }
+            }
+
+            // XXX Number of times run
             if(!empty($p['CoExpirationPolicy']['cond_count'])) {
               // Make sure we haven't already sent the specified number of notifications.
               // It's a bit tricky to do this as part of the find, so we do it here.
