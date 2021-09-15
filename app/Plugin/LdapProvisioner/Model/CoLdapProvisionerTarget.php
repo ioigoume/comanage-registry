@@ -859,7 +859,10 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                           }
                           $ret[$parent['Cou']['id']] = $parent['Cou']['name'];
                           $group_name = explode(":",$gm['CoGroup']['name']);
-                          $attributes['isMemberOf'][] = $group_name[0] . ':' . $group_name[1] . ":" . $ret[$parent['Cou']['id']] . ":" . $group_name[3];
+                          $isMemberOf = $group_name[0] . ':' . $group_name[1] . ":" . $ret[$parent['Cou']['id']] . ":" . $group_name[3];
+                          if($group_name[count($group_name)-1] != 'all') {
+                            $attributes['isMemberOf'][] = $isMemberOf;
+                          }
                         }
                         else {
                           $attributes['isMemberOf'][] = $gm['CoGroup']['name'];
