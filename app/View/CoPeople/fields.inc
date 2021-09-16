@@ -51,7 +51,17 @@
   $args['controller'] = 'co_people';
   $args['action'] = 'index';
   $args['co'] = $cur_co['Co']['id'];
-  $this->Html->addCrumb(_txt('me.population'), $args);
+  if(!empty($this->request->params['named'])) {
+    foreach ($this->request->params['named'] as $param_named => $value) {
+      $args[$param_named] = $value;
+    }
+  }
+  if(!empty($args['Search.couid'])) {
+    // Render the name of the COU
+    $this->Html->addCrumb(_txt('me.population.cou', array($permissions['cous'][$args['Search.couid']])), $args);
+  } else {
+    $this->Html->addCrumb(_txt('me.population'), $args);
+  }
   if($this->action == "canvas") {
     $this->Html->addCrumb(filter_var(generateCn($co_people[0]['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS));
   } elseif($this->action == "invite") {
