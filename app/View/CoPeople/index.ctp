@@ -279,16 +279,22 @@ if(isset($permissions['search']) && $permissions['search'] ) {
               
               // Edit button
               if($permissions['edit']) {
+                // Construct the redirect route
+                $redirect_route = array(
+                  'controller' => 'co_people',
+                  'action' => 'canvas',
+                  $p['CoPerson']['id']
+                );
+                // XXX Do we come from a population?
+                if($this->request->params['named']) {
+                  $redirect_route = array_merge($redirect_route, $this->request->params['named']);
+                }
                 print $this->Html->link((($this->action == 'relink'
                       || $this->action == 'link'
                       || $this->action == 'select')
                       ? _txt('op.view')
                       : _txt('op.edit')),
-                    array(
-                      'controller' => 'co_people',
-                      'action' => 'canvas',
-                      $p['CoPerson']['id']
-                    ),
+                    $redirect_route,
                     array(
                       'class' => 'editbutton spin',
                       'onclick' => 'noprop(event);',
