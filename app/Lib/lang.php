@@ -1798,6 +1798,8 @@ original notification at
   'fd.xp.cou.cond.desc' => 'This Expiration Policy will only apply to CO Person Roles in this COU. If not empty, this input will be preferred instead of ANY COU',
   'fd.xp.count.cond' => 'Max Execution Count',
   'fd.xp.count.cond.desc' => 'This Expiration Policy will apply up to the specified number of times',
+  'fd.ppt.enable' => 'Enable Pending Petitions Handler',
+  'fd.ppt.enable.desc' => 'Show pending petitions, if any, before allowing the user to start a new one',
   'fd.xp.disable' => 'Disable Expiration',
   'fd.xp.disable.desc' => 'Disable automatic (scheduled) expirations<br />This setting does not impact manual expirations',
   'fd.xp.every_xday.cond' => 'Run policy every XX days',
@@ -1845,7 +1847,8 @@ original notification at
   'in.orgid.pi.group'  => '%1$s Group Membership created from this Org Identity via Pipeline',
   'in.pagination.format' =>  'Page {:page} of {:pages}, Viewing {:start}-{:end} of {:count}',
   'in.pl.noconfig'     => 'This provisioner has no configurable options',
-  
+  'in.pending.petition' => 'You have a pending petition for joining %1$s. Please select how to proceed.',
+  'in.pending.petitions' => 'You have pending petitions for joining %1$s. You can review their status or create a new petition.',
   // Menu
   'me.account'         => 'My Account',
   'me.changepassword'  => 'Change Password',
@@ -1893,6 +1896,7 @@ original notification at
   'js.confirm.verify' =>  'Are you sure you wish to send a verification request to {0}? Any previous request will be invalidated.',
 
   // Operations
+  'op.abort'  =>      'Proceed with new enrollment',
   'op.accept' =>      'Accept',
   'op.ack' =>         'Acknowledge',
   'op.action' =>      'Action',
@@ -2007,6 +2011,7 @@ original notification at
   'op.petition' =>    'Petition',
   'op.petition.comment' => 'Add Comment',
   'op.petition.create' => 'Create Petition',
+  'op.petition.delete' => 'Delete and proceed with new enrollment',
   'op.petition.dupe' => 'Flag Petition as Duplicate',
   'op.petition.dupe.confirm' => 'Are you sure you wish to flag this petition as a duplicate?',
   'op.petition.nextstep' => 'Initiating %1$s step, please wait...',
@@ -2039,6 +2044,7 @@ original notification at
   'op.reset' =>       'Reset',
   'op.restore.ef' =>  'Add/Restore Default Templates',
   'op.restore.types' => 'Add/Restore Default Types',
+  'op.resume' =>      'Resume',
   'op.run' =>         'Run',
   'op.save' =>        'Save',
   'op.search' =>      'Search',
@@ -2175,6 +2181,7 @@ original notification at
   'rs.pt.relogin' =>  'Petition Confirmed. You have been logged out, and will need to login again for your new identity to take effect.',
   'rs.pt.status' =>   'Petition for %1$s changed status from %2$s to %3$s (%4$s)',
   'rs.pt.status.h' => 'Petition changed status from %1$s to %2$s',
+  'rs.pt.reminder' =>   'This is a reminder to review petition for %1$s which is still in status %2$s (%3$s)',
   'rs.pt.tc.explicit' => 'Explicit agreement to Terms and Conditions "%1$s"',
   'rs.pt.tc.implied' => 'Implied agreement to Terms and Conditions "%1$s"',
   'rs.search.1' =>    'Exact match for "%1$s" found (%2$s)',

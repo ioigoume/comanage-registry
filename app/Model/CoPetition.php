@@ -550,7 +550,6 @@ class CoPetition extends AppModel {
         }
       }
     }
-
     $dbc->commit();
     
     return;
@@ -2139,7 +2138,6 @@ class CoPetition extends AppModel {
                                              PetitionActionEnum::NotificationSent,
                                              _txt('rs.nt.sent', array($enrolleeName)));
     }
-    
     return true;
   }
   
@@ -2150,11 +2148,12 @@ class CoPetition extends AppModel {
    * @since  COmanage Registry v0.9.4
    * @param  Integer CO Petition ID
    * @param  Integer CO Person ID of actor sending the notification
+   * @param  Boolean Reminder Notification
    * @return True on success
    * @throws InvalidArgumentException
    */
   
-  public function sendApproverNotification($id, $actorCoPersonId) {
+  public function sendApproverNotification($id, $actorCoPersonId, $reminder = false) {
     // First we need some info from the petition and enrollment flow
     
     $args = array();
@@ -2218,10 +2217,13 @@ class CoPetition extends AppModel {
                       'cogroup',
                       $cgid,
                       ActionEnum::CoPetitionUpdated,
-                      _txt('rs.pt.status', array($enrolleeName,
+                      (!$reminder ? _txt('rs.pt.status', array($enrolleeName,
                                                  _txt('en.status.pt', null, $pt['CoPetition']['status']),
                                                  _txt('en.status.pt', null, PetitionStatusEnum::PendingApproval),
-                                                 $pt['CoEnrollmentFlow']['name'])),
+                                                 $pt['CoEnrollmentFlow']['name'])) : 
+                                    _txt('rs.pt.reminder', array($enrolleeName,
+                                                 _txt('en.status.pt', null, $pt['CoPetition']['status']),
+                                                 $pt['CoEnrollmentFlow']['name']))),
                       array(
                         'controller' => 'co_petitions',
                         'action'     => 'view',
@@ -2361,7 +2363,6 @@ class CoPetition extends AppModel {
       $dbc->rollback();
       throw new RuntimeException(_txt('er.db.save-a', array('CoPetitionHistoryRecord')));
     }
-    
     return $toEmail;
   }
 
@@ -3240,4 +3241,26 @@ class CoPetition extends AppModel {
       return $ret;
     }
   }
+  
+  /**
+   * getPetitionsByCoPersonIdAndEnrollemntFlow
+   *
+   * @param  Integer $co_person_id
+   * @param  Integer $eof_id
+   * @return Array 
+   */
+  public function getPendingPetitionsByCoPersonIdAndEnrollmentFlow($co_person_id, $eof_id) {
+    $args = array();
+    $args['conditions']['CoPetition.status NOT IN'] = array(PetitionStatusEnum::Finalized, PetitionStatusEnum::Denied, PetitionStatusEnum::Duplicate, PetitionStatusEnum::Declined);
+    $args['conditions']['CoPetition.enrollee_co_person_id'] = $co_person_id;
+    $args['conditions']['CoPetition.deleted'] = FALSE;
+    $args['conditions'][0] = 'CoPetition.co_petition_id IS NULL';
+    $args['conditions']['CoPetition.co_enrollment_flow_id'] = $eof_id;
+    $args['fields'] = array('CoPetition.id', 'CoPetition.coef_next_step');
+    $args['contain'] = false;
+    $this->CoPetition = ClassRegistry::init('CoPetition');
+    $petition = $this->CoPetition->find('all', $args);
+    return $petition;
+  }
+
 }

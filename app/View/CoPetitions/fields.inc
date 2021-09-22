@@ -145,35 +145,8 @@
                     print '<span class="status ' . $co_petitions[0]['CoPetition']['status'] . '">';
                     print _txt('en.status.pt', null, $co_petitions[0]['CoPetition']['status']);
                     print '</span>';
-
-                    if($co_petitions[0]['CoPetition']['status'] == PetitionStatusEnum::PendingApproval) {
-                      if($permissions['approve']) {
-                        print $this->Html->link(
-                          _txt('op.approve'),
-                          array('controller' => 'co_petitions',
-                                'action' => 'approve',
-                                $co_petitions[0]['CoPetition']['id'],
-                                'co' => $co_petitions[0]['CoPetition']['co_id'],
-                                'coef' => $co_petitions[0]['CoPetition']['co_enrollment_flow_id']),
-                          array('class' => 'checkbutton approve-button')
-                        );
-                      }
-                    }
-
-                    if($co_petitions[0]['CoPetition']['status'] == PetitionStatusEnum::PendingApproval
-                       || $co_petitions[0]['CoPetition']['status'] == PetitionStatusEnum::PendingConfirmation) {
-                      if($permissions['deny']) {
-                        print $this->Html->link(
-                          _txt('op.deny'),
-                          array('controller' => 'co_petitions',
-                                'action' => 'deny',
-                                $co_petitions[0]['CoPetition']['id'],
-                                'co' => $co_petitions[0]['CoPetition']['co_id'],
-                                'coef' => $co_petitions[0]['CoPetition']['co_enrollment_flow_id']),
-                          array('class' => 'cancelbutton deny-button')
-                        );
-                      }
-                    }
+                    $params = array('status' => $co_petitions[0]['CoPetition']['status']);
+                    print $this->element("petitionActions", $params);
                   ?>
                 </div>
               </li>
@@ -257,14 +230,20 @@
                 <div class="field-info">
                   <?php
                     if(!empty($co_petitions[0]['EnrolleeCoPerson']['id'])) {
-                      print $this->Html->link(
-                        generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']),
-                        array(
-                          'controller'    => 'co_people',
-                          'action'        => 'canvas',
-                          $co_petitions[0]['EnrolleeCoPerson']['id']
-                        )
-                      );
+                      // we use this permission because only platform admin, co_admin/ cou_admin have it
+                      if($permission['index']) {
+                        print $this->Html->link(
+                          generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']),
+                          array(
+                            'controller'    => 'co_people',
+                            'action'        => 'canvas',
+                            $co_petitions[0]['EnrolleeCoPerson']['id']
+                          )
+                        );
+                      }                   
+                      else { //Show just plain text
+                        print generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']);
+                      }
                     }
                   ?>
                 </div>
@@ -274,14 +253,19 @@
                 <div class="field-info">
                   <?php
                     if(!empty($co_petitions[0]['CoPetition']['enrollee_co_person_role_id'])) {
-                      print $this->Html->link(
-                        $co_petitions[0]['CoPetition']['enrollee_co_person_role_id'],
-                        array(
-                          'controller'    => 'co_person_roles',
-                          'action'        => 'edit',
-                          $co_petitions[0]['CoPetition']['enrollee_co_person_role_id']
-                        )
-                      );
+                      if($permission['index']) {
+                        print $this->Html->link(
+                          $co_petitions[0]['CoPetition']['enrollee_co_person_role_id'],
+                          array(
+                            'controller'    => 'co_person_roles',
+                            'action'        => 'edit',
+                            $co_petitions[0]['CoPetition']['enrollee_co_person_role_id']
+                          )
+                        );
+                      }
+                      else { //Show just plain text
+                        print $co_petitions[0]['CoPetition']['enrollee_co_person_role_id'];
+                      }
                     }
                   ?>
                 </div>

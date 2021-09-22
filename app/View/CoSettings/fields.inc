@@ -69,6 +69,20 @@
 <ul id="<?php print $this->action; ?>_co_settings" class="fields form-list form-list-admin">
   <li>
     <div class="field-name">
+          <div class="field-title"><?php print _txt('fd.ppt.enable'); ?></div>
+      <div class="field-desc"><?php print _txt('fd.ppt.enable.desc'); ?></div>
+    </div>
+    <div class="field-info checkbox">
+      <?php print ($e
+                   ? $this->Form->input('enable_pending_petition_handler')
+                   : (isset($co_settings[0]['CoSetting']['enable_pending_petition_handler'])
+                      && $co_settings[0]['CoSetting']['enable_pending_petition_handler']
+                      ? _txt('fd.yes') : _txt('fd.no')));
+            print ' ' . $this->Form->label('enable_pending_petition_handler',_txt('fd.ppt.enable'));
+      ?>
+  </li>
+  <li>
+    <div class="field-name">
       <div class="field-title"><?php print _txt('fd.xp.disable'); ?></div>
       <div class="field-desc"><?php print _txt('fd.xp.disable.desc'); ?></div>
     </div>

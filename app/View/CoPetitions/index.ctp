@@ -35,39 +35,59 @@
   // Add page title
   $params = array();
   $params['title'] = (!empty($cur_co['Co']['name']) ? $cur_co['Co']['name'] . ' ' : '') . _txt('ct.petitions.pl');
-
+?>
+<?php if(!empty($this->params['named']['op']) && $this->params['named']['op'] == 'resume'): ?>
+    <div class="co-info-topbox">
+      <i class="material-icons">info</i>
+      <?php print _txt('in.pending.petitions', array($vv_cou_name)); ?>
+    </div>
+<?php endif; ?>
+<?php
   // Add top links
   $params['topLinks'] = array();
+if(empty($this->params['named']['op'])) {
+    $params['topLinks'][] = $this->Html->link(
+      _txt('op.view.all'),
+      array('controller' => 'co_petitions',
+            'action'     => 'index',
+            'co'         => $cur_co['Co']['id'],
+            'sort'       => 'CoPetition.created',
+            'direction'  => 'desc'),
+      array('class' => 'searchbutton')
+    );
 
-  $params['topLinks'][] = $this->Html->link(
-    _txt('op.view.all'),
-    array('controller' => 'co_petitions',
-          'action'     => 'index',
-          'co'         => $cur_co['Co']['id'],
-          'sort'       => 'CoPetition.created',
-          'direction'  => 'desc'),
-    array('class' => 'searchbutton')
-  );
-
-  $params['topLinks'][] =  $this->Html->link(
-    _txt('op.view.pending'),
-    array(
-      'controller'    => 'co_petitions',
-      'action'        => 'index',
-      'co'            => $cur_co['Co']['id'],
-      'sort'          => 'CoPetition.created',
-      'direction'     => 'desc',
-      'search.status' => array(
-        StatusEnum::PendingApproval,
-        StatusEnum::PendingConfirmation
-      )
-    ),
-    array('class' => 'searchbutton')
-  );
-
+    $params['topLinks'][] =  $this->Html->link(
+      _txt('op.view.pending'),
+      array(
+        'controller'    => 'co_petitions',
+        'action'        => 'index',
+        'co'            => $cur_co['Co']['id'],
+        'sort'          => 'CoPetition.created',
+        'direction'     => 'desc',
+        'search.status' => array(
+          StatusEnum::PendingApproval,
+          StatusEnum::PendingConfirmation
+        )
+      ),
+      array('class' => 'searchbutton')
+    );
+  }
+  else if(!empty($this->params['named']['op']) && $this->params['named']['op'] == 'resume') {
+    $params['topLinks'][] = $this->Html->link(
+        _txt('op.abort'),
+        array(
+          'controller' => 'co_petitions',
+          'action' => 'start',
+          'abort' => 'yes',
+          'coef' => $this->params['named']['coef'],
+          'done' => 'core',
+        ),
+        array('class' => 'addbutton', 'style' => 'margin:auto')
+    );
+  }
   print $this->element("pageTitleAndButtons", $params);
 ?>
-
+<?php if(empty($this->params['named']['op'])):?>
 <fieldset id="statusFilters">
   <legend><?php print _txt('fd.status.filters'); ?></legend>
   <?php
@@ -95,20 +115,26 @@
   print $this->Form->end();
   ?>
 </fieldset>
-
+<?php endif; ?>
 <div class="table-container">
   <table id="co_people">
     <thead>
       <tr>
-        <th><?php print $this->Paginator->sort('EnrolleePrimaryName.family', _txt('fd.enrollee')); ?></th>
+        <?php if(empty($this->params['named']['op'])): ?>
+          <th><?php print $this->Paginator->sort('EnrolleePrimaryName.family', _txt('fd.enrollee')); ?></th>
+        <?php endif; ?>
         <th><?php print $this->Paginator->sort('CoPetition.status', _txt('fd.status')); ?></th>
         <th><?php print $this->Paginator->sort('CoEnrollmentFlow.name', _txt('ct.co_enrollment_flows.1')); ?></th>
-        <th><?php print $this->Paginator->sort('Cou.name', _txt('fd.cou')); ?></th>
-        <th><?php print $this->Paginator->sort('PetitionerPrimaryName.family', _txt('fd.petitioner')); ?></th>
-        <th><?php print $this->Paginator->sort('SponsorPrimaryName.family', _txt('fd.sponsor')); ?></th>
-        <th><?php print $this->Paginator->sort('ApproverPrimaryName.family', _txt('fd.approver')); ?></th>
+        <?php if(empty($this->params['named']['op'])): ?>
+          <th><?php print $this->Paginator->sort('Cou.name', _txt('fd.cou')); ?></th>     
+          <th><?php print $this->Paginator->sort('PetitionerPrimaryName.family', _txt('fd.petitioner')); ?></th>
+          <th><?php print $this->Paginator->sort('SponsorPrimaryName.family', _txt('fd.sponsor')); ?></th>
+          <th><?php print $this->Paginator->sort('ApproverPrimaryName.family', _txt('fd.approver')); ?></th>
+        <?php endif; ?>
         <th><?php print $this->Paginator->sort('CoPetition.created', _txt('fd.created.tz', array($vv_tz))); ?></th>
-        <th><?php print $this->Paginator->sort('CoPetition.modified', _txt('fd.modified.tz', array($vv_tz))); ?></th>
+        <?php if(empty($this->params['named']['op'])): ?>
+          <th><?php print $this->Paginator->sort('CoPetition.modified', _txt('fd.modified.tz', array($vv_tz))); ?></th>
+        <?php endif; ?>  
         <th><?php print _txt('fd.actions'); ?></th>
       </tr>
     </thead>
@@ -117,6 +143,7 @@
       <?php $i = 0; ?>
       <?php foreach ($co_petitions as $p): ?>
       <tr class="line<?php print ($i % 2)+1; ?>">
+      <?php if(empty($this->params['named']['op'])): ?>
         <td>
           <?php
             $displayName = (!empty($p['EnrolleePrimaryName']) ? generateCn($p['EnrolleePrimaryName']) : _txt('fd.enrollee.new'));
@@ -131,6 +158,7 @@
                                     );
           ?>
         </td>
+        <?php endif;?>
         <td>
           <?php
             global $status_t;
@@ -143,13 +171,14 @@
         <td>
           <?php if(!empty($p['CoEnrollmentFlow']['name'])) { print $p['CoEnrollmentFlow']['name']; } ?>
         </td>
+        <?php if(empty($this->params['named']['op'])): ?>
         <td>
           <?php if(!empty($p['Cou']['name'])) { print $p['Cou']['name']; } ?>
         </td>
         <td>
           <?php
             if(!empty($p['PetitionerCoPerson']['id'])) {
-              print $this->Html->link(generateCn($p['PetitionerPrimaryName']),
+                print $this->Html->link(generateCn($p['PetitionerPrimaryName']),
                                       array(
                                         'controller' => 'co_people',
                                         'action' => 'canvas',
@@ -168,7 +197,7 @@
                                         'controller' => 'co_people',
                                         'action' => 'canvas',
                                         $p['SponsorCoPerson']['id'])
-                                      );
+                                      );            
             }
           ?>
         </td>
@@ -184,6 +213,7 @@
             }
           ?>
         </td>
+        <?php endif; ?>
         <td>
           <?php
             if(!empty($p['CoPetition']['created'])) {
@@ -191,6 +221,7 @@
             }
           ?>
         </td>
+        <?php if(empty($this->params['named']['op'])): ?>
         <td>
           <?php
             if(!empty($p['CoPetition']['modified'])) {
@@ -198,19 +229,22 @@
             }
           ?>
         </td>
+        <?php endif; ?>
         <td>
           <?php
-            if($permissions['edit']) {
+            // if op == resume defined put a View button so they can review the
+            // petition. Inside the petition can then delete it.
+            if(!empty($this->params['named']['op']) && $this->params['named']['op'] == 'resume' || $permissions['edit']) {
               print $this->Html->link(_txt('op.view'),
                                       array('controller' => 'co_petitions',
                                             'action' => 'view',
                                             $p['CoPetition']['id']),
                                       array('class' => 'editbutton',
-                                            'title' => _txt('op.view-a',array($displayNameWithId)),
-                                            'aria-label' => _txt('op.view-a',array($displayNameWithId)))) . "\n";
+                                      'title' => _txt('op.view-a',array($displayNameWithId)),
+                                      'aria-label' => _txt('op.view-a',array($displayNameWithId)))) . "\n";
             }
 
-            if($permissions['delete']) {
+            if($permissions['delete'] && empty($this->params['named']['op'])) {
               print '<button type="button" class="deletebutton" title="' . _txt('op.delete-a',array($displayNameWithId))
                 . '" onclick="javascript:js_confirm_generic(\''
                 . _txt('js.remove') . '\',\''    // dialog body text
@@ -266,3 +300,4 @@
 
 <?php
   print $this->element("pagination");
+
