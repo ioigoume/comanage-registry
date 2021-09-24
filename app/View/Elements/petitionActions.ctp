@@ -81,7 +81,7 @@ if(!empty($vv_coef_next_step) && $status != PetitionStatusEnum::PendingApproval 
   );
 }
 if($status == PetitionStatusEnum::PendingApproval) {
-  if($permissions['isEnrollee']) {
+  if($permissions['isEnrollee'] && !($permissions['approve'])) {
     print "<button id='notify-approver' class='ui-button ui-widget' onclick='return false;'  data-ptid = \"".$co_petitions[0]['CoPetition']['id']."\" data-coef= \"".$co_petitions[0]['CoPetition']['co_enrollment_flow_id']."\">Notify Approver(s) Again</button><span class='inprogress' style='display:none'>&nbsp;Please wait...</span>";
   }
   else if($permissions['approve']) {

@@ -2491,7 +2491,8 @@ class CoPetitionsController extends StandardController {
         'controller' => 'co_petitions',
         'action' => 'start',
         'coef' => $this->cachedEnrollmentFlowID,
-        'done' => 'core'
+        'done' => 'core',
+        'abort' => 1
       ));
     }
     elseif($this->viewVars['permissions']['index']) {
