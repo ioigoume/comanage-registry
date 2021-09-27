@@ -198,6 +198,7 @@ class AuthenticationEventEnum
 {
   const ApiLogin               = 'AI';
   const RegistryLogin          = 'IN';
+  const UserLogin              = 'UL';
 }
 
 class AuthenticatorStatusEnum

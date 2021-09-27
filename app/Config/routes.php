@@ -63,6 +63,7 @@ Router::connect(
 Router::mapResources(array(
   'addresses',
   'attribute_enumerations',
+  'authentication_events',
 	'co_departments',
 	'co_email_lists',
   'certs',

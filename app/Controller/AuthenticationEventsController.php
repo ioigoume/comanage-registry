@@ -125,7 +125,10 @@ class AuthenticationEventsController extends StandardController {
     // View authentication events? We allow the authenticated identifier to view their own.
     // We could allow $self to view own records, but for the moment we don't (for no specific reason).
     
-    $p['index'] = ($roles['cmadmin'] || $managed || $self);
+    $p['index'] = ($roles['apiuser'] || $roles['cmadmin'] || $managed || $self);
+
+    // Allow an API user to add an authentication event. Used for proxy logins
+    $p['add'] = $p['view'] = $roles['apiuser'];
     
     $this->set('permissions', $p);
     return $p[$this->action];

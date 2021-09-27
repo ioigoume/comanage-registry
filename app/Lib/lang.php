@@ -369,7 +369,8 @@ original notification at
   
   'en.auth.event' => array(
     AuthenticationEventEnum::ApiLogin      => 'API Login',
-    AuthenticationEventEnum::RegistryLogin => 'Registry Login'
+    AuthenticationEventEnum::RegistryLogin => 'Registry Login',
+    AuthenticationEventEnum::UserLogin     => 'User Login'
   ),
   
   'en.cert.type' => array(
