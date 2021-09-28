@@ -47,6 +47,7 @@ class AuthenticationEvent extends AppModel {
     'authentication_event' => array(
       'rule' => array('inList',
                       array(AuthenticationEventEnum::ApiLogin,
+                            AuthenticationEventEnum::UserLogin,
                             AuthenticationEventEnum::RegistryLogin)),
       'required' => true,
       'allowEmpty' => false

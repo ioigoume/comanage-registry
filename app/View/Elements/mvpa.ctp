@@ -188,7 +188,8 @@
                 print $this->Html->link(_txt('ct.authentication_events.pl'),
                                         array('controller' => 'authentication_events',
                                               'action' => 'index',
-                                              'identifier' => $m['identifier']),
+                                              'identifier' => $m['identifier'],
+                                              'op' => 'search'),
                                         array('class' => 'notebutton'));
               }
             }
