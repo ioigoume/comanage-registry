@@ -48,6 +48,7 @@
         <th><?php print $this->Paginator->sort('authenticated_identifier', _txt('fd.identifier.identifier')); ?></th>
         <th><?php print $this->Paginator->sort('authentication_event', _txt('fd.event')); ?></th>
         <th><?php print $this->Paginator->sort('created', _txt('fd.created.tz', array($vv_tz))); ?></th>
+        <th><?php print $this->Paginator->sort('modified', _txt('fd.modified.tz', array($vv_tz))); ?></th>
         <th><?php print $this->Paginator->sort('remote_ip', _txt('fd.ip')); ?></th>
       </tr>
     </thead>
@@ -60,6 +61,7 @@
         <td><?php print filter_var($a['AuthenticationEvent']['authenticated_identifier'],FILTER_SANITIZE_SPECIAL_CHARS);?></td>
         <td><?php print _txt('en.auth.event', null, $a['AuthenticationEvent']['authentication_event']); ?></td>
         <td><?php print $this->Time->niceShort($a['AuthenticationEvent']['created'], $vv_tz); ?></td>
+        <td><?php print $this->Time->niceShort($a['AuthenticationEvent']['modified'], $vv_tz); ?></td>
         <td><?php print filter_var($a['AuthenticationEvent']['remote_ip'],FILTER_SANITIZE_SPECIAL_CHARS); ?></td>
       </tr>
       <?php $i++; ?>
