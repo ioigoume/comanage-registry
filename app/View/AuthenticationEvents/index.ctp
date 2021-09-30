@@ -70,7 +70,7 @@
 
     <tfoot>
       <tr class="ui-widget-header">
-        <th colspan="5">
+        <th colspan="6">
           <?php print $this->element("pagination"); ?>
         </th>
       </tr>
