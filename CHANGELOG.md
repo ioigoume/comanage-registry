@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Enable AuthenticationEvents index,view,add actions through REST API.
 - Support "User login" authentication event type.
+- Render column `modified` in AuthenticationEvents inved view
 
 ### Fixed
 
