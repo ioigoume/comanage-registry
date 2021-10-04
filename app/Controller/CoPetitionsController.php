@@ -738,7 +738,7 @@ class CoPetitionsController extends StandardController {
       $this->set('title_for_layout',
                  $this->CoPetition->CoEnrollmentFlow->field('name',
                                                             array('CoEnrollmentFlow.id' => $efId)));
-      
+
       if(isset($this->request->params['named']['done'])) {
         // Check if pending petitions handler is enabled
         if ($this->Co->CoSetting->pendingpetitionsHandlerEnabled($this->cur_co['Co']['id'])) {
@@ -2838,6 +2838,8 @@ class CoPetitionsController extends StandardController {
    */
   
   function view($id) {
+    // Set true if setting for handle pending petition is enabled otherwise false
+    $this->set('vv_handle_pending_petition', $this->Co->CoSetting->pendingpetitionsHandlerEnabled($this->cur_co['Co']['id']));
     // The current step is determined by the status of the petition
     $this->set('vv_current_step', $this->CoPetition->currentStep($id));
     // Pull the coef_next_step of the petition

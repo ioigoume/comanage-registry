@@ -89,42 +89,44 @@
 <?php
   // Add top links
   $params['topLinks'] = array();
-  // Only Enrollee can see this action
-  if($permissions['isEnrollee'] && $model == 'CoPetitions' && $co_petitions[0]['CoPetition']['status'] != PetitionStatusEnum::Finalized) {
-    $params['topLinks'][] = $this->Html->link(
-      _txt('op.abort'),
-      array(
-        'controller' => 'co_petitions',
-        'action' => 'start',
-        // 'co' => $co_petitions[0]['CoPetition']['co_id'],
-        'abort' => 'yes',
-        'coef' => $co_petitions[0]['CoPetition']['co_enrollment_flow_id'],
-        'done' => 'core',
-      ),
-      array('class' => 'addbutton', 'style' => 'float:right')
-    );
-  }
-  if($permissions['delete'] && $model == 'CoPetitions' && $co_petitions[0]['CoPetition']['status'] != PetitionStatusEnum::Finalized) {
-    $displayNameWithId = (!empty($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']) ? generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']) : _txt('fd.enrollee.new')) . ' (' . $co_petitions[0]['CoPetition']['status'] . ')';
-    
-    $params['topLinks'][] = '<a type="button" class="deletebutton" style="float:right;" title="' . _txt('op.delete-a',array($displayNameWithId))
-      . '" onclick="javascript:js_confirm_generic(\''
-      . _txt('js.remove') . '\',\''    // dialog body text
-      . $this->Html->url(              // dialog confirm URL
+  if($vv_handle_pending_petition) {
+    // Only Enrollee can see this action
+    if($permissions['isEnrollee'] && $model == 'CoPetitions' && $co_petitions[0]['CoPetition']['status'] != PetitionStatusEnum::Finalized) {
+      $params['topLinks'][] = $this->Html->link(
+        _txt('op.abort'),
         array(
           'controller' => 'co_petitions',
-          'action' => 'delete',
-          $co_petitions[0]['CoPetition']['id'],
-          'abort' => 1
-        )
-      ) . '\',\''
-      . _txt('op.remove') . '\',\''    // dialog confirm button
-      . _txt('op.cancel') . '\',\''    // dialog cancel button
-      . _txt('op.remove') . '\',[\''   // dialog title
-      . filter_var(_jtxt($displayNameWithId),FILTER_SANITIZE_STRING)  // dialog body text replacement strings
-      . '\']);">'
-      . _txt('op.petition.delete')
-      . '</a>';
+          'action' => 'start',
+          // 'co' => $co_petitions[0]['CoPetition']['co_id'],
+          'abort' => 'yes',
+          'coef' => $co_petitions[0]['CoPetition']['co_enrollment_flow_id'],
+          'done' => 'core',
+        ),
+        array('class' => 'addbutton', 'style' => 'float:right')
+      );
+    }
+    if($permissions['isEnrollee'] && $permissions['delete'] && $model == 'CoPetitions' && $co_petitions[0]['CoPetition']['status'] != PetitionStatusEnum::Finalized) {
+      $displayNameWithId = (!empty($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']) ? generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']) : _txt('fd.enrollee.new')) . ' (' . $co_petitions[0]['CoPetition']['status'] . ')';
+      
+      $params['topLinks'][] = '<a type="button" class="deletebutton" style="float:right;" title="' . _txt('op.delete-a',array($displayNameWithId))
+        . '" onclick="javascript:js_confirm_generic(\''
+        . _txt('js.remove') . '\',\''    // dialog body text
+        . $this->Html->url(              // dialog confirm URL
+          array(
+            'controller' => 'co_petitions',
+            'action' => 'delete',
+            $co_petitions[0]['CoPetition']['id'],
+            'abort' => 1
+          )
+        ) . '\',\''
+        . _txt('op.remove') . '\',\''    // dialog confirm button
+        . _txt('op.cancel') . '\',\''    // dialog cancel button
+        . _txt('op.remove') . '\',[\''   // dialog title
+        . filter_var(_jtxt($displayNameWithId),FILTER_SANITIZE_STRING)  // dialog body text replacement strings
+        . '\']);">'
+        . _txt('op.petition.delete')
+        . '</a>';
+    }
   }
   print $this->element("pageTitleAndButtons", $params);
 ?>
