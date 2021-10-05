@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [Unreleased]
+
+### Fixed
+
+- Don't show "Delete and create new enrollment" for pending petition, if user is not the enrollee
+
 ## [3.3.0-rciam] - 2021-10-04
 
 ### Added
