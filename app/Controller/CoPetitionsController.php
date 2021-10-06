@@ -2285,8 +2285,8 @@ class CoPetitionsController extends StandardController {
       }
     }
 
-    $p['isEnrollee'] = ($curEnrollee && ($curEnrollee == $roles['copersonid']))
-                      || ($enrolleeToken != '' && $enrolleeToken == $this->parseToken());
+    $p['isEnrollee'] = (!empty($curEnrollee) && ($curEnrollee == $roles['copersonid']))
+                      || (!empty($enrolleeToken) && $enrolleeToken == $this->parseToken());
 
     $this->set('permissions', $p);
     return $p[$this->action];
@@ -2852,12 +2852,13 @@ class CoPetitionsController extends StandardController {
     $this->set('vv_coef_next_step', $coef_next_step);
     // Set pending to true if there is on url, as possibly user is coming from creating new enrollemnt flow and
     // has pending enrollment flow
-    $this->set('vv_pending_coef', !empty($this->request->params['named']['pending']) ? $this->request->params['named']['pending'] : false);
-    if($this->cachedEnrollmentFlowID > -1 && $this->request->params['named']['pending']) {
+    $has_pending = !empty($this->request->params['named']['pending']) ? $this->request->params['named']['pending'] : false;
+    $this->set('vv_pending_coef', $has_pending);
+    if($this->cachedEnrollmentFlowID > -1 && $has_pending) {
       //Get COU name
       $cou_name = $this->CoPetition->CoEnrollmentFlow->retrieveCoCouName($this->cachedEnrollmentFlowID, $this->cur_co['Co']['id']);
       $this->set('vv_cou_name', $cou_name);
-    }    
+    }
     parent::view($id);
     
     // Set the title
