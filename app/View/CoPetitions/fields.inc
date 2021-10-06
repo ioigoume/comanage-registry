@@ -230,8 +230,7 @@
                 <div class="field-info">
                   <?php
                     if(!empty($co_petitions[0]['EnrolleeCoPerson']['id'])) {
-                      // we use this permission because only platform admin, co_admin/ cou_admin have it
-                      if($permission['index']) {
+                      if($permissions['index']) {
                         print $this->Html->link(
                           generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']),
                           array(
@@ -253,7 +252,7 @@
                 <div class="field-info">
                   <?php
                     if(!empty($co_petitions[0]['CoPetition']['enrollee_co_person_role_id'])) {
-                      if($permission['index']) {
+                      if($permissions['index']) {
                         print $this->Html->link(
                           $co_petitions[0]['CoPetition']['enrollee_co_person_role_id'],
                           array(
