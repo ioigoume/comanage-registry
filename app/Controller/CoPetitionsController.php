@@ -2124,18 +2124,21 @@ class CoPetitionsController extends StandardController {
       $curEnrollee = $pt['CoPetition']['enrollee_co_person_id'];
       $petitionerToken = $pt['CoPetition']['petitioner_token'];
       $enrolleeToken = $pt['CoPetition']['enrollee_token'];
-      
+
+      // Check if user is admin to the cou_id (if petition has cou_id)
+      $isCouAdmin = !empty($pt['CoPetition']['cou_id']) ? $this->Role->isCouAdmin($roles['copersonid'], $pt['CoPetition']['cou_id']) : false;
+
       // Select admins can also act as the petitioner
       $isPetitioner = $roles['cmadmin']
                       || $roles['coadmin']
-                      || ($roles['couadmin'] && $this->Role->isCouAdminForCoPerson($roles['copersonid'], $curPetitioner))
+                      || $isCouAdmin
                       || ($curPetitioner && ($curPetitioner == $roles['copersonid']))
                       || ($petitionerToken != '' && $petitionerToken == $this->parseToken());
       
       // Select admins can also act as the enrollee
       $isEnrollee = $roles['cmadmin']
                     || $roles['coadmin']
-                    || ($roles['couadmin'] && $this->Role->isCouAdminForCoPerson($roles['copersonid'], $curEnrollee))
+                    || $isCouAdmin
                     || ($curEnrollee && ($curEnrollee == $roles['copersonid']))
                     || ($enrolleeToken != '' && $enrolleeToken == $this->parseToken());
       
@@ -2197,7 +2200,7 @@ class CoPetitionsController extends StandardController {
 
     // View an existing CO Petition? We allow the usual suspects to view a Petition, even
     // if they don't have permission to edit it. Also approvers need to be able to see the Petition.
-    $p['view'] = ($roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin'] || $isApprover || $isPetitioner || $isEnrollee);
+    $p['view'] = ($roles['cmadmin'] || $roles['coadmin'] || $isCouAdmin || $isApprover || $isPetitioner || $isEnrollee);
     
     if($this->action == 'index' && $p['index']) {
       // These permissions may not be exactly right, but they only apply when rendering
@@ -2373,6 +2376,26 @@ class CoPetitionsController extends StandardController {
         // We shouldn't normally get here, as isAuthorized should filter anyone without
         // an approval role, but just in case we'll insert an invalid ID that won't ever match
         $pagcond['conditions']['CoPetition.co_enrollment_flow_id'] = -1;
+      }
+    }
+    // Check if user is couadmin and not coadmin or cmadmin
+    else {
+      $roles = $this->Role->calculateCMRoles();
+      if($roles['couadmin'] && !$roles['coadmin'] && !$roles['cmadmin']) {
+        // if user is couadmin then bring those petitions that are related with the cous that is admin
+        // also bring those petitions that user is approver, if any
+        $efs = $this->Role->approverFor($coPersonId);
+        if(!empty($efs)) {
+          $pagcond['conditions']['AND'][] = array(
+            'OR' => array(
+              'CoPetition.co_enrollment_flow_id IN' => $efs,
+              'CoPetition.cou_id IN' => array_keys($roles['admincous'])
+            )
+          );  
+        }
+        else {
+          $pagcond['conditions']['CoPetition.cou_id IN'] = array_keys($roles['admincous']);
+        }
       }
     }
     

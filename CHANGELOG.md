@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## Unreleased
+
+### Fixed
+
+- Show only petitions related to COUs that user is admin or approver to the related enrollment flow (index view)
+- COU admin can't see a petition which is not related to the COU(s) that administrates (petition view)
+
 ## [3.3.2-rciam] - 2021-10-12
 
 ### Fixed
