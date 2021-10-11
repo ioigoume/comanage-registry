@@ -340,7 +340,8 @@
           // XXX RCIAM-393 handle all the cases of multiple values uniformly
           // Whitelist for now.
           if (($ea['attribute'] === 'i:cert:X.509'
-               || $ea['validate']['content']['rule'][0] === 'email')
+               || (!empty($ea['validate'])
+                   && $ea['validate']['content']['rule'][0] === 'email'))
               && !empty($ea['default'])
               && is_array($ea['default'])
               && count($ea['default']) > 1) {
