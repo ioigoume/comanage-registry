@@ -2383,6 +2383,8 @@ class CoPetitionsController extends StandardController {
     if(!empty($this->params['named']['op']) && $this->params['named']['op'] == 'resume') {
       $pagcond['conditions']['CoPetition.co_enrollment_flow_id'] = $this->params['named']['coef'];
       $pagcond['conditions']['CoPetition.enrollee_co_person_id'] = $coPersonId;
+      // see also function getPendingPetitionsByCoPersonIdAndEnrollmentFlow() at CoPetition model for restricting statuses
+      $pagcond['conditions']['CoPetition.status NOT IN'] = array(PetitionStatusEnum::Finalized, PetitionStatusEnum::Denied, PetitionStatusEnum::Duplicate, PetitionStatusEnum::Declined);
     }
     $pagcond['sortlist'] = array(
       'ApproverPrimaryName.family',
