@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [3.3.2-rciam] - 2021-10-12
+
+### Fixed
+
+- Don't show petitions in finalised state in the overview page of pending petitions
+
 ## [3.3.1-rciam] - 2021-10-07
 
 ### Fixed
