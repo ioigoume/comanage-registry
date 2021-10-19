@@ -2086,7 +2086,8 @@ class CoPetitionsController extends StandardController {
     $isPetitioner = false;
     $isEnrollee = false;
     $isApprover = false;
-    
+    $isCouAdmin = false;
+
     // If an enrollment flow was specified, check the authorization for that flow
     
     if($this->enrollmentFlowID() != -1) {
@@ -2100,7 +2101,7 @@ class CoPetitionsController extends StandardController {
     // If a petition was specified, check the authorizations for that petition
     
     $petitionId = $this->parseCoPetitionId();
-    
+
     if($petitionId) {
       // Current values from petition
       $args = array();
