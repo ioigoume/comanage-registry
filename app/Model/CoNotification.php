@@ -517,6 +517,8 @@ class CoNotification extends AppModel {
    * @param  String  $bodyTemplate      Body template for notification email (if null, default body using $comment and $source is sent)
    * @param  String  $cc                Comma separated list of addresses to cc
    * @param  String  $bcc               Comma separated list of addresses to bcc
+   * @param  Boolean $isApprover        Use a specific lang.php key for the approvers.
+   * @param  String  $hint              A hint for the email subject.
    * @return Array CO Notification ID(s)
    * @throws InvalidArgumentException
    * @throws RuntimeException
@@ -535,7 +537,9 @@ class CoNotification extends AppModel {
                            $subjectTemplate=null,
                            $bodyTemplate=null,
                            $cc=null,
-                           $bcc=null) {
+                           $bcc=null,
+                           $isApprover=false,
+                           $hint=null) {
     // Create the notification. Perhaps this should be embedded in a transaction.
     
     $n = array();
@@ -634,7 +638,9 @@ class CoNotification extends AppModel {
                                $subjectTemplate,
                                $bodyTemplate,
                                $cc,
-                               $bcc);
+                               $bcc,
+                               $isApprover,
+                               $hint);
           
           // We get an array back but it should only have one entry
           $ids[] = $r[0];
@@ -721,14 +727,18 @@ class CoNotification extends AppModel {
           // (useful for initial enrollment approval notification)
           $toaddr = $recipient['CoOrgIdentityLink'][0]['OrgIdentity']['EmailAddress'][0]['mail'];
         }
-        
+
+
+        $notification_body = ($isApprover) ? 'em.notification.body.approver' : 'em.notification.body';
+        $notification_subject = ($isApprover) ? 'em.notification.subject.approver' : 'em.notification.subject';
+
         if($toaddr) {
           try {
             // Send email will update the record with the subject and body it constructs
             $this->sendEmail($notificationId,
                              $toaddr,
-                             ($subjectTemplate ? $subjectTemplate : _txt('em.notification.subject')),
-                             ($bodyTemplate ? $bodyTemplate : _txt('em.notification.body')),
+                             ($subjectTemplate ? $subjectTemplate : _txt($notification_subject)),
+                             ($bodyTemplate ? $bodyTemplate : _txt($notification_body)),
                              $coName,
                              $comment,
                              $sourceurl,
@@ -736,7 +746,8 @@ class CoNotification extends AppModel {
                              $fromAddress,
                              false,
                              $cc,
-                             $bcc);
+                             $bcc,
+                             $hint);
           }
           catch(Exception $e) {
             throw new RuntimeException($e->getMessage());
@@ -892,7 +903,8 @@ class CoNotification extends AppModel {
                                $fromAddress=null,
                                $resolution=false,
                                $cc=null,
-                               $bcc=null) {
+                               $bcc=null,
+                               $hint=null) {
     // Create the message subject and body based on the templates.
     
     $msgBody = "";
@@ -909,7 +921,8 @@ class CoNotification extends AppModel {
       'CO_NAME'           => $coName,
       'COMMENT'           => $comment,
       'NOTIFICATION_URL'  => Router::url($nurl, true) ,
-      'SOURCE_URL'        => $sourceUrl
+      'SOURCE_URL'        => $sourceUrl,
+      'HINT'              => ($hint) ? $hint : ''
     );
     
     // Construct subject and body
