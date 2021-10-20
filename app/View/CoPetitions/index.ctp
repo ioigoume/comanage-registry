@@ -232,17 +232,13 @@ if(empty($this->params['named']['op'])) {
         <?php endif; ?>
         <td>
           <?php
-            // if op == resume defined put a View button so they can review the
-            // petition. Inside the petition can then delete it.
-            if(!empty($this->params['named']['op']) && $this->params['named']['op'] == 'resume' || $permissions['edit']) {
-              print $this->Html->link(_txt('op.view'),
-                                      array('controller' => 'co_petitions',
-                                            'action' => 'view',
-                                            $p['CoPetition']['id']),
-                                      array('class' => 'editbutton',
-                                      'title' => _txt('op.view-a',array($displayNameWithId)),
-                                      'aria-label' => _txt('op.view-a',array($displayNameWithId)))) . "\n";
-            }
+            print $this->Html->link(_txt('op.view'),
+                                array('controller' => 'co_petitions',
+                                      'action' => 'view',
+                                      $p['CoPetition']['id']),
+                                array('class' => 'editbutton',
+                                'title' => _txt('op.view-a',array($displayNameWithId)),
+                                'aria-label' => _txt('op.view-a',array($displayNameWithId)))) . "\n";
 
             if($permissions['delete'] && empty($this->params['named']['op'])) {
               print '<button type="button" class="deletebutton" title="' . _txt('op.delete-a',array($displayNameWithId))
