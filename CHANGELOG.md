@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## Unreleased
+
+### Fixed
+
+- Fix notification view permissions when recepient_co_group_id value exists
+
 ## [3.3.3-rciam] - 2021-10-18
 
 ### Fixed
