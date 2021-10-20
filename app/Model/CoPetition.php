@@ -2208,15 +2208,19 @@ class CoPetition extends AppModel {
     }
     
     foreach($cogroupids as $cgid) {
+      // XXX Approvers should not receive a notification URL because it is not constructed for them but for the
+      // XXX enrollee. They do not have permission to access the url
+
+
       $this->Co
            ->CoGroup
            ->CoNotificationRecipientGroup
            ->register($pt['CoPetition']['enrollee_co_person_id'],
                       null,
                       $actorCoPersonId,
-                      'cogroup',
-                      $cgid,
-                      ActionEnum::CoPetitionUpdated,
+                      'cogroup',                        // Recipient Type
+                      $cgid,                            // Recipient ID
+                      ActionEnum::CoPetitionUpdated,    // Action
                       (!$reminder ? _txt('rs.pt.status', array($enrolleeName,
                                                  _txt('en.status.pt', null, $pt['CoPetition']['status']),
                                                  _txt('en.status.pt', null, PetitionStatusEnum::PendingApproval),
@@ -2228,8 +2232,12 @@ class CoPetition extends AppModel {
                         'controller' => 'co_petitions',
                         'action'     => 'view',
                         'id'         => $id
-                      ),
-                      true);
+                      ),                                  // Source
+                      true,                               // mustResolve
+                      null,null,null,null,null,
+                      true,                              // isApprover
+                      $pt['CoEnrollmentFlow']['name']    // Hint String
+           );
     }
     
     return true;
@@ -2629,7 +2637,8 @@ class CoPetition extends AppModel {
         $args['contain'][] = 'PrimaryName';
         
         $enrollee = $this->EnrolleeCoPerson->find('first', $args);
-        
+
+        // XXX They should get the notification URL because the notification is created for them
         if(!empty($enrollmentFlow['CoEnrollmentFlow']['notification_co_group_id'])) {
           // If there is a notification group defined, send info on the status change
           // -- we don't fail on notification failures

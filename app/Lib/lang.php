@@ -235,13 +235,15 @@ For questions regarding this process, please contact your administrator.',
   'em.invite.ok'             => 'Invitation has been emailed to %1$s',
   'em.invite.footer'         => 'This email was sent using %1$s.',
   'em.notification.subject'  => 'New Notification for (@CO_NAME)',
+  'em.notification.subject.approver'  => 'Notification for "Enrollment Flow (@HINT)", (@CO_NAME)',
   'em.notification.body'     => '(@COMMENT)
-
-(@SOURCE_URL)
 
 For more information, see the notification at
 
 (@NOTIFICATION_URL)',
+  'em.notification.body.approver' => '(@COMMENT)
+
+(@SOURCE_URL)',
   'em.resolution.subject'    => 'Notification for (@CO_NAME) Resolved',
   'em.resolution.body'       => 'The action required for the notification
   
