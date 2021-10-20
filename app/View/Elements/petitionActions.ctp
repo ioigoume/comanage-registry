@@ -61,7 +61,15 @@ function handleFail(xhr, textStatus, error){
 }
 </script>
 <?php
-if(!empty($vv_coef_next_step) && $status != PetitionStatusEnum::PendingApproval && $status != PetitionStatusEnum::Finalized && $status != PetitionStatusEnum::PendingConfirmation) {
+$pt_statuses = array(
+                      PetitionStatusEnum::PendingApproval,
+                      PetitionStatusEnum::Finalized,
+                      PetitionStatusEnum::PendingConfirmation,
+                      PetitionStatusEnum::Denied,
+                      PetitionStatusEnum::Declined,
+                      PetitionStatusEnum::Duplicate
+                    );
+if($permissions['isEnrollee'] && !empty($vv_coef_next_step) && !in_array($status, $pt_statuses)) {
   print $this->Html->link(
      _txt('op.resume'),
      (!empty($vv_done_step) ? 
