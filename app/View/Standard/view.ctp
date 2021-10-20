@@ -89,7 +89,7 @@
 <?php
   // Add top links
   $params['topLinks'] = array();
-  if($vv_handle_pending_petition) {
+  if(!empty($vv_handle_pending_petition)) {
     // Only Enrollee can see this action
     if($permissions['isEnrollee'] && $model == 'CoPetitions' && $co_petitions[0]['CoPetition']['status'] != PetitionStatusEnum::Finalized) {
       $params['topLinks'][] = $this->Html->link(

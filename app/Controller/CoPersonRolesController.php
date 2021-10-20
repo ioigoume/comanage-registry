@@ -549,8 +549,15 @@ class CoPersonRolesController extends StandardController {
        && ($this->action == 'delete'
            || $this->action == 'edit'
            || $this->action == 'view')) {
-      $managed = $this->Role->isCoOrCouAdminForCoPersonRole($roles['copersonid'],
-                                                            $this->request->params['pass'][0]);
+      $CoPersonRole = ClassRegistry::init('CoPersonRole');
+      $CoPersonRole->id = $this->request->params['pass'][0];
+      $cpr_cou_id = $CoPersonRole->field('cou_id');
+
+
+      // XXX isCouAdmin does not return correctly if we have a Role with an empty COU
+      if(!empty($cpr_cou_id)) {
+        $managed = $this->Role->isCouAdmin($roles['copersonid'], $cpr_cou_id);
+      }
     }
     
     // Construct the permission set for this user, which will also be passed to the view.
@@ -576,13 +583,14 @@ class CoPersonRolesController extends StandardController {
     }
     
     // Delete an existing CO Person Role?
-    $p['delete'] = ($roles['cmadmin']
-                    || ($managed && ($roles['coadmin'] || $roles['couadmin'])));
+    $p['delete'] = $roles['cmadmin']
+                   || $roles['coadmin']
+                   || $managed;
     
     // Edit an existing CO Person Role?
-    $p['edit'] = ($roles['cmadmin']
-                  || ($managed && ($roles['coadmin'] || $roles['couadmin']))
-                  || $self);
+    $p['edit'] = $roles['cmadmin']
+                 || $roles['coadmin']
+                 || $managed;
 
     // Are we trying to edit our own record? 
     // If we're an admin, we act as an admin, not self.
