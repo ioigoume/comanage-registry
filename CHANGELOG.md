@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Show View button for COU admins at petitions index page
 - Enrollment Flow approvers should not get a url of the notification sent to the enrollee
 - Calculation of empty COU access permissions
+- Add missing spinner/loader for Email Confirmation Reply View, left side Main menu actions
 
 ## [3.3.3-rciam] - 2021-10-18
 

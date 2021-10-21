@@ -62,7 +62,7 @@
         $args['action']     = 'index';
         $args['co']         = $menuCoId;
 
-        print $this->Html->link(_txt('me.population'), $args);
+        print $this->Html->link(_txt('me.population'), $args, array('class' => 'spin'));
         print '<span class="mdl-ripple"></span>';
         print "</li>";
       }
@@ -77,7 +77,7 @@
           $args['co']           = $menuCoId;
           $args['Search.couid'] = $couid;
 
-          print $this->Html->link(_txt('me.population.cou', array($couname)), $args);
+          print $this->Html->link(_txt('me.population.cou', array($couname)), $args, array('class' => 'spin'));
           print '<span class="mdl-ripple"></span>';
           print "</li>";
         }
@@ -94,7 +94,7 @@
         }
 
         print '<li class="mdl-js-ripple-effect">';
-        print $this->Html->link(_txt('ct.org_identities.pl'), $args);
+        print $this->Html->link(_txt('ct.org_identities.pl'), $args, array('class' => 'spin'));
         print '<span class="mdl-ripple"></span>';
         print "</li>";
       }
@@ -109,7 +109,7 @@
           $args['action']     = 'select';
           $args['co']         = $menuCoId;
 
-          print $this->Html->link(_txt('op.enroll'), $args);
+          print $this->Html->link(_txt('op.enroll'), $args, array('class' => 'spin'));
           print '<span class="mdl-ripple"></span>';
           print "</li>";
         }
@@ -127,7 +127,7 @@
           $args['search.status'][] = StatusEnum::PendingConfirmation;
           // TODO: Extend this query to include COU. Change also permissions
 
-          print $this->Html->link(_txt('ct.co_petitions.pl'), $args);
+          print $this->Html->link(_txt('ct.co_petitions.pl'), $args, array('class' => 'spin'));
           print '<span class="mdl-ripple"></span>';
           print "</li>";
         }
@@ -141,7 +141,7 @@
           $args['action']     = 'find';
           $args['co']         = $menuCoId;
 
-          print $this->Html->link(_txt('op.inv'), $args);
+          print $this->Html->link(_txt('op.inv'), $args, array('class' => 'spin'));
           print '<span class="mdl-ripple"></span>';
           print "</li>";
         }
@@ -173,7 +173,7 @@
         $args['controller'] = 'co_groups';
         $args['action']     = 'select';
         $args['co']         = $menuCoId;
-        print $this->Html->link(_txt('op.grm.my.groups'), $args);
+        print $this->Html->link(_txt('op.grm.my.groups'), $args, array('class' => 'spin'));
         print '<span class="mdl-ripple"></span>';
         print "</li>";
 
@@ -183,7 +183,7 @@
         $args['controller'] = 'co_groups';
         $args['action']     = 'index';
         $args['co']         = $menuCoId;
-        print $this->Html->link(_txt('ct.co_all_groups'), $args);
+        print $this->Html->link(_txt('ct.co_all_groups'), $args, array('class' => 'spin'));
         print '<span class="mdl-ripple"></span>';
         print "</li>";
 
@@ -211,7 +211,7 @@
         $args['action']     = 'index';
         $args['co']         = $menuCoId;
 
-        print $this->Html->link($linkContent, $args, array('class' => 'mdl-js-ripple-effect', 'escape' => false,));
+        print $this->Html->link($linkContent, $args, array('class' => 'spin mdl-js-ripple-effect', 'escape' => false,));
 
         print "</li>";
       }
@@ -231,7 +231,7 @@
         $args['action']     = 'index';
         $args['co']         = $menuCoId;
 
-        print $this->Html->link($linkContent, $args, array('class' => 'mdl-js-ripple-effect', 'escape' => false,));
+        print $this->Html->link($linkContent, $args, array('class' => 'spin mdl-js-ripple-effect', 'escape' => false,));
 
         print "</li>";
       }
@@ -274,10 +274,10 @@
             if ($sCouId == -1) {
               // CO Portal
               $args['co'] = $menuCoId;
-              print $this->Html->link($cur_co['Co']['name'], $args);
+              print $this->Html->link($cur_co['Co']['name'], $args, array('class' => 'spin'));
             } else {
               $args['cou'] = $sCouId;
-              print $this->Html->link($menuContent['cous'][$sCouId], $args);
+              print $this->Html->link($menuContent['cous'][$sCouId], $args, array('class' => 'spin'));
             }
 
             print '<span class="mdl-ripple"></span>';
@@ -307,7 +307,7 @@
           } else {
             $args['co'] = $menuCoId;
           }
-          print $this->Html->link($linkContent, $args, array('class' => 'mdl-js-ripple-effect', 'escape' => false));
+          print $this->Html->link($linkContent, $args, array('class' => 'spin mdl-js-ripple-effect', 'escape' => false));
 
           print "</li>";
         }
@@ -334,7 +334,7 @@
         $args['action']     = 'index';
         $args['co']         = $menuCoId;
 
-        print $this->Html->link($linkContent, $args, array('class' => 'mdl-js-ripple-effect', 'escape' => false,));
+        print $this->Html->link($linkContent, $args, array('class' => 'spin mdl-js-ripple-effect', 'escape' => false,));
 
         print "</li>";
       }
@@ -354,7 +354,7 @@
         $args['action']     = 'configuration';
         $args['co']         = $menuCoId;
 
-        print $this->Html->link($linkContent, $args, array('class' => 'mdl-js-ripple-effect', 'escape' => false,));
+        print $this->Html->link($linkContent, $args, array('class' => 'spin mdl-js-ripple-effect', 'escape' => false,));
 
         print "</li>";
       }
@@ -376,7 +376,7 @@
       $args['plugin']     = null;
       $args['controller'] = 'api_users';
       $args['action']     = 'index';
-      print $this->Html->link(_txt('ct.api_users.pl'), $args);
+      print $this->Html->link(_txt('ct.api_users.pl'), $args, array('class' => 'spin'));
       print '<span class="mdl-ripple"></span>';
       print '</li>';
 
@@ -387,7 +387,7 @@
         $args['controller'] = 'attribute_enumerations';
         $args['action']     = 'index';
 
-        print $this->Html->link(_txt('ct.attribute_enumerations.pl'), $args);
+        print $this->Html->link(_txt('ct.attribute_enumerations.pl'), $args, array('class' => 'spin'));
         print '<span class="mdl-ripple"></span>';
         print '</li>';
       } // pool_org_identities
@@ -398,7 +398,7 @@
       $args['controller'] = 'cmp_enrollment_configurations';
       $args['action']     = 'select';
 
-      print $this->Html->link(_txt('ct.cmp_enrollment_configurations.pl'), $args);
+      print $this->Html->link(_txt('ct.cmp_enrollment_configurations.pl'), $args, array('class' => 'spin'));
       print '<span class="mdl-ripple"></span>';
       print '</li>';
 
@@ -408,7 +408,7 @@
       $args['controller'] = 'cos';
       $args['action']     = 'index';
 
-      print $this->Html->link(_txt('ct.cos.pl'), $args);
+      print $this->Html->link(_txt('ct.cos.pl'), $args, array('class' => 'spin'));
       print '<span class="mdl-ripple"></span>';
       print '</li>';
 
@@ -418,7 +418,7 @@
       $args['controller'] = 'navigation_links';
       $args['action']     = 'index';
 
-      print $this->Html->link(_txt('ct.navigation_links.pl'), $args);
+      print $this->Html->link(_txt('ct.navigation_links.pl'), $args, array('class' => 'spin'));
       print '<span class="mdl-ripple"></span>';
       print '</li>';
 
@@ -430,7 +430,7 @@
         $args['controller'] = 'org_identity_sources';
         $args['action']     = 'index';
 
-        print $this->Html->link(_txt('ct.org_identity_sources.pl'), $args);
+        print $this->Html->link(_txt('ct.org_identity_sources.pl'), $args, array('class' => 'spin'));
         print '<span class="mdl-ripple"></span>';
         print '</li>';
       } // pool_org_identities
@@ -452,7 +452,7 @@
       ) .
       '</span><span class="mdl-ripple"></span>';
 
-    print $this->Html->link($linkContent, '/', array('class' => 'mdl-js-ripple-effect', 'escape' => false,));
+    print $this->Html->link($linkContent, '/', array('class' => 'spin mdl-js-ripple-effect', 'escape' => false,));
 
     print "</li>";
 
