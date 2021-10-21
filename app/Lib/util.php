@@ -339,7 +339,7 @@ function render_plugin_menus() {
             }
           }
           // else probably just a string url
-          print "<li>" . $htmlHelper->link($label, $args) . "</li>\n";
+          print "<li>" . $htmlHelper->link($label, $args, array('class' => 'spin')) . "</li>\n";
         }
       }
     }

@@ -638,7 +638,9 @@ class CoPersonRolesController extends StandardController {
     $p['view'] = ($roles['cmadmin']
                   || ($roles['coadmin'] || $roles['couadmin'])
                   || $self);
-    
+
+    $p['roles'] = $roles;
+
     $this->set('permissions', $p);
     return $p[$this->action];
   }

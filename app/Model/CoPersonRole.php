@@ -25,6 +25,8 @@
  * @license       Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
  */
 
+App::import('Component', 'RoleComponent');
+
 class CoPersonRole extends AppModel {
   // Define class name for cake
   public $name = "CoPersonRole";
@@ -297,7 +299,21 @@ class CoPersonRole extends AppModel {
   public function beforeSave($options = array()) {
     // Cache the current record
     $this->cachedData = null;
-    
+
+    // Check for null COU
+    if(empty($this->data[$this->alias]['cou_id'])) {
+      $actor_identifier = $this->data["CoPersonRole"]["actor_identifier"];
+      // Even though it is not a good practise to load RoleComponent in the Model we do not have a choice.
+      $rolec = new RoleComponent(new ComponentCollection);
+      $is_cmp_admin = $rolec->identifierIsCmpAdmin($actor_identifier);
+      $is_co_admin = $rolec->identifierIsCoAdmin($actor_identifier);
+
+      if(!$is_cmp_admin && !$is_co_admin) {
+        return false;
+      }
+    }
+
+
     if(!empty($this->data[$this->alias]['id'])) {
       // We have an existing record
       

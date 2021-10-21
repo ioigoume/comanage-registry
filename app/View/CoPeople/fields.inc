@@ -982,6 +982,9 @@
                           $can_ax_empty_cou = true;
                         }
 
+                        // The user can not edit an owned empty COU
+                        $es = $es && !empty($r['Cou']);
+
                         if ($es // Editing self
                             ||  $can_ax_empty_cou // Empty COU accessible
                             || (isset($r['Cou']['name']) && in_array($r['Cou']['name'], $permissions['cous']))
