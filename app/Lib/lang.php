@@ -235,7 +235,7 @@ For questions regarding this process, please contact your administrator.',
   'em.invite.ok'             => 'Invitation has been emailed to %1$s',
   'em.invite.footer'         => 'This email was sent using %1$s.',
   'em.notification.subject'  => 'New Notification for (@CO_NAME)',
-  'em.notification.subject.approver'  => 'Notification for "Enrollment Flow (@HINT)", (@CO_NAME)',
+  'em.notification.subject.approver'  => 'Notification for "(@HINT)" ((@CO_NAME))',
   'em.notification.body'     => '(@COMMENT)
 
 For more information, see the notification at
