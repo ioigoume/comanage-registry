@@ -139,11 +139,17 @@
                 </div>
                 <div class="field-info">
                   <?php
-                    $attrs['value'] = (isset($co_person_roles[0]['CoPersonRole']['cou_id'])
-                      ? $co_person_roles[0]['CoPersonRole']['cou_id']
-                      : 0);
-                    // $attrs['empty'] = false;
-                    $attrs['empty'] = ($attrs['value'] == '') ? '-- Empty --' : false;
+                    $attrs['value'] = isset($co_person_roles[0]['CoPersonRole']['cou_id'])
+                                      ? $co_person_roles[0]['CoPersonRole']['cou_id']
+                                      : '';
+
+                    $attrs['empty'] = ($attrs['value'] == '') ? _txt('op.select.empty') : false;
+
+                    if($this->action == "add"
+                       && !$permissions['roles']['coadmin']
+                       && !$permissions['roles']['cmadmin']) {
+                        $attrs['empty'] = false;
+                    }
 
                     if($e && !$es) {
                       print $this->Form->select('cou_id',
