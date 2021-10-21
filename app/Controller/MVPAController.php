@@ -214,7 +214,6 @@ class MVPAController extends StandardController {
           $args['contain']['CoPerson'] = 'PrimaryName';
           
           $p = $model->CoPersonRole->find('first', $args);
-//debug($p);
           
           // Set the bc name to the role's title
           $this->set('vv_bc_name', $p['CoPersonRole']['title']);

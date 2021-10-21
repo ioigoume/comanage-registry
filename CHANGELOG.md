@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix notification view permissions when recepient_co_group_id value exists
 - Don't show Resume button for petition status 'Denied'
 - Show View button for COU admins at petitions index page
-- Enrollment Flow approvers should not get a url of the notification sent to the enrollee.
+- Enrollment Flow approvers should not get a url of the notification sent to the enrollee
+- Calculation of empty COU access permissions
 
 ## [3.3.3-rciam] - 2021-10-18
 

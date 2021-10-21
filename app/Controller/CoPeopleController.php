@@ -801,7 +801,10 @@ class CoPeopleController extends StandardController {
       $p['cous'] = $roles['admincous'];
     else
       $p['cous'] = array();
-    
+
+    // Pass the roles to the view
+    $p['roles'] = $roles;
+
     $this->set('permissions', $p);
     return $p[$this->action];
   }

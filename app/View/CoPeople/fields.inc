@@ -975,9 +975,16 @@
                     </td>
                     <td>
                       <?php
+                        // Empty COU accessible only by CO/CMP admins
+                        $can_ax_empty_cou = false;
+                        if( empty($r['Cou'])
+                            && ($permissions['roles']['coadmin'] || $permissions['roles']['cmadmin']) ) {
+                          $can_ax_empty_cou = true;
+                        }
+
                         if ($es // Editing self
-                          || empty($r['Cou']) // No COU set for this person
-                          || (isset($r['Cou']['name']) && in_array($r['Cou']['name'], $permissions['cous']))
+                            ||  $can_ax_empty_cou // Empty COU accessible
+                            || (isset($r['Cou']['name']) && in_array($r['Cou']['name'], $permissions['cous']))
                         ) // Admin for the COU
                         {
                           // COU Admins can only edit their own folks, so we need a bit of
