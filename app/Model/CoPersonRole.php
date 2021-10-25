@@ -301,15 +301,17 @@ class CoPersonRole extends AppModel {
     $this->cachedData = null;
 
     // Check for null COU
-    if(empty($this->data[$this->alias]['cou_id'])) {
-      $actor_identifier = $this->data["CoPersonRole"]["actor_identifier"];
-      // Even though it is not a good practise to load RoleComponent in the Model we do not have a choice.
-      $rolec = new RoleComponent(new ComponentCollection);
-      $is_cmp_admin = $rolec->identifierIsCmpAdmin($actor_identifier);
-      $is_co_admin = $rolec->identifierIsCoAdmin($actor_identifier);
+    if(!isset($options['trustStatus']) || !$options['trustStatus']) {
+      if(empty($this->data[$this->alias]['cou_id'])) {
+        $actor_identifier = $this->data["CoPersonRole"]["actor_identifier"];
+        // Even though it is not a good practice to load RoleComponent in the Model we do not have a choice.
+        $rolec = new RoleComponent(new ComponentCollection);
+        $is_cmp_admin = $rolec->identifierIsCmpAdmin($actor_identifier);
+        $is_co_admin = $rolec->identifierIsCoAdmin($actor_identifier);
 
-      if(!$is_cmp_admin && !$is_co_admin) {
-        return false;
+        if(!$is_cmp_admin && !$is_co_admin) {
+          return false;
+        }
       }
     }
 
