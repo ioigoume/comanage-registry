@@ -101,8 +101,6 @@ class LdapSyncEntitlements {
       if(empty($cou['group_name']) || empty($cou['cou_id'])) {
         continue;
       }
-
-     
       $recursive_query = QueryConstructor::getRecursiveQuery($cou['cou_id']);
       $CoGroup = ClassRegistry::init('CoGroup');
       $result = $CoGroup->query($recursive_query);
@@ -141,8 +139,8 @@ class LdapSyncEntitlements {
      */
     private function getCouRootParent($cou_name, $cou_nested)
     {
-      foreach ($cou_nested as $hierarchy) {
-        if (!in_array($cou_name, $hierarchy['path_full_list'])) {
+      foreach($cou_nested as $hierarchy) {
+        if(!in_array($cou_name, $hierarchy['path_full_list'])) {
           continue;
         }
         return array_values($hierarchy['path_full_list'])[0];
@@ -162,13 +160,13 @@ class LdapSyncEntitlements {
      */
     private function couEntitlementAssemble($personRoles, $vo_name, $group_name = "", $cou_id = null)
     {
-      foreach ($personRoles as $key => $role) {
+      foreach($personRoles as $key => $role) {
         // We need this to filter the cou_id or any other irrelevant information
         // Do not create entitlements for the admins group here.
-        if ((!is_array($key) && is_string($key) && $key === 'cou_id') || (strpos($vo_name, ':admins') !== false)) {
+        if((!is_array($key) && is_string($key) && $key === 'cou_id') || (strpos($vo_name, ':admins') !== false)) {
           continue;
         }
-        if (!empty($role) && is_array($role) && count($role) > 0) {
+        if(!empty($role) && is_array($role) && count($role) > 0) {
           $this->couEntitlementAssemble($role, $vo_name, $key, $personRoles['cou_id']);
           continue;
         }
@@ -179,7 +177,7 @@ class LdapSyncEntitlements {
           . urlencode($vo_name)               // VO
           . $group . ":role=" . $role         // role
           . "#" . $this->config['urn_authority'];        // AA FQDN
-        if (is_array($this->members_entitlements)
+        if(is_array($this->members_entitlements)
             && !is_string($key)
             && $role === 'member') {
           if (!empty($personRoles['cou_id'])) { // Under admin this is not defined
@@ -190,7 +188,7 @@ class LdapSyncEntitlements {
         }
         $this->state['Attributes']['eduPersonEntitlement'][] = $entitlement;
         // TODO: remove in the near future
-        if ($this->config['urn_legacy']) {
+        if(!empty($this->config['urn_legacy']) && $this->config['urn_legacy']) {
            /* $this->state['Attributes']['eduPersonEntitlement'][] =
                   $this->config['urn_namespace']          // URN namespace
                   . ':' . $this->config['urn_authority']  // AA FQDN
@@ -230,26 +228,26 @@ class LdapSyncEntitlements {
      */
     private function constructOrphanCouAdminEntitlements($orphan_memberships, $cou_tree_structure) {
       // XXX Add all orphan admins COU groups in the state
-      foreach ($orphan_memberships as $membership) {
+      foreach($orphan_memberships as $membership) {
          //CakeLog::write('debug', __METHOD__ . "::membeship: orphan_memberships => " . print_r($membership, true), LOG_DEBUG);
-          if ($membership['member'] || $membership['owner']) {
+          if($membership['member'] || $membership['owner']) {
               $membership_roles = [];
-              if ($membership['member']) {
+              if($membership['member']) {
                   $membership_roles[] = 'member';
               }
-              if ($membership['owner']) {
+              if($membership['owner']) {
                   $membership_roles[] = 'owner';
               }
               $vo_name = $membership['group_name'];
-              if (array_key_exists($membership['cou_id'], $cou_tree_structure)) {
+              if(array_key_exists($membership['cou_id'], $cou_tree_structure)) {
                   $vo_name = $cou_tree_structure[$membership['cou_id']]['path'] . ':admins';
-              } elseif (strpos($vo_name, ':admins') !== false) {
+              } elseif(strpos($vo_name, ':admins') !== false) {
                 $vo_name = str_replace(':admins', '', $vo_name);
                 $vo_name = urlencode($vo_name) . ':admins';
               } else {
                 $vo_name = urlencode($vo_name);
               }
-              foreach ($membership_roles as $role) {
+              foreach($membership_roles as $role) {
                   $entitlement =
                       $this->config['urn_namespace']                 // URN namespace
                       . ":group:"                         // group literal
@@ -272,7 +270,7 @@ class LdapSyncEntitlements {
       //CakeLog::write('debug', __METHOD__ . "::mergeEntitlements: cou_tree_structure => " . print_r($this->nested_cous_paths, true), LOG_DEBUG);
       //CakeLog::write('debug', __METHOD__ . "::mergeEntitlements: orphan_memberships => " . print_r($orphan_memberships, true), LOG_DEBUG);
 
-      if (empty($this->nested_cous_paths)) {
+      if(empty($this->nested_cous_paths)) {
           // XXX Add remaining orphans and exit
           $this->constructOrphanCouAdminEntitlements($orphan_memberships, $this->nested_cous_paths);
           // XXX Remove duplicates
@@ -282,7 +280,7 @@ class LdapSyncEntitlements {
 
       // Retrieve only the entitlements that need handling.
       $filtered_cou_ids = [];
-      foreach ($this->nested_cous_paths as $node) {
+      foreach($this->nested_cous_paths as $node) {
           $filtered_cou_ids[] = $node['path_id_list'];
       }
       $filtered_cou_ids = array_values(array_unique(array_merge(...$filtered_cou_ids)));
@@ -308,11 +306,11 @@ class LdapSyncEntitlements {
       // XXX Create the list of all potential groups
       $allowed_cou_ids = array_keys($filtered_entitlements);
       $list_of_candidate_full_nested_groups = [];
-      foreach ($this->nested_cous_paths as $sub_tree) {
+      foreach($this->nested_cous_paths as $sub_tree) {
           $full_candidate_cou_id = '';
           $full_candidate_entitlement = '';
-          foreach ($sub_tree['path_full_list'] as $cou_id => $cou_name) {
-              if (in_array($cou_id, $allowed_cou_ids, true)) {
+          foreach($sub_tree['path_full_list'] as $cou_id => $cou_name) {
+              if(in_array($cou_id, $allowed_cou_ids, true)) {
                   $key = array_search($cou_id, $sub_tree['path_id_list']);
                   $cou_name_hierarchy = array_slice($sub_tree['path_full_list'], 0, $key + 1);
                   $full_candidate_entitlement = implode(':', $cou_name_hierarchy);
@@ -328,12 +326,12 @@ class LdapSyncEntitlements {
       //CakeLog::write('debug', __METHOD__ . "::mergeEntitlements: list_of_candidate_full_nested_groups => " . print_r($list_of_candidate_full_nested_groups, true), LOG_DEBUG);
 
       // XXX Filter the ones that are subgroups from another
-      if ($this->config['merge_entitlements']) {
+      if(!empty($this->config['merge_entitlements']) && $this->config['merge_entitlements']) {
           $path_id_arr = array_keys($list_of_candidate_full_nested_groups);
           $path_id_cp = array_keys($list_of_candidate_full_nested_groups);
-          foreach ($path_id_arr as $path_id_str) {
-              foreach ($path_id_cp as $path_id_str_cp) {
-                  if (strpos($path_id_str_cp, $path_id_str) !== false
+          foreach($path_id_arr as $path_id_str) {
+              foreach($path_id_cp as $path_id_str_cp) {
+                  if(strpos($path_id_str_cp, $path_id_str) !== false
                       && strlen($path_id_str) < strlen($path_id_str_cp)) {
                       unset($path_id_arr[array_search($path_id_str, $path_id_arr)]);
                       continue;
@@ -350,7 +348,7 @@ class LdapSyncEntitlements {
           );
       }
 
-      foreach ($list_of_candidate_full_nested_groups as $cou_ids => $vo_nested) {
+      foreach($list_of_candidate_full_nested_groups as $cou_ids => $vo_nested) {
           $entitlement =
               $this->config['urn_namespace']                 // URN namespace
               . ":group:"                         // group literal
@@ -361,8 +359,8 @@ class LdapSyncEntitlements {
           $this->state['Attributes']['eduPersonEntitlement'][] = $entitlement;
 
           // Add the admin roles nested entitlements
-          foreach (explode(':', $cou_ids) as $cou_id) {
-              if (in_array($cou_id, $filtered_admin_cou_ids)) {
+          foreach(explode(':', $cou_ids) as $cou_id) {
+              if(in_array($cou_id, $filtered_admin_cou_ids)) {
                   $entitlement =
                       $this->config['urn_namespace']               // URN namespace
                       . ":group:"                         // group literal
@@ -377,10 +375,10 @@ class LdapSyncEntitlements {
       }
       $voWhitelist = explode(',', $this->config['vo_whitelist']);
       // XXX Add all the parents with the default roles in the state
-      foreach ($this->nested_cous_paths as $cou_id => $sub_tree) {
+      foreach($this->nested_cous_paths as $cou_id => $sub_tree) {
           // XXX Split the full path and encode each part.
           $parent_vo = array_values($sub_tree['path_full_list'])[0];
-          if ($this->config['enable_vo_whitelist'] && !in_array($parent_vo, $voWhitelist, true)) {
+          if($this->config['enable_vo_whitelist'] && !in_array($parent_vo, $voWhitelist, true)) {
               continue;
           }
           // XXX Also exclude the ones that are admin groups
@@ -389,11 +387,11 @@ class LdapSyncEntitlements {
                     && (integer)$membership[0]['cou_id'] === $cou_id
                     && (!empty($membership[0]['affiliation']) || !empty($membership[0]['title'])));
           });
-          if (empty($cou_exist)) {
+          if(empty($cou_exist)) {
             continue;
           }
           $voRolesDef = explode(',', $this->config['vo_roles']);
-          foreach ($voRolesDef as $role) {
+          foreach($voRolesDef as $role) {
               $entitlement =
                   $this->config['urn_namespace']   // URN namespace
                   . ":group:"                      // group literal
@@ -416,12 +414,12 @@ class LdapSyncEntitlements {
 
       // XXX Remove all non root non nested cou entitlements from the $this->state['Attributes']['eduPersonEntitlement']
       $re = '/(.*):role=member(.*)/m';
-      foreach ($filtered_entitlements as $couid => $entitlement) {
-          if ($this->isRootCou($couid, $this->nested_cous_paths)) {
+      foreach($filtered_entitlements as $couid => $entitlement) {
+          if($this->isRootCou($couid, $this->nested_cous_paths)) {
               continue;
           }
           $voRoles = explode(',', $this->config['vo_roles']);
-          foreach ($voRoles as $role) {
+          foreach($voRoles as $role) {
               $replacement = '$1:role=' . $role . '$2';
               $replaced_entitlement = preg_replace($re, $replacement, $entitlement);
               $key = array_search($replaced_entitlement, $this->state['Attributes']['eduPersonEntitlement']);
@@ -468,8 +466,8 @@ class LdapSyncEntitlements {
     $voRoles = explode(',', $this->config['vo_roles']);
     $voWhitelist = explode(',', $this->config['vo_whitelist']);
     // Iterate over the COUs and construct the entitlements
-    foreach ($cou_memberships as $idx => $cou) {
-        if (empty($cou['group_name'])) {
+    foreach($cou_memberships as $idx => $cou) {
+        if(empty($cou['group_name'])) {
             continue;
         }
       
@@ -492,7 +490,7 @@ class LdapSyncEntitlements {
           }
       }      
       // XXX handle orphan COU admin memberships if no voWhiteList
-      if (!$this->config['enable_vo_whitelist']
+      if(!$this->config['enable_vo_whitelist']
       && !strpos($cou['group_name'], ':admins') === false) {
         continue;
       }
@@ -511,10 +509,10 @@ class LdapSyncEntitlements {
     $cou_affiliations = explode(',', $cou['affiliation']);
 
     // XXX Translate the ownership and membership of the group to a role
-    if (filter_var($cou['owner'], FILTER_VALIDATE_BOOLEAN)) {
+    if(filter_var($cou['owner'], FILTER_VALIDATE_BOOLEAN)) {
         $vo_roles[] = 'owner';
     }
-    if (filter_var($cou['member'], FILTER_VALIDATE_BOOLEAN)) {
+    if(filter_var($cou['member'], FILTER_VALIDATE_BOOLEAN)) {
         $vo_roles[] = 'member';
     }
     $vo_roles = array_unique(array_merge($cou_titles, $cou_affiliations, $vo_roles));
@@ -533,7 +531,7 @@ class LdapSyncEntitlements {
         array_filter(
             $cou_memberships,
             static function ($value) use ($voName) {
-                if (!empty($value['group_name']) && $value['group_name'] === ($voName . ':admins')) {
+                if(!empty($value['group_name']) && $value['group_name'] === ($voName . ':admins')) {
                     return $value;
                 }
             }
@@ -541,10 +539,10 @@ class LdapSyncEntitlements {
     );
 
     // Handle as a role the membership and ownership of admins group
-    if (!empty($cou_admins_group[0]['member']) && filter_var($cou_admins_group[0]['member'], FILTER_VALIDATE_BOOLEAN)) {
+    if(!empty($cou_admins_group[0]['member']) && filter_var($cou_admins_group[0]['member'], FILTER_VALIDATE_BOOLEAN)) {
         $vo_roles['admins'][] = 'member';
     }
-    if (!empty($cou_admins_group[0]['owner']) && filter_var($cou_admins_group[0]['owner'], FILTER_VALIDATE_BOOLEAN)) {
+    if(!empty($cou_admins_group[0]['owner']) && filter_var($cou_admins_group[0]['owner'], FILTER_VALIDATE_BOOLEAN)) {
         $vo_roles['admins'][] = 'owner';
     }
 
@@ -560,7 +558,6 @@ class LdapSyncEntitlements {
     }
     // Fix nested COUs entitlements
     $this->mergeEntitlements($cou_memberships, $coGroupMemberships);
-
 
     return $this->state['Attributes']['eduPersonEntitlement'];
   }
