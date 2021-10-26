@@ -46,9 +46,17 @@ class CoExpirationPolicy extends AppModel {
       'className' => 'CoGroup',
       'foreignKey' => 'act_notify_co_group_id'
     ),
+    "ActOrgNotifyCoGroup" => array(
+      'className' => 'CoGroup',
+      'foreignKey' => 'act_notify_org_co_group_id'
+    ),
     "ActNotifyMessageTemplate" => array(
       'className' => 'CoMessageTemplate',
       'foreignKey' => 'act_notification_template_id'
+    ),
+    "ActOrgNotifyMessageTemplate" => array(
+      'className' => 'CoMessageTemplate',
+      'foreignKey' => 'act_notification_org_template_id'
     ),
     "Co",
     "CondCou" => array(
@@ -242,6 +250,61 @@ class CoExpirationPolicy extends AppModel {
                                       SuspendableStatusEnum::Suspended)),
       'required' => true,
       'message' => 'A valid status must be selected'
+    ),
+    'model' => array(
+        'rule' => array('inList', array(ExpirationPolicyModelEnum::COU,
+                                        ExpirationPolicyModelEnum::OrgIdentity)),
+        'required' => true,
+        'message' => 'A valid model must be selected'
+    ),
+    'cond_every_xdays_org' => array(
+       'rule' => 'numeric',
+       'required' => false,
+       'allowEmpty' => true
+    ),
+    'cond_status_org' => array(
+      'content' => array(
+        'rule' => array('inList', array(
+          OrgIdentityStatusEnum::Removed,
+          OrgIdentityStatusEnum::Synced)),
+        'required' => false,
+        'allowEmpty' => true
+      )
+    ),
+    'cond_before_expiry_org' => array(
+      'rule' => 'numeric',
+      'required' => false,
+      'allowEmpty' => true
+    ),
+    'cond_after_expiry_org' => array(
+      'rule' => 'numeric',
+      'required' => false,
+      'allowEmpty' => true
+    ),
+    'cond_after_last_login_org' => array(
+      'rule' => 'numeric',
+      'required' => false,
+      'allowEmpty' => true
+    ),
+    'act_notify_co_admin_org' => array(
+      'rule' => 'boolean',
+      'required' => false,
+      'allowEmpty' => true
+    ),
+    'act_notify_org_co_group_id' => array(
+      'rule' => 'numeric',
+      'required' => false,
+      'allowEmpty' => true
+    ),
+    'act_notify_co_person_org' => array(
+      'rule' => 'boolean',
+      'required' => false,
+      'allowEmpty' => true
+    ),
+    'act_notification_org_template_id' => array(
+      'rule' => 'numeric',
+      'required' => false,
+      'allowEmpty' => true
     )
   );
 
@@ -297,6 +360,70 @@ class CoExpirationPolicy extends AppModel {
     $args['contain'][] = 'Cou';
 
     return $this->Co->CoPerson->CoPersonRole->find('all', $args);
+  }
+
+  /**
+   * The method handles only the entries with Authentication Event type = User login (UL)
+   *
+   * Retrieve matching CO Person Role records
+   * @param  integer $coId CO ID
+   * @param  array $policy
+   * @return array|null CoPersonRole Record
+   */
+  public function retrieveOrgIdRecords($coId, $policy) {
+    $args = array();
+    $args['joins'][0]['table'] = 'cm_identifiers';
+    $args['joins'][0]['alias'] = 'Identifier';
+    $args['joins'][0]['type'] = 'INNER';
+    $args['joins'][0]['conditions'][0] = 'Identifier.org_identity_id = OrgIdentity.id';
+    $args['joins'][1]['table'] = 'cm_authentication_events';
+    $args['joins'][1]['alias'] = 'AuthenticationEvent';
+    $args['joins'][1]['type'] = 'INNER';
+    $args['joins'][1]['conditions'][0] = 'AuthenticationEvent.authenticated_identifier = Identifier.identifier';
+    // Get the identifier
+    $args['conditions'][] = "Identifier.org_identity_id is NOT null";
+    $args['conditions']['Identifier.login'] = true;
+    $args['conditions']['Identifier.status'] = StatusEnum::Active;
+
+    // Restrict matching records to the requested CO
+    $args['conditions']['OrgIdentity.co_id'] = $coId;
+    if(isset($policy['CoExpirationPolicy']['cond_status_org'])) {
+      if(empty($policy['CoExpirationPolicy']['cond_status_org'])) {
+        $args['conditions'][] = "(OrgIdentity.status = '') IS NOT FALSE";
+      } else {
+        $args['conditions']['OrgIdentity.status'] = $policy['CoExpirationPolicy']['cond_status_org'];
+      }
+    }
+    // Note only one of after and before is permitted
+    // We use strlen because we want the literal string 0 but not an empty string.
+    if(strlen($policy['CoExpirationPolicy']['cond_after_expiry_org']) > 0) {
+      // Imagine today is June 10 and cond_after_expiry is 7 days (ie: give someone a week grace
+      // period after expiration). What we want are valid through dates from June 3 and earlier.
+      $args['conditions']['OrgIdentity.valid_through <'] =
+        date('Y-m-d H:i:s', strtotime("-" . $policy['CoExpirationPolicy']['cond_after_expiry_org'] . " days"));
+    } elseif(strlen($policy['CoExpirationPolicy']['cond_before_expiry_org']) > 0) {
+      // Imagine today is June 5 and cond_before_expiry is 3 days (ie: notify someone 3 days
+      // before expiration). What we want are valid_through dates between now (6/5) and 3 days
+      // from now (6/8).
+      $args['conditions']['OrgIdentity.valid_through BETWEEN ? AND ?'] =
+        array(date('Y-m-d H:i:s'),
+          date('Y-m-d H:i:s', strtotime("+" . $policy['CoExpirationPolicy']['cond_before_expiry_org'] . " days")));
+    } elseif(!empty($policy['CoExpirationPolicy']['cond_after_last_login_org'])) {
+      $args['conditions']['AuthenticationEvent.authentication_event'] = AuthenticationEventEnum::UserLogin;
+      $args['conditions']['AuthenticationEvent.modified <'] = date('Y-m-d H:i:s', strtotime("-" . $policy['CoExpirationPolicy']['cond_after_last_login_org'] . " days"));
+    }
+
+    // data we need in one clever find
+    $args['contain'][] = 'PrimaryName';
+    $args['contain'][] = 'Identifier';
+    $args['contain']['CoOrgIdentityLink'][] = 'CoPerson';
+    // We need the identifier of the CO Person in order to send the notifications. We will not use the identifier of
+    // the OrgIdentity.
+    // XXX We will only use the identifier of the OrgIdentity in the case the OrgIdentity is not linked to a CoPerson
+    $args['contain']['CoOrgIdentityLink']['CoPerson'] = 'Identifier';
+
+    $this->OrgIdentity = ClassRegistry::init("OrgIdentity");
+    return $this->OrgIdentity->find('all', $args);
   }
 
   /**
@@ -368,11 +495,306 @@ class CoExpirationPolicy extends AppModel {
    */
 
   public function executePolicies($coId, $appShell=null) {
+    // Execute CoPersonRole Policies
+    $this->executeCoPersonRolePolicy($coId, $appShell);
+
+    // Execute OrgIdentity Policies
+    $this->executeOrgIdentityPolicy($coId, $appShell);
+
+  }
+
+  /**
+   * @param $coId              $coId CO ID
+   * @param null $appShell     If set, log progress via this provided AppShell
+   * @return boolean True on success
+   */
+  protected function executeOrgIdentityPolicy($coId, $appShell=null) {
     // Select all policies where status=active
 
     $args = array();
     $args['conditions']['CoExpirationPolicy.co_id'] = $coId;
     $args['conditions']['CoExpirationPolicy.status'] = SuspendableStatusEnum::Active;
+    $args['conditions']['CoExpirationPolicy.model'] = ExpirationPolicyModelEnum::OrgIdentity;
+    $args['contain'] = array('ActOrgNotifyMessageTemplate');
+
+    $policies = $this->find('all', $args);
+
+    if(!empty($policies)) {
+      foreach ($policies as $p) {
+        // First, retrieve matching OrgIdentity records
+        $orgs = $this->retrieveOrgIdRecords($coId, $p);
+        if (!empty($orgs)) {
+          foreach ($orgs as $org) {
+            // todo: If the OrgIdentity is linked to no CoPerson i should remove it without any notification. Record the history, remove and proceed.
+
+
+            // XXX Days passed since last notification sent
+            if(!empty($p['CoExpirationPolicy']['cond_every_xdays_org'])) {
+              $days_cnt = $this->CoExpirationDaysCount->days_diff($p['CoExpirationPolicy']['id'], null, $org['OrgIdentity']['id']);
+              if(!is_null($days_cnt)
+                && ($p['CoExpirationPolicy']['cond_every_xdays_org'] - $days_cnt > 0)) {
+                $this->log(__METHOD__ . ":: "
+                           . $days_cnt . " / " . $p['CoExpirationPolicy']['cond_every_xdays_org']
+                           . " days until next notification, for OrgIdentity " . $org['OrgIdentity']['id'], LOG_INFO);
+                continue;
+              } else {
+                // Store the date
+                $this->CoExpirationDaysCount->date_store($p['CoExpirationPolicy']['id'], null, $org['OrgIdentity']['id']);
+              }
+            }
+
+            // Log that this expiration policy matched
+
+            if($appShell) {
+              $appShell->out(generateCn($org['PrimaryName'])
+                             . " (Org:" . $org['OrgIdentity']['id']
+                             . "/CoP:" . $org['CoOrgIdentityLink'][0]['CoPerson']['id'] . "): "
+                             . _txt('rs.xp.match',
+                                    array(
+                                      $p['CoExpirationPolicy']['description'],
+                                      $p['CoExpirationPolicy']['id']
+                                    )
+                             ));
+            }
+
+            try {
+
+              $this->Co->OrgIdentity->HistoryRecord->record($org['CoOrgIdentityLink'][0]['CoPerson']['id'],
+                                                            null,
+                                                            null,
+                                                            null,
+                                                            ActionEnum::ExpirationPolicyMatched,
+                                                            _txt('rs.xp.match',
+                                                                 array(
+                                                                   $p['CoExpirationPolicy']['description'],
+                                                                   $p['CoExpirationPolicy']['id']
+                                                                 )
+                                                            ));
+            }
+            catch(Exception $e) {
+              if($appShell) {
+                $appShell->out($e->getMessage(), 1, Shell::QUIET);
+              }
+            }
+
+            // Execute all defined actions
+
+            $this->Co->OrgIdentity->id = $org['OrgIdentity']['id'];
+
+            // Track changes we make for purposes of constructing history records
+            $newOrgData = array();
+            $oldOrgData = array();
+            $fieldList = array();
+
+            if(!empty($p['CoExpirationPolicy']['act_status_org'])) {
+              // Update status
+
+              $newOrgData['OrgIdentity']['status'] = $p['CoExpirationPolicy']['act_status_org'];
+              $oldOrgData['OrgIdentity']['status'] = $org['OrgIdentity']['status'];
+              $fieldList[] = 'status';
+            }
+
+            // Save changes, if any
+
+            if(!empty($fieldList)) {
+              $this->Co->OrgIdentity->save($newOrgData, true, $fieldList);
+            }
+
+            // Before we go on to notifications, record history if appropriate
+
+            if(!empty($newOrgData) || !empty($oldOrgData)) {
+              try {
+                $ctxt = $this->Co->OrgIdentity->changesToString($newOrgData,
+                                                                $oldOrgData,
+                                                                $coId);
+
+                if($appShell) {
+                  $appShell->out('+ ' . $ctxt);
+                }
+
+                $this->Co->OrgIdentity->HistoryRecord->record(null,
+                                                              null,
+                                                              $this->Co->OrgIdentity->id,
+                                                              null,
+                                                              ActionEnum::OrgIdEditedExpiration,
+                                                              _txt('rs.xp.action',
+                                                                   array(
+                                                                     $p['CoExpirationPolicy']['description'],
+                                                                     $p['CoExpirationPolicy']['id'],
+                                                                     $ctxt
+                                                                   )
+                                                              ));
+              }
+              catch(Exception $e) {
+                if($appShell) {
+                  $appShell->out($e->getMessage(), 1, Shell::QUIET);
+                }
+              }
+            }
+
+
+            // Calculate the substitutions
+            [$subject, $body] = $this->prepSubstitutions( $org['OrgIdentity'],
+                                                          $newOrgData,
+                                                          $org,
+                                                          $p);
+            // Submit Notifications
+            $this->submitNotifications($p, $org, $subject, $body, $appShell);
+
+          } // foreach $orgs
+        } // Fetched $orgs
+      }
+    }
+  }
+
+
+  /**
+   * @param array $mdl e.g. $role['CoPersonRole'], $org['OrgIdentity']
+   * @param array $mdl_new_data e.g. $newRoleData['CoPersonRole'], $newOrgData['OrgIdentity']
+   * @param array $data
+   * @param array $policy_config Expiration Policy Model configuration
+   * @return array [subject, body]
+   * @throws Exception
+   */
+  protected function prepSubstitutions($mdl, $mdl_new_data, $data, $policy_config)
+  {
+    // We have a bunch of substitutions to support, so process the template
+    // here. In addition, we'll also support the standard substitutions (though ACTOR_NAME
+    // probably doesn't make much sense) when processTemplate is called a second
+    // time by CoNotification::register().
+
+    // By default we will use the en.status lang variable since it is the most generic
+    $en_status_mdl = 'en.status';
+    if(!empty($data['OrgIdentity'])) {
+      $en_status_mdl = 'en.status.org';
+    }
+
+    // Prep date
+
+    $expiryDays = null;
+    $expdate = null;
+    $nowdate = null;
+    $cou_eof_list = false;
+
+    if(!empty($mdl['valid_through'])) {
+      $expdate = new DateTime($mdl['valid_through']);
+      $nowdate = new DateTime();
+
+      $timediff = $expdate->diff($nowdate);
+      $expiryDays = $timediff->days;   // On PHP < 5.4, this could be -99999 on error
+      // $expiryDays seems to always be positive regardless of order
+    }
+
+    // Calculate CoPerson Identifier
+    $cp_identifier = null;
+    if(!empty($data['CoPerson']['Identifier'])) {
+      $cp_identifier =  $data['CoPerson']['Identifier'];
+    } elseif(!empty($data['CoOrgIdentityLink'][0]['CoPerson']['Identifier'])) {
+      $cp_identifier = $data['CoOrgIdentityLink'][0]['CoPerson']['Identifier'];
+    }
+
+    // Get enrollment flow ID from cou
+    if(!empty($data['Cou']['name'])) {
+      $cou_eof_list = $this->retrieveCouEofId($data['Cou']['co_id'], $data['Cou']['name']);
+    }
+
+    $substitutions = array(
+      'ORIG_AFFIL'        => $mdl['affiliation'],
+      'NEW_AFFIL'         => $mdl_new_data['affiliation'] ?? $mdl['affiliation'],
+      'ORIG_COU'          => $data['Cou']['name'] ?? null,
+      'NEW_COU'           => (!empty($mdl_new_data['cou_id']) && !empty($policy_config['ActCou']['name'])
+                              ? $policy_config['ActCou']['name']
+                              // No change, use original value
+                              : ($data['Cou']['name'] ?? null)),
+      'ORIG_STATUS'       => _txt($en_status_mdl, null, ($mdl['status'] ?? '')),
+      'NEW_STATUS'        => (!empty($mdl_new_data['status'])
+                              ? _txt($en_status_mdl, null, ($mdl_new_data['status'] ?? ''))
+                              // No change, use original value
+                              : ( _txt($en_status_mdl, null, ($mdl['status'] ?? '')))
+                              ),
+      'DAYS_SINCE_EXPIRY' => ($expiryDays !== null && ($nowdate >= $expdate)
+                              ? $expiryDays
+                              : null),
+      'DAYS_TO_EXPIRY'    => ($expiryDays !== null && ($expdate > $nowdate)
+                              ? $expiryDays
+                              : null),
+      'POLICY_DESC'       => $policy_config['CoExpirationPolicy']['description'],
+      'SPONSOR'           => (!empty($data['SponsorCoPerson']['PrimaryName'])
+                              ? generateCn($data['SponsorCoPerson']['PrimaryName'])
+                              : null),
+      'TITLE'             => $mdl['title'],
+      'VALID_FROM'        => $mdl['valid_from'],
+      'VALID_THROUGH'     => $mdl['valid_through'],
+      'AUTHN_AUTHORITY'   => !empty($mdl['authn_authority']) ? $mdl['authn_authority'] : ''
+    );
+    $substitutions['CO_PERSON'] = null;
+    if(!empty($data['CoPerson']['PrimaryName'])) {
+      $substitutions['CO_PERSON'] = generateCn($data['CoPerson']['PrimaryName']);
+    } elseif(!empty($data['PrimaryName'])) {
+      $substitutions['CO_PERSON'] = generateCn($data['PrimaryName']);
+    }
+
+    if($cou_eof_list !== false) {
+      $enrollment_list = _txt('rs.xp.enroll.url.intro') . PHP_EOL;
+      foreach ($cou_eof_list as $eof_id => $eof_name) {
+        $enrollment_list .= $eof_name . ": " . Router::url(array(
+                                                             'controller' => 'co_petitions',
+                                                             'action'     => 'start',
+                                                             'coef'       => $eof_id
+                                                           ),true) . PHP_EOL;
+      }
+      $substitutions['COU_ENROLL_URL'] = $enrollment_list;
+
+    } else {
+      $substitutions['COU_ENROLL_URL'] = _txt('rs.xp.enroll.url');
+    }
+
+    // XXX We still support legacy message templating for CoPersonRole model
+    $subject = null;
+    $body = null;
+
+    $mdl_columns = array_keys($mdl);
+    if(!empty($policy_config['ActNotifyMessageTemplate']['id']) // CoPersonRole Template
+       && in_array('co_person_role_id', $mdl_columns, true)) {
+      $subject = processTemplate($policy_config['ActNotifyMessageTemplate']['message_subject'],
+                                 $substitutions,
+                                 $cp_identifier);
+      $body = processTemplate($policy_config['ActNotifyMessageTemplate']['message_body'],
+                              $substitutions,
+                              $cp_identifier);
+    } elseif(!empty($policy_config['ActOrgNotifyMessageTemplate']['id'])  // OrgIdentity Template
+             && in_array('org_identity_id', $mdl_columns, true)) {
+      $subject = processTemplate($policy_config['ActOrgNotifyMessageTemplate']['message_subject'],
+                                 $substitutions,
+                                 $cp_identifier);
+      $body = processTemplate($policy_config['ActOrgNotifyMessageTemplate']['message_body'],
+                              $substitutions,
+                              $cp_identifier);
+    } elseif(in_array('org_identity_id', $mdl_columns, true)) { // CoPersonRole legacy template
+      $subject = processTemplate($policy_config['CoExpirationPolicy']['act_notification_subject'],
+                                 $substitutions,
+                                 $cp_identifier);
+      $body = processTemplate($policy_config['CoExpirationPolicy']['act_notification_body'],
+                              $substitutions,
+                              $cp_identifier);
+    }
+
+    return [$subject, $body];
+  }
+
+  /**
+   * @param $coId              $coId CO ID
+   * @param null $appShell     If set, log progress via this provided AppShell
+   * @return boolean True on success
+   * @throws Exception
+   */
+  protected function executeCoPersonRolePolicy($coId, $appShell=null) {
+    // Select all policies where status=active
+
+    $args = array();
+    $args['conditions']['CoExpirationPolicy.co_id'] = $coId;
+    $args['conditions']['CoExpirationPolicy.status'] = SuspendableStatusEnum::Active;
+    $args['conditions']['CoExpirationPolicy.model'] = ExpirationPolicyModelEnum::COU;
     $args['contain'] = array('ActCou', 'ActNotifyMessageTemplate');
 
     $policies = $this->find('all', $args);
@@ -552,284 +974,181 @@ class CoExpirationPolicy extends AppModel {
               }
             }
 
-            // We have a bunch of substitutions to support, so process the template
-            // here. In addition, we'll also support the standard substitutions (though ACTOR_NAME
-            // probably doesn't make much sense) when processTemplate is called a second
-            // time by CoNotification::register().
+            // Calculate the substitutions
+            [$subject, $body] = $this->prepSubstitutions( $role['CoPersonRole'],
+                                                          $newRoleData,
+                                                          $role,
+                                                          $p
+                                                        );
 
-            // Prep date
-
-            $expiryDays = null;
-
-            if(!empty($role['CoPersonRole']['valid_through'])) {
-              $expdate = new DateTime($role['CoPersonRole']['valid_through']);
-              $nowdate = new DateTime();
-
-              $timediff = $expdate->diff($nowdate);
-              $expiryDays = $timediff->days;   // On PHP < 5.4, this could be -99999 on error
-              // $expiryDays seems to always be positive regardless of order
-            }
-
-            // Get enrollment flow ID from cou
-            if(!empty($role['Cou']['name'])) {
-                $cou_eof_list = $this->retrieveCouEofId($role['Cou']['co_id'], $role['Cou']['name']);
-            }
-
-            $substitutions = array(
-              'ORIG_AFFIL'        => $role['CoPersonRole']['affiliation'],
-              'NEW_AFFIL'         => (!empty($newRoleData['CoPersonRole']['affiliation'])
-                                      ? $newRoleData['CoPersonRole']['affiliation']
-                                      // No change, use original value
-                                      : $role['CoPersonRole']['affiliation']),
-              'CO_PERSON'         => (!empty($role['CoPerson']['PrimaryName'])
-                                      ? generateCn($role['CoPerson']['PrimaryName'])
-                                      : null),
-              'ORIG_COU'          => (!empty($role['Cou']['name'])
-                                      ? $role['Cou']['name']
-                                      : null),
-              'NEW_COU'           => (!empty($newRoleData['CoPersonRole']['cou_id'])
-                                      && !empty($p['ActCou']['name'])
-                                      ? $p['ActCou']['name']
-                                      // No change, use original value
-                                      : (!empty($role['Cou']['name'])
-                                         ? $role['Cou']['name']
-                                         : null)),
-              'ORIG_STATUS'       => _txt('en.status', null, $role['CoPersonRole']['status']),
-              'NEW_STATUS'        => (!empty($newRoleData['CoPersonRole']['status'])
-                                      ? _txt('en.status', null, $newRoleData['CoPersonRole']['status'])
-                                      // No change, use original value
-                                      : _txt('en.status', null, $role['CoPersonRole']['status'])),
-              'DAYS_SINCE_EXPIRY' => ($expiryDays !== null && ($nowdate >= $expdate)
-                                      ? $expiryDays
-                                      : null),
-              'DAYS_TO_EXPIRY'    => ($expiryDays !== null && ($expdate > $nowdate)
-                                      ? $expiryDays
-                                      : null),
-              'POLICY_DESC'       => $p['CoExpirationPolicy']['description'],
-              'SPONSOR'           => (!empty($role['SponsorCoPerson']['PrimaryName'])
-                                      ? generateCn($role['SponsorCoPerson']['PrimaryName'])
-                                      : null),
-              'TITLE'             => $role['CoPersonRole']['title'],
-              'VALID_FROM'        => $role['CoPersonRole']['valid_from'],
-              'VALID_THROUGH'     => $role['CoPersonRole']['valid_through'],
-            );
-
-            if( $cou_eof_list !== false) {
-                $enrollment_list = _txt('rs.xp.enroll.url.intro') . PHP_EOL;
-                foreach ($cou_eof_list as $eof_id => $eof_name) {
-                     $enrollment_list .= $eof_name . ": " . Router::url(array(
-                                                                         'controller' => 'co_petitions',
-                                                                         'action'     => 'start',
-                                                                         'coef'       => $eof_id
-                                                                       ),true) . PHP_EOL;
-                }
-                $substitutions['COU_ENROLL_URL'] = $enrollment_list;
-
-            } else {
-                $substitutions['COU_ENROLL_URL'] = _txt('rs.xp.enroll.url');
-            }
-
-            $subject = null;
-            $body = null;
-
-            if(!empty($p['ActNotifyMessageTemplate']['id'])) {
-              $subject = processTemplate($p['ActNotifyMessageTemplate']['message_subject'],
-                                         $substitutions,
-                                         $role['CoPerson']['Identifier']);
-              $body = processTemplate($p['ActNotifyMessageTemplate']['message_body'],
-                                      $substitutions,
-                                      $role['CoPerson']['Identifier']);
-            } else {
-              $subject = processTemplate($p['CoExpirationPolicy']['act_notification_subject'],
-                                         $substitutions,
-                                         $role['CoPerson']['Identifier']);
-              $body = processTemplate($p['CoExpirationPolicy']['act_notification_body'],
-                                      $substitutions,
-                                      $role['CoPerson']['Identifier']);
-            }
-
-            if(isset($p['CoExpirationPolicy']['act_notify_co_admin'])
-               && $p['CoExpirationPolicy']['act_notify_co_admin']) {
-              // Just pull group ID and register notification
-
-              try {
-                $cogroupid = $this->Co->CoGroup->adminCoGroupId($coId);
-
-                $this->Co
-                     ->CoGroup
-                     ->CoNotificationRecipientGroup
-                     ->register($role['CoPersonRole']['co_person_id'],
-                                null,
-                                null,
-                                'cogroup',
-                                $cogroupid,
-                                ActionEnum::ExpirationPolicyMatched,
-                                _txt('rs.xp.match', array($p['CoExpirationPolicy']['description'],
-                                                          $p['CoExpirationPolicy']['id'])),
-                                array(
-                                  // XXX Not really clear this is the right source, but there's not a clear alternate
-                                  // Should we create a log of expirations that are fired off? (seems redundant vs history_records)
-                                  'controller' => 'co_person_roles',
-                                  'action'     => 'edit',
-                                  'id'         => $role['CoPersonRole']['id']
-                                ),
-                                false,
-                                null,
-                                $subject,
-                                $body);
-                  sleep(1);
-              }
-              catch(Exception $e) {
-                if($appShell) {
-                  $appShell->out($e->getMessage(), 1, Shell::QUIET);
-                }
-              }
-            }
-
-            if(isset($p['CoExpirationPolicy']['act_notify_cou_admin'])
-               && $p['CoExpirationPolicy']['act_notify_cou_admin']
-               && !empty($role['CoPersonRole']['cou_id'])) {
-              try {
-                $cogroupid = $this->Co->CoGroup->adminCoGroupId($coId, $role['CoPersonRole']['cou_id']);
-
-                $this->Co
-                     ->CoGroup
-                     ->CoNotificationRecipientGroup
-                     ->register($role['CoPersonRole']['co_person_id'],
-                                null,
-                                null,
-                                'cogroup',
-                                $cogroupid,
-                                ActionEnum::ExpirationPolicyMatched,
-                                _txt('rs.xp.match', array($p['CoExpirationPolicy']['description'],
-                                                          $p['CoExpirationPolicy']['id'])),
-                                array(
-                                  // XXX Not really clear this is the right source, but there's not a clear alternate
-                                  // Should we create a log of expirations that are fired off? (seems redundant vs history_records)
-                                  'controller' => 'co_person_roles',
-                                  'action'     => 'edit',
-                                  'id'         => $role['CoPersonRole']['id']
-                                ),
-                                false,
-                                null,
-                                $subject,
-                                $body);
-                  sleep(1);
-              }
-              catch(Exception $e) {
-                if($appShell) {
-                  $appShell->out($e->getMessage(), 1, Shell::QUIET);
-                }
-              }
-            }
-
-            if(!empty($p['CoExpirationPolicy']['act_notify_co_group_id'])) {
-              try {
-                $this->Co
-                     ->CoGroup
-                     ->CoNotificationRecipientGroup
-                     ->register($role['CoPersonRole']['co_person_id'],
-                                null,
-                                null,
-                                'cogroup',
-                                $p['CoExpirationPolicy']['act_notify_co_group_id'],
-                                ActionEnum::ExpirationPolicyMatched,
-                                _txt('rs.xp.match', array($p['CoExpirationPolicy']['description'],
-                                                          $p['CoExpirationPolicy']['id'])),
-                                array(
-                                  // XXX Not really clear this is the right source, but there's not a clear alternate
-                                  // Should we create a log of expirations that are fired off? (seems redundant vs history_records)
-                                  'controller' => 'co_person_roles',
-                                  'action'     => 'edit',
-                                  'id'         => $role['CoPersonRole']['id']
-                                ),
-                                false,
-                                null,
-                                $subject,
-                                $body);
-                  sleep(1);
-              }
-              catch(Exception $e) {
-                if($appShell) {
-                  $appShell->out($e->getMessage(), 1, Shell::QUIET);
-                }
-              }
-            }
-
-            if(isset($p['CoExpirationPolicy']['act_notify_co_person'])
-               && $p['CoExpirationPolicy']['act_notify_co_person']) {
-              try {
-                $this->Co
-                     ->CoGroup
-                     ->CoNotificationRecipientGroup
-                     ->register($role['CoPersonRole']['co_person_id'],
-                                null,
-                                null,
-                                'coperson',
-                                $role['CoPersonRole']['co_person_id'],
-                                ActionEnum::ExpirationPolicyMatched,
-                                _txt('rs.xp.match', array($p['CoExpirationPolicy']['description'],
-                                                          $p['CoExpirationPolicy']['id'])),
-                                array(
-                                  // XXX Not really clear this is the right source, but there's not a clear alternate
-                                  // Should we create a log of expirations that are fired off? (seems redundant vs history_records)
-                                  'controller' => 'co_person_roles',
-                                  'action'     => 'edit',
-                                  'id'         => $role['CoPersonRole']['id']
-                                ),
-                                false,
-                                null,
-                                $subject,
-                                $body);
-                  sleep(1);
-              }
-              catch(Exception $e) {
-                if($appShell) {
-                  $appShell->out($e->getMessage(), 1, Shell::QUIET);
-                }
-              }
-            }
-
-            if(isset($p['CoExpirationPolicy']['act_notify_sponsor'])
-               && $p['CoExpirationPolicy']['act_notify_sponsor']
-               && !empty($role['CoPersonRole']['sponsor_co_person_id'])) {
-              try {
-                $this->Co
-                     ->CoGroup
-                     ->CoNotificationRecipientGroup
-                     ->register($role['CoPersonRole']['sponsor_co_person_id'],
-                                null,
-                                null,
-                                'coperson',
-                                $role['CoPersonRole']['sponsor_co_person_id'],
-                                ActionEnum::ExpirationPolicyMatched,
-                                _txt('rs.xp.match', array($p['CoExpirationPolicy']['description'],
-                                                          $p['CoExpirationPolicy']['id'])),
-                                array(
-                                  // XXX Not really clear this is the right source, but there's not a clear alternate
-                                  // Should we create a log of expirations that are fired off? (seems redundant vs history_records)
-                                  'controller' => 'co_person_roles',
-                                  'action'     => 'edit',
-                                  'id'         => $role['CoPersonRole']['id']
-                                ),
-                                false,
-                                null,
-                                $subject,
-                                $body);
-                  sleep(1);
-              }
-              catch(Exception $e) {
-                if($appShell) {
-                  $appShell->out($e->getMessage(), 1, Shell::QUIET);
-                }
-              }
-            }
+            $this->submitNotifications($p, $role, $subject, $body, $appShell);
           }
         }
       }
     }
 
     return true;
+  }
+
+  /**
+   * @param array $policy_config   Expiration Policy configuration
+   * @param array $data            Model data fetched
+   * @param string $subject        Email subject
+   * @param string $body           Email body
+   * @param null $appShell
+   */
+  protected function submitNotifications($policy_config, $data, $subject, $body, $appShell = null) {
+    $role_recipient = array(
+      'act_notify_co_admin' => 'cogroup',
+      'act_notify_cou_admin' => 'cogroup',
+      'act_notify_co_group_id' => 'cogroup',
+      'act_notify_co_person' => 'coperson',
+      'act_notify_sponsor' => 'coperson'
+    );
+
+    $org_recipient = array(
+      'act_notify_co_admin_org' => 'cogroup',
+      'act_notify_org_co_group_id' => 'cogroup',
+      'act_notify_co_person_org' => 'coperson',
+    );
+
+    $recipient_config = ($policy_config['CoExpirationPolicy']['model'] === ExpirationPolicyModelEnum::OrgIdentity)
+                         ? $org_recipient
+                         : $role_recipient;
+
+    foreach ($recipient_config as $key => $recipient_type) {
+      [$recipient_id, $action, $model_id, $subject_co_person_id, $can_send] = $this->calculateNotificationParams($policy_config, $data, $key);
+      // Not eligible to send notification. Move to the next one.
+      if(!$can_send) {
+        continue;
+      }
+
+      try {
+          $this->Co
+               ->CoGroup
+               ->CoNotificationRecipientGroup
+               ->register($subject_co_person_id,
+                          null,
+                          null,
+                          $recipient_type,
+                          $recipient_id,
+                          ActionEnum::ExpirationPolicyMatched,
+                          _txt('rs.xp.match',
+                               array(
+                                 $policy_config['CoExpirationPolicy']['description'],
+                                 $policy_config['CoExpirationPolicy']['id']
+                               )),
+                          array(
+                            // XXX Not really clear this is the right source, but there's not a clear alternate
+                            // Should we create a log of expirations that are fired off? (seems redundant vs history_records)
+                            'controller' => $action,
+                            'action'     => 'edit',
+                            'id'         => $model_id
+                          ),
+                          false,
+                          null,
+                          $subject,
+                          $body);
+          // Since this will fire from a cronjob, wait for 1 sec before firing the next one
+          sleep(1);
+        }
+        catch(Exception $e) {
+          if($appShell) {
+            $appShell->out($e->getMessage(), 1, Shell::QUIET);
+          }
+        }
+    }
+  }
+
+  /**
+   * Calculate the parameters needed by register Notification method
+   *
+   * @param $pconfig
+   * @param $data
+   * @param $recipient_key
+   * @return array
+   */
+  private function calculateNotificationParams($pconfig, $data, $recipient_key) {
+    $recipient_id = null;
+    $action = null;
+    $model_id = null;
+    $subject_co_person_id = null;
+    $send = false;
+
+    // Action, subjectCoPersonId, recipientType
+    if($pconfig['CoExpirationPolicy']['model'] === ExpirationPolicyModelEnum::COU) {
+      $action = 'co_person_roles';
+      $model_id = $data['CoPersonRole']['id'];
+      $subject_co_person_id =  $data['CoPersonRole']['co_person_id'];
+    } else {
+      $action = 'org_identities';
+      $model_id = $data['OrgIdentity']['id'];
+      $subject_co_person_id = $data['CoOrgIdentityLink'][0]['CoPerson']['id'];
+    }
+
+    // CO Admins
+    if($recipient_key === 'act_notify_co_admin'
+       || $recipient_key === 'act_notify_co_admin_org') {
+      if((isset($pconfig['CoExpirationPolicy']['act_notify_co_admin'])
+          && $pconfig['CoExpirationPolicy']['act_notify_co_admin'])
+        || (isset($pconfig['CoExpirationPolicy']['act_notify_co_admin_org'])
+          && $pconfig['CoExpirationPolicy']['act_notify_co_admin_org']) ) {
+        $send = true;
+        $recipient_id = $this->Co->CoGroup->adminCoGroupId($pconfig['co_id']);
+      }
+    }
+
+    // COU Admins
+    if($pconfig['CoExpirationPolicy']['model'] === ExpirationPolicyModelEnum::COU
+       && $recipient_key === 'act_notify_cou_admin'
+       && isset($pconfig['CoExpirationPolicy']['act_notify_cou_admin'])
+       && $pconfig['CoExpirationPolicy']['act_notify_cou_admin']
+       && !empty($data['CoPersonRole']['cou_id'])) {
+      $send = true;
+      $recipient_id = $this->Co->CoGroup->adminCoGroupId($pconfig, $data['CoPersonRole']['cou_id']);
+    }
+
+    // Group
+    if($recipient_key === 'act_notify_co_group_id'
+      || $recipient_key === 'act_notify_org_co_group_id') {
+      if($pconfig['CoExpirationPolicy']['model'] === ExpirationPolicyModelEnum::COU
+        && !empty($pconfig['CoExpirationPolicy']['act_notify_co_group_id'])) {
+        $send = true;
+        $recipient_id = $pconfig['CoExpirationPolicy']['act_notify_co_group_id'];
+      } elseif($pconfig['CoExpirationPolicy']['model'] === ExpirationPolicyModelEnum::OrgIdentity
+        && !empty($pconfig['CoExpirationPolicy']['act_notify_org_co_group_id'])) {
+        $send = true;
+        $recipient_id = $pconfig['CoExpirationPolicy']['act_notify_org_co_group_id'];
+      }
+    }
+
+    // CO Person
+    if($recipient_key === 'act_notify_co_person'
+       || $recipient_key === 'act_notify_co_person_org') {
+      if ($pconfig['CoExpirationPolicy']['model'] === ExpirationPolicyModelEnum::COU
+        && isset($pconfig['CoExpirationPolicy']['act_notify_co_person'])
+        && $pconfig['CoExpirationPolicy']['act_notify_co_person']) {
+        $send = true;
+        $recipient_id = $data['CoPersonRole']['co_person_id'];
+      } elseif ($pconfig['CoExpirationPolicy']['model'] === ExpirationPolicyModelEnum::OrgIdentity
+        && isset($pconfig['CoExpirationPolicy']['act_notify_co_person_org'])
+        && $pconfig['CoExpirationPolicy']['act_notify_co_person_org']) {
+        $send = true;
+        $recipient_id = $data['CoOrgIdentityLink'][0]['CoPerson']['id'];
+      }
+    }
+
+    // Sponsor
+    if($pconfig['CoExpirationPolicy']['model'] === ExpirationPolicyModelEnum::COU
+       && $recipient_key === 'act_notify_sponsor'
+       && isset($pconfig['CoExpirationPolicy']['act_notify_sponsor'])
+       && $pconfig['CoExpirationPolicy']['act_notify_sponsor']
+       && !empty($data['CoPersonRole']['sponsor_co_person_id'])) {
+      $send = true;
+      $recipient_id = $data['CoPersonRole']['sponsor_co_person_id'];
+    }
+
+    return [$recipient_id, $action, $model_id, $subject_co_person_id, $send];
   }
 
     /**

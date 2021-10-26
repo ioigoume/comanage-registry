@@ -1263,6 +1263,7 @@
                   <th><?php print _txt('fd.source'); ?></th>
                   <th><?php print _txt('fd.valid_from.tz', array($vv_tz)); ?></th>
                   <th><?php print _txt('fd.valid_through.tz', array($vv_tz)); ?></th>
+                  <th><?php print _txt('fd.status', array($vv_tz)); ?></th>
                   <th><?php print _txt('fd.identifier.ids.login'); ?></th>
                   <?php if($render_org_identity_actions): ?>
                   <th><?php print _txt('fd.actions'); ?></th>
@@ -1270,7 +1271,7 @@
                 </tr>
                 <?php if(!empty($co_people[0]['CoOrgIdentityLink'])): ?>
                 <?php foreach($co_people[0]['CoOrgIdentityLink'] as $link): ?>
-                  <tr class="line<?php print ($l % 2); $l++; ?>">
+                  <tr class="<?php (!empty($link['OrgIdentity']['status']) && $link['OrgIdentity']['status'] == OrgIdentityStatusEnum::Removed) ? print 'warn-level-a' : print '';?> line<?php print ($l % 2); $l++; ?>">
                     <td>
                       <?php
                         if(!empty($link['OrgIdentity']['PrimaryName'])) {
@@ -1302,6 +1303,16 @@
                         if(isset($link['OrgIdentity']['valid_through']) && $link['OrgIdentity']['valid_through'] > 0) {
                           print $this->Time->format($link['OrgIdentity']['valid_through'], "%F %T", false, $vv_tz);
                         }  
+                      ?>
+                    </td>
+                     <td>
+                      <?php
+                      if(isset($link['OrgIdentity']['status'])) {
+                        $status = !empty($link['OrgIdentity']['status'])
+                                  ? _txt('en.status.org', null, $link['OrgIdentity']['status'])
+                                  : '';
+                        print $status;
+                      }
                       ?>
                     </td>
                     <td>

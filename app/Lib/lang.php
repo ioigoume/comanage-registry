@@ -513,6 +513,11 @@ original notification at
     ExpirationPolicyEnum::SkipNotify => 'Skip Notify',
   ),
 
+  'en.expiration.model' => array(
+      ExpirationPolicyModelEnum::COU => 'CoPerson Role',
+      ExpirationPolicyModelEnum::OrgIdentity => 'Organizational Identity'
+  ),
+
   'en.group.type' => array(
     GroupEnum::Standard      => 'Standard',
     GroupEnum::ActiveMembers => 'Active Members',
@@ -949,6 +954,7 @@ original notification at
                             StatusEnum::Deleted             => 'Deleted',
                             StatusEnum::Denied              => 'Denied',
                             StatusEnum::Duplicate           => 'Duplicate',
+                            StatusEnum::Empty               => 'Empty',
                             StatusEnum::Expired             => 'Expired',
                             StatusEnum::GracePeriod         => 'Grace Period',
                             StatusEnum::Invited             => 'Invited',
@@ -990,7 +996,8 @@ original notification at
   
   'en.status.org' => array(
     OrgIdentityStatusEnum::Removed => 'Removed',
-    OrgIdentityStatusEnum::Synced  => 'Synced' 
+    OrgIdentityStatusEnum::Synced  => 'Synced',
+    OrgIdentityStatusEnum::Empty   => 'Empty'
   ),
   
   'en.status.prov' => array(
@@ -1793,8 +1800,14 @@ original notification at
   'fd.xp.affil.cond.desc' => 'This Expiration Policy will only apply to CO Person Roles with this affiliation',
   'fd.xp.after_expiry.cond' => 'Days After Expiration (Grace Period)',
   'fd.xp.after_expiry.cond.desc' => 'This Expiration Policy will apply beginning the specified number of days after the expiration time of a CO Person Role (If set, Days Before Expiration may not be set)',
+  'fd.xp.after_expiry.org.cond' => 'Days After Expiration (Grace Period)',
+  'fd.xp.after_expiry.org.cond.desc' => 'This Expiration Policy will apply beginning the specified number of days after the expiration time of an OrgIdentity (If set, Days Before Expiration may not be set)',
+  'fd.xp.after_last_login.org.cond' => 'Days since last login',
+  'fd.xp.after_last_login.org.cond.desc' => 'This Expiration Policy will apply beginning the specified number of days after the last successful login an OrgIdentity made.',
   'fd.xp.before_expiry.cond' => 'Days Before Expiration (Notification Period)',
   'fd.xp.before_expiry.cond.desc' => 'This Expiration Policy will apply beginning the specified number of days prior to the expiration time of a CO Person Role (If set, Days After Expiration may not be set)',
+  'fd.xp.before_expiry.org.cond' => 'Days Before Expiration (Notification Period)',
+  'fd.xp.before_expiry.org.cond.desc' => 'This Expiration Policy will apply beginning the specified number of days prior to the expiration time of a OrgIdentity (If set, Days After Expiration may not be set)',
   'fd.xp.clear_expiry.act' => 'Clear Expiration',
   'fd.xp.clear_expiry.act.desc' => 'The expiration date for the affected CO Person Role will be cleared when this Expiration Policy is applied',
   'fd.xp.cou.act.desc' => 'CO Person Roles matching this Expiration Policy will be moved to this COU',

@@ -42,9 +42,30 @@
       $("#CoExpirationPolicyActNotificationBody").closest("li").show('fade');
     }
   }
+
+  function models_update_gadgets() {
+    // Hide or show gadgets according to current state
+
+    // If a notification template is selected, hide the subject and body fields
+    var nmodel = $('#CoExpirationPolicyModel option').filter(":selected").val();
+
+
+    if(nmodel && nmodel == 'CU') {
+      $(".cou_cond_expiration").show('fade');
+      $(".cou_act_expiration").show('fade');
+      $(".org_cond_expiration").hide();
+      $(".org_act_expiration").hide();
+    } else {
+      $(".cou_cond_expiration").hide();
+      $(".cou_act_expiration").hide();
+      $(".org_cond_expiration").show('fade');
+      $(".org_act_expiration").show('fade');
+    }
+  }
   
   function js_local_onload() {
     fields_update_gadgets();
+    models_update_gadgets();
   }  
   
   $(function() {
@@ -133,12 +154,43 @@
       ?>
     </div>
   </li>
+  <li>
+    <div class="field-name">
+      <div class="field-title">
+          <?php print ($e ? $this->Form->label('model', _txt('fd.model')) : _txt('fd.model')); ?>
+        <span class="required">*</span>
+      </div>
+    </div>
+    <div class="field-info">
+        <?php
+        global $cm_lang, $cm_texts;
+        $attrs = array();
+        $attrs['model'] = ($co_expiration_policies[0]['CoExpirationPolicy']['model'] ?? ExpirationPolicyModelEnum::COU);
+        $attrs['onchange'] = 'models_update_gadgets()';
+        $attrs['empty'] = false;
+
+        if($e) {
+            print $this->Form->select('model',
+                                      $cm_texts[ $cm_lang ]['en.expiration.model'],
+                                      $attrs);
+
+            if($this->Form->isFieldError('model')) {
+                print $this->Form->error('model');
+            }
+        } else {
+            if(!empty($co_expiration_policies[0]['CoExpirationPolicy']['model'])) {
+                print _txt('fd.model', null, $co_expiration_policies[0]['CoExpirationPolicy']['model']);
+            }
+        }
+        ?>
+    </div>
+  </li>
 </ul>
 
 <div id="<?php print $this->action; ?>_co_expiration_policies_expl" class="explorerContainer">
   <div id="expiration-policies" class="personExplorer">
     <ul>
-      <li id="fields-conditions" class="fieldGroup">
+      <li id="fields-conditions" style="display: none;" class="fieldGroup cou_cond_expiration">
 
         <a href="#tabs-conditions" class="fieldGroupName">
           <em class="material-icons">add_box</em>
@@ -162,9 +214,7 @@
             <div class="field-info">
               <?php
                 $attrs = array();
-                $attrs['value'] = (isset($co_expiration_policies[0]['CoExpirationPolicy']['cond_cou_id'])
-                                   ? $co_expiration_policies[0]['CoExpirationPolicy']['cond_cou_id']
-                                   : 0);
+                $attrs['value'] = ($co_expiration_policies[0]['CoExpirationPolicy']['cond_cou_id'] ?? 0);
                 $attrs['disabled'] = empty($vv_cous);
                 $attrs['empty'] = true;
 
@@ -218,9 +268,7 @@
             <div class="field-info">
               <?php
                 $attrs = array();
-                $attrs['value'] = (isset($co_expiration_policies[0]['CoExpirationPolicy']['cond_affiliation'])
-                                   ? $co_expiration_policies[0]['CoExpirationPolicy']['cond_affiliation']
-                                   : 0);
+                $attrs['value'] = ($co_expiration_policies[0]['CoExpirationPolicy']['cond_affiliation'] ?? 0);
                 $attrs['empty'] = true;
 
                 if($e) {
@@ -314,9 +362,7 @@
               <?php
                 global $cm_lang, $cm_texts;
                 $attrs = array();
-                $attrs['value'] = (isset($co_expiration_policies[0]['CoExpirationPolicy']['cond_status'])
-                                   ? $co_expiration_policies[0]['CoExpirationPolicy']['cond_status']
-                                   : StatusEnum::Active);
+                $attrs['value'] = ($co_expiration_policies[0]['CoExpirationPolicy']['cond_status'] ?? StatusEnum::Active);
                 $attrs['empty'] = true;
 
                 if($e) {
@@ -351,7 +397,7 @@
         </ul>
       </li>
 
-      <li id="fields-actions" class="fieldGroup">
+      <li id="fields-actions" style="display: none;" class="fieldGroup cou_act_expiration">
 
         <a href="#tabs-actions" class="fieldGroupName">
           <em class="material-icons">add_box</em>
@@ -647,6 +693,274 @@
           </li>
         </ul>
       </li>
+
+      <li id="fields-conditions" style="display: none;" class="fieldGroup org_cond_expiration">
+
+        <a href="#tabs-conditions" class="fieldGroupName">
+          <em class="material-icons">add_box</em>
+          <?php print _txt('fd.conditions'); ?>
+        </a>
+
+        <!-- Conditions -->
+        <ul id="tabs-conditions" class="fields form-list form-list-admin" style="display: none;">
+          <li class="fields-header">
+            <?php print _txt('fd.xp.conditions'); ?>
+          </li>
+          <li>
+            <div class="field-name">
+              <div class="field-title">
+                <?php print ($e ? $this->Form->label('cond_every_xdays_org', _txt('fd.xp.every_xday.cond')) : _txt('fd.xp.every_xday.cond')); ?>
+              </div>
+              <div class="field-desc"><?php print _txt('fd.xp.every_xday.cond.desc'); ?></div>
+            </div>
+            <div class="field-info">
+              <?php
+              print ($e ? $this->Form->input('cond_every_xdays_org', $args)
+                : filter_var($co_expiration_policies[0]['CoExpirationPolicy']['cond_every_xdays_org'],FILTER_SANITIZE_SPECIAL_CHARS));
+              ?>
+            </div>
+          </li>
+          <li>
+            <div class="field-name">
+              <div class="field-title">
+                <?php print ($e ? $this->Form->label('cond_status_org', _txt('fd.status')) : _txt('fd.status')); ?>
+              </div>
+              <div class="field-desc"><?php print _txt('fd.xp.status.cond.desc'); ?></div>
+            </div>
+            <div class="field-info">
+              <?php
+              global $cm_lang, $cm_texts;
+              $attrs = array();
+              $attrs['value'] = (isset($co_expiration_policies[0]['CoExpirationPolicy']['cond_status_org'])
+                ? $co_expiration_policies[0]['CoExpirationPolicy']['cond_status_org']
+                : "");
+              $attrs['empty'] = true;
+
+              if($e) {
+                print $this->Form->select('cond_status_org',
+                                          $cm_texts[ $cm_lang ]['en.status.org'],
+                                          $attrs);
+
+                if($this->Form->isFieldError('cond_status_org')) {
+                  print $this->Form->error('cond_status_org');
+                }
+              } else {
+                if(!empty($co_expiration_policies[0]['CoExpirationPolicy']['cond_status_org'])) {
+                  print _txt('en.status', null, $co_expiration_policies[0]['CoExpirationPolicy']['cond_status_org']);
+                }
+              }
+              ?>
+            </div>
+          </li>
+          <li>
+            <div class="field-name">
+              <div class="field-title">
+                <?php print ($e ? $this->Form->label('cond_before_expiry', _txt('fd.xp.before_expiry.org.cond')) : _txt('fd.xp.before_expiry.org.cond')); ?>
+              </div>
+              <div class="field-desc"><?php print _txt('fd.xp.before_expiry.org.cond.desc'); ?></div>
+            </div>
+            <div class="field-info">
+              <?php
+              // Mutually exclusive with before_expiry, so blank out on key up
+              $args = array();
+              $args['onkeyup'] = "document.getElementById('CoExpirationPolicyCondOrgAfterExpiry').value = ''";
+
+              print ($e ? $this->Form->input('cond_before_expiry_org', $args)
+                : filter_var($co_expiration_policies[0]['CoExpirationPolicy']['cond_before_expiry_org'],FILTER_SANITIZE_SPECIAL_CHARS));
+              ?>
+            </div>
+          </li>
+          <li>
+            <div class="field-name">
+              <div class="field-title">
+                <?php print ($e ? $this->Form->label('cond_after_expiry', _txt('fd.xp.after_expiry.org.cond')) : _txt('fd.xp.after_expiry.org.cond')); ?>
+              </div>
+              <div class="field-desc"><?php print _txt('fd.xp.after_expiry.org.cond.desc'); ?></div>
+            </div>
+            <div class="field-info">
+              <?php
+              // Mutually exclusive with before_expiry, so blank out on key up
+              $args = array();
+              $args['onkeyup'] = "document.getElementById('CoExpirationPolicyCondOrgBeforeExpiry').value = ''";
+
+              print ($e ? $this->Form->input('cond_after_expiry_org', $args)
+                : filter_var($co_expiration_policies[0]['CoExpirationPolicy']['cond_after_expiry_org'],FILTER_SANITIZE_SPECIAL_CHARS));
+              ?>
+            </div>
+          </li>
+          <li>
+            <div class="field-name">
+              <div class="field-title">
+                <?php print ($e ? $this->Form->label('cond_after_expiry', _txt('fd.xp.after_last_login.org.cond')) : _txt('fd.xp.after_last_login.org.cond')); ?>
+              </div>
+              <div class="field-desc"><?php print _txt('fd.xp.after_last_login.org.cond.desc'); ?></div>
+            </div>
+            <div class="field-info">
+              <?php
+              // Mutually exclusive with before_expiry, so blank out on key up
+              $args = array();
+
+              print ($e ? $this->Form->input('cond_after_last_login_org', $args)
+                : filter_var($co_expiration_policies[0]['CoExpirationPolicy']['cond_after_last_login_org'],FILTER_SANITIZE_SPECIAL_CHARS));
+              ?>
+            </div>
+          </li>
+
+        </ul>
+      </li>
+
+      <li id="fields-actions" style="display: none;" class="fieldGroup org_act_expiration">
+
+        <a href="#tabs-actions" class="fieldGroupName">
+          <em class="material-icons">add_box</em>
+          <?php print _txt('fd.actions'); ?>
+        </a>
+
+        <!-- Actions -->
+        <ul id="tabs-conditions" class="fields form-list form-list-admin" style="display: none">
+          <li class="fields-header">
+            <?php print _txt('fd.xp.actions'); ?>
+          </li>
+          <li>
+            <div class="field-name">
+              <div class="field-title">
+                <?php print ($e ? $this->Form->label('act_status_org', _txt('fd.status')) : _txt('fd.status')); ?>
+              </div>
+              <div class="field-desc"><?php print _txt('fd.xp.status.act.desc'); ?></div>
+            </div>
+            <div class="field-info">
+              <?php
+              global $cm_lang, $cm_texts;
+              $attrs = array();
+              $attrs['value'] = ($co_expiration_policies[0]['CoExpirationPolicy']['act_status_org'] ?? "");
+              $attrs['empty'] = true;
+
+              if($e) {
+                print $this->Form->select('act_status_org',
+                                          $cm_texts[ $cm_lang ]['en.status.org'],
+                                          $attrs);
+
+                if($this->Form->isFieldError('act_status_org')) {
+                  print $this->Form->error('act_status_org');
+                }
+              } else {
+                print _txt('en.status.org', null, $attrs['value']);
+              }
+              ?>
+            </div>
+          </li>
+          <li>
+            <div class="field-name">
+              <div class="field-title">
+                <?php print _txt('fd.xp.notify_coadmin.act'); ?>
+              </div>
+              <div class="field-desc"><?php print _txt('fd.xp.notify_coadmin.act.desc'); ?></div>
+            </div>
+            <div class="field-info checkbox">
+              <?php
+              if ($e) {
+                $checked = isset($co_expiration_policies[0]['CoExpirationPolicy']['act_notify_co_admin_org'])
+                  ? filter_var($co_expiration_policies[0]['CoExpirationPolicy']['act_notify_co_admin_org'], FILTER_VALIDATE_BOOLEAN)
+                  : false;
+
+                $attrs = array();
+                $attrs['checked'] = $checked;
+
+                print $this->Form->checkbox('act_notify_co_admin_org', $attrs) . ' ' . $this->Form->label('act_notify_co_admin_org', _txt('fd.xp.notify_coadmin.act'));
+              } else {
+                print ($co_expiration_policies[0]['CoExpirationPolicy']['act_notify_co_admin_org']) ? _txt('fd.yes') : _txt('fd.no');
+              }
+              ?>
+
+            </div>
+          </li>
+          <li>
+            <div class="field-name">
+              <div class="field-title">
+                <?php print ($e ? $this->Form->label('act_notify_co_group_id', _txt('fd.xp.notify_cogroup.act')) : _txt('fd.xp.notify_cogroup.act')); ?>
+              </div>
+              <div class="field-desc"><?php print _txt('fd.xp.notify_cogroup.act.desc'); ?></div>
+            </div>
+            <div class="field-info">
+              <?php
+              $attrs = array();
+              $attrs['value'] = (isset($co_expiration_policies[0]['CoExpirationPolicy']['act_notify_org_co_group_id'])
+                ? $co_expiration_policies[0]['CoExpirationPolicy']['act_notify_org_co_group_id']
+                : 0);
+              $attrs['empty'] = true;
+
+              if($e) {
+                print $this->Form->select('act_notify_org_co_group_id',
+                                          $vv_co_groups,
+                                          $attrs);
+
+                if($this->Form->isFieldError('act_notify_org_co_group_id')) {
+                  print $this->Form->error('act_notify_org_co_group_id');
+                }
+              } else {
+                if(!empty($co_expiration_policies[0]['CoExpirationPolicy']['act_notify_org_co_group_id'])) {
+                  print filter_var($vv_co_groups[ $co_expiration_policies[0]['CoExpirationPolicy']['act_notify_org_co_group_id'] ],FILTER_SANITIZE_SPECIAL_CHARS);
+                }
+              }
+              ?>
+            </div>
+          </li>
+          <li>
+            <div class="field-name">
+              <div class="field-title">
+                <?php print _txt('fd.xp.notify_coperson.act'); ?>
+              </div>
+              <div class="field-desc"><?php print _txt('fd.xp.notify_coperson.act.desc'); ?></div>
+            </div>
+            <div class="field-info checkbox">
+              <?php
+              if ($e) {
+                $checked = isset($co_expiration_policies[0]['CoExpirationPolicy']['act_notify_co_person_org'])
+                  ? filter_var($co_expiration_policies[0]['CoExpirationPolicy']['act_notify_co_person_org'], FILTER_VALIDATE_BOOLEAN)
+                  : false;
+
+                $attrs = array();
+                $attrs['checked'] = $checked;
+
+                print $this->Form->checkbox('act_notify_co_person_org', $attrs) . ' ' . $this->Form->label('act_notify_co_person_org', _txt('fd.xp.notify_coperson.act'));
+              } else {
+                print ($co_expiration_policies[0]['CoExpirationPolicy']['act_notify_co_person_org']) ? _txt('fd.yes') : _txt('fd.no');
+              }
+              ?>
+            </div>
+          </li>
+          <li>
+            <div class="field-name">
+              <div class="field-title"><?php print _txt('fd.xp.nmt'); ?></div>
+              <div class="field-desc"><?php print _txt('fd.xp.nmt.desc'); ?></div>
+            </div>
+            <div class="field-info">
+              <?php
+              $attrs = array();
+              $attrs['value'] = (!empty($co_expiration_policies[0]['CoExpirationPolicy']['act_notification_org_template_id'])
+                ? $co_expiration_policies[0]['CoExpirationPolicy']['act_notification_org_template_id']
+                : 0);
+              $attrs['empty'] = true;
+
+              if($e) {
+                print $this->Form->select('act_notification_org_template_id',
+                                          $vv_org_message_templates,
+                                          $attrs);
+
+                if($this->Form->isFieldError('act_notification_org_template_id')) {
+                  print $this->Form->error('act_notification_org_template_id');
+                }
+              } else {
+                if(!empty($co_expiration_policies[0]['CoExpirationPolicy']['act_notification_org_template_id'])) {
+                  print filter_var($vv_org_message_templates[ $co_expiration_policies[0]['CoExpirationPolicy']['act_notification_org_template_id'] ],FILTER_SANITIZE_SPECIAL_CHARS);
+                }
+              }
+              ?>
+            </div>
+          </li>
+        </ul>
+      </li>
+
       <?php if($e): ?>
         <li class="fieldGroup">
           <ul class="fields form-list">

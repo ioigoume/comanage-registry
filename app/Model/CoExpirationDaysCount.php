@@ -52,8 +52,13 @@ class CoExpirationDaysCount extends AppModel {
     ),
     'co_person_role_id' => array(
       'rule' => 'numeric',
-      'required' => true,
-      'allowEmpty' => false
+      'required' => false,
+      'allowEmpty' => true
+    ),
+    'org_identity_id' => array(
+      'rule' => 'numeric',
+      'required' => false,
+      'allowEmpty' => true
     ),
     'expiration_date_run' => array(
       'rule' => 'datetime',
@@ -67,16 +72,23 @@ class CoExpirationDaysCount extends AppModel {
    *
    * @param $coExpirationPolicyId     CoExpirationPolicy ID
    * @param $coPersonRoleId           CoPerson Role ID
+   * @param $orgIdentityId            OrgIdentity ID
    * @throws Exception
    */
-  public function date_store($coExpirationPolicyId, $coPersonRoleId) {
+  public function date_store($coExpirationPolicyId, $coPersonRoleId = null, $orgIdentityId = null) {
     $dbc = $this->getDataSource();
     $dbc->begin();
 
     // We don't currently try to validate either foreign key.
     $args = array();
     $args['conditions']['CoExpirationDaysCount.co_expiration_policy_id'] = $coExpirationPolicyId;
-    $args['conditions']['CoExpirationDaysCount.co_person_role_id'] = $coPersonRoleId;
+    if(!empty($coPersonRoleId)) {
+      $args['conditions']['CoExpirationDaysCount.co_person_role_id'] = $coPersonRoleId;
+    } elseif (!empty($orgIdentityId)) {
+      $args['conditions']['CoExpirationDaysCount.org_identity_id'] = $orgIdentityId;
+    } else {
+      return false;
+    }
     $args['contain'] = false;
 
     $days_count = $this->find('first', $args);
@@ -88,9 +100,16 @@ class CoExpirationDaysCount extends AppModel {
     } else {
       $exp_run = array(
         'co_expiration_policy_id' => $coExpirationPolicyId,
-        'co_person_role_id'       => $coPersonRoleId,
         'expiration_date_run'     => date('Y-m-d H:i:s')
       );
+
+      if(!empty($coPersonRoleId)) {
+        $exp_run['co_person_role_id'] = $coPersonRoleId;
+      } elseif (!empty($orgIdentityId)) {
+        $exp_run['org_identity_id'] = $orgIdentityId;
+      } else {
+        return false;
+      }
 
       $this->save($exp_run);
     }
@@ -103,15 +122,22 @@ class CoExpirationDaysCount extends AppModel {
    *
    * @param Integer $coExpirationPolicyId CO Expiration Policy ID
    * @param Integer $coPersonRoleId CO Person Role ID
+   * @param Integer $orgIdentityId  OrgIdentity ID
 
    * @return Integer|null Days passed, null in case never ran before
    */
 
-  public function days_diff($coExpirationPolicyId, $coPersonRoleId) {
+  public function days_diff($coExpirationPolicyId, $coPersonRoleId = null, $orgIdentityId = null) {
     // We don't currently try to validate either foreign key.
     $args = array();
     $args['conditions']['CoExpirationDaysCount.co_expiration_policy_id'] = $coExpirationPolicyId;
-    $args['conditions']['CoExpirationDaysCount.co_person_role_id'] = $coPersonRoleId;
+    if(!empty($coPersonRoleId)) {
+      $args['conditions']['CoExpirationDaysCount.co_person_role_id'] = $coPersonRoleId;
+    } elseif (!empty($orgIdentityId)) {
+      $args['conditions']['CoExpirationDaysCount.org_identity_id'] = $orgIdentityId;
+    } else {
+      return false;
+    }
     $args['contain'] = false;
 
     $days_count = $this->find('first', $args);

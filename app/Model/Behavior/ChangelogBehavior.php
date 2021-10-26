@@ -511,12 +511,12 @@ class ChangelogBehavior extends ModelBehavior {
   
   protected function modifyContain($model, $contain) {
     // If we get a simple string, convert it to a simple array
-    if(is_string($contain)) {
+    if(!is_array($contain)) {
       $contain = array(0 => $contain);
     }
     
     $ret = $contain;
-    
+
     foreach($contain as $k => $v) {
       if(is_int($k)) {
         // eg: $query['contain'] = array('Model1', 'Model2');
@@ -626,7 +626,8 @@ class ChangelogBehavior extends ModelBehavior {
             } else {
               if($model->$k->$v2->Behaviors->enabled('Changelog')) {
                 $cparentfk = Inflector::underscore($model->$k->$v2->name) . "_id";
-                
+                // This throws a warning when a Job fires. It is not causing problems so for now i will leave it as is.
+                $ret[$k][$v2] = array();
                 $ret[$k][$v2]['conditions'] = array(
                   $v2.'.'.$cparentfk => null,
                   $v2.'.deleted IS NOT true'

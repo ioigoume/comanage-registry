@@ -969,7 +969,24 @@
     <field name="act_notification_body" type="X" size="4000" />
     <field name="act_status" type="C" size="2" />
     <field name="act_notify_mode" type="C" size="2" />
+
+    <field name="cond_every_xdays_org" type="I" />
+    <field name="cond_status_org" type="C" size="2" />
+    <field name="cond_before_expiry_org" type="I" />
+    <field name="cond_after_expiry_org" type="I" />
+    <field name="cond_after_last_login_org" type="I" />
+    <field name="act_status_org" type="C" size="2" />
+    <field name="act_notify_co_admin_org" type="L" />
+    <field name="act_notify_org_co_group_id" type="I">
+      <constraint>REFERENCES cm_co_groups(id)</constraint>
+    </field>
+    <field name="act_notify_co_person_org" type="L" />
+    <field name="act_notify_mode_org" type="C" size="2" />
+    <field name="act_notification_org_template_id" type="I">
+      <constraint>REFERENCES cm_co_message_templates(id)</constraint>
+    </field>
     <field name="status" type="C" size="2" />
+    <field name="model" type="C" size="2" />
     <field name="created" type="T" />
     <field name="modified" type="T" />
     <field name="co_expiration_policy_id" type="I">
@@ -978,7 +995,6 @@
     <field name="revision" type="I" />
     <field name="deleted" type="L" />
     <field name="actor_identifier" type="C" size="256" />
-
     <index name="co_expiration_policies_i1">
       <col>co_id</col>
     </index>
@@ -1029,8 +1045,10 @@
       <constraint>REFERENCES cm_co_expiration_policies(id)</constraint>
     </field>
     <field name="co_person_role_id" type="I">
-      <notnull />
       <constraint>REFERENCES cm_co_person_roles(id)</constraint>
+    </field>
+    <field name="org_identity_id" type="I">
+      <constraint>REFERENCES cm_org_identities(id)</constraint>
     </field>
     <field name="expiration_date_run" type="T" />
     <field name="created" type="T" />
@@ -1048,6 +1066,10 @@
     </index>
     <index name="co_expiration_days_counts_i2">
       <col>co_expiration_count_id</col>
+    </index>
+    <index name="co_expiration_days_counts_i3">
+      <col>co_expiration_policy_id</col>
+      <col>org_identity_id</col>
     </index>
   </table>
 

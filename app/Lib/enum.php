@@ -103,6 +103,7 @@ class ActionEnum
   const OrgIdDeletedManual              = 'DOIM';
   const OrgIdDeletedPetition            = 'DOIP';
   const OrgIdEditedLoginEnv             = 'EOIE';
+  const OrgIdEditedExpiration           = 'EOIX';
   const OrgIdEditedManual               = 'EOIM';
   const OrgIdEditedPetition             = 'EOIP';
   const OrgIdEditedSource               = 'EOIS';
@@ -320,6 +321,12 @@ class ExpirationPolicyEnum {
   const SkipNotify = 'S';
 }
 
+class ExpirationPolicyModelEnum {
+  const COU = 'CU';
+  const OrgIdentity = 'OI';
+//  const CoPerson = 'CP';
+}
+
 class IdentifierAssignmentEnum
 {
   const Random     = 'R';
@@ -466,6 +473,7 @@ class OrgIdentityMismatchEnum
 
 class OrgIdentityStatusEnum
 {
+  const Empty            = '';
   const Removed          = 'RM';
   const Synced           = 'SY';
 }
@@ -629,6 +637,7 @@ class StatusEnum
   const Denied              = 'N';
   const Duplicate           = 'D2';
   const Expired             = 'XP';
+  const Empty               = '';
   const GracePeriod         = 'GP';
   const Invited             = 'I';
   const Pending             = 'P';

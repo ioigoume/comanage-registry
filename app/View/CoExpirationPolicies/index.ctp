@@ -58,6 +58,7 @@
       <tr>
         <th><?php print $this->Paginator->sort('description', _txt('fd.desc')); ?></th>
         <th><?php print $this->Paginator->sort('CondCou.name', _txt('fd.cou')); ?></th>
+        <th><?php print _txt('fd.model'); ?></th>
         <th><?php print $this->Paginator->sort('status', _txt('fd.status')); ?></th>
         <th><?php print _txt('fd.actions'); ?></th>
       </tr>
@@ -77,9 +78,21 @@
         </td>
         <td>
           <?php
-            if(!empty($c['CondCou']['name'])) {
-              print filter_var($c['CondCou']['name'],FILTER_SANITIZE_SPECIAL_CHARS);
+            if(!empty($c['CondCou']['name'])
+               && $c['CoExpirationPolicy']['model'] == ExpirationPolicyModelEnum::COU) {
+              if(!$c['CoExpirationPolicy']['cond_any_cou']) {
+                print _txt('fd.xp.any.cou.cond');
+              } else {
+                print filter_var($c['CondCou']['name'],FILTER_SANITIZE_SPECIAL_CHARS);
+              }
             }
+          ?>
+        </td>
+        <td>
+          <?php
+          if(!empty($c['CoExpirationPolicy']['model'])) {
+            print _txt('en.expiration.model', null, $c['CoExpirationPolicy']['model']);
+          }
           ?>
         </td>
         <td>
