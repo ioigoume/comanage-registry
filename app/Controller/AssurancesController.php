@@ -73,24 +73,32 @@ class AssurancesController extends MVPAController {
     // an OrgIdentity Source Record. As of the initial implementation, not even
     // CMP admins can edit such a record.
 
+    $readOnly = false;
+
     if($this->action == 'edit' && !empty($this->request->params['pass'][0])) {
-      $orgIdentityId = $this->Assurance->field('org_identity_id', array('id' => $this->request->params['pass'][0]));
+//      $sourceAttributeId = (bool)$this->Assurance->field('source_assurance_id', array('id' => $this->request->params['pass'][0]));
+      $sourceAttributeId = false;
+      if($sourceAttributeId) {
+        $readOnly = true;
+      } else {
+        $orgIdentityId = $this->Assurance->field('org_identity_id', array('id' => $this->request->params['pass'][0]));
 
-      if($orgIdentityId) {
-        $readOnly = $this->Assurance->OrgIdentity->readOnly($orgIdentityId);
-
-        if($readOnly) {
-          // Proactively redirect to view. This will also prevent (eg) the REST API
-          // from editing a read only record.
-          $args = array(
-            'controller' => 'assurances',
-            'action'     => 'view',
-            filter_var($this->request->params['pass'][0],FILTER_SANITIZE_SPECIAL_CHARS)
-          );
-
-          $this->redirect($args);
+        if($orgIdentityId) {
+          $readOnly = $this->Assurance->OrgIdentity->readOnly($orgIdentityId);
         }
       }
+    }
+
+    if($readOnly) {
+      // Proactively redirect to view. This will also prevent (eg) the REST API
+      // from editing a read only record.
+      $args = array(
+        'controller' => 'assurances',
+        'action'     => 'view',
+        filter_var($this->request->params['pass'][0],FILTER_SANITIZE_SPECIAL_CHARS)
+      );
+
+      $this->redirect($args);
     }
 
     // In order to manipulate a certificate, the authenticated user must have permission

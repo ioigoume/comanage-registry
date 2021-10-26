@@ -69,6 +69,21 @@ function find_ef_attribute($attrs, $attr, $type=null)
 }
 
 /**
+ * Maybe append a string, if not null.
+ *
+ * @param  string $left      Left hand side of string
+ * @param  string $connector Connecting string
+ * @param  string $right     Right hand side of string
+ * @return string            Concatenated string
+ */
+
+function maybeAppend($left, $connector, $right) {
+  return (!empty($left) ? $left : "")
+    . (!empty($left) && !empty($right) ? $connector : "")
+    . (!empty($right) ? $right : "");
+}
+
+/**
  * Format an address into a single string.
  *
  * @since  COmanage Registry v2.0.0
@@ -111,6 +126,34 @@ function formatAddress($addr) {
   
   return $a;
 }
+
+/**
+ * Format an Ad Hoc attribute for rendering.
+ *
+ * @since  COmanage Registry v3.3.0
+ * @param  array  $aha Ad Hoc Attribute
+ * @return string      Formatted string
+ */
+
+function formatAdHoc($aha) {
+  $a = "";
+
+  if(!empty($aha['tag'])) {
+    $a = $aha['tag'];
+  }
+
+  $a .= ": ";
+
+  if(!empty($aha['value'])) {
+    $a .= $aha['value'];
+  } else {
+    $a .= "<i>" . _txt('fd.null') . "</i>";
+  }
+
+  return $a;
+}
+
+
 
 /**
  * Render a telephone number in E.123 format

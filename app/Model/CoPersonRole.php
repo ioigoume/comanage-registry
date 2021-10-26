@@ -63,6 +63,7 @@ class CoPersonRole extends AppModel {
   public $hasMany = array(
     // A person can have one or more address
     "Address" => array('dependent' => true),
+    "AdHocAttribute" => array('dependent' => true),
     "CoExpirationCount" => array('dependent' => true),
     "CoExpirationDaysCount" => array('dependent' => true),
     "CoPetition" => array(

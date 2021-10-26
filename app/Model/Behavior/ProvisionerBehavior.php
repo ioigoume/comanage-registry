@@ -921,7 +921,7 @@ class ProvisionerBehavior extends ModelBehavior {
       // We normally don't pull org identity data, but we'll make an exception
       // for Identifier to be able to expose eppn
       //'CoOrgIdentityLink.OrgIdentity.Identifier',
-      'CoPersonRole' => array('Address', 'Cou', 'TelephoneNumber'),
+      'CoPersonRole' => array('AdHocAttribute', 'Address', 'Cou', 'TelephoneNumber'),
       //'CoPersonRole',
       //'CoPersonRole.Address',
       //'CoPersonRole.Cou',

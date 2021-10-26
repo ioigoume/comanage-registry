@@ -61,11 +61,12 @@ Router::connect(
  */
 
 Router::mapResources(array(
+  'ad_hoc_attributes',
   'addresses',
   'attribute_enumerations',
   'authentication_events',
-	'co_departments',
-	'co_email_lists',
+  'co_departments',
+  'co_email_lists',
   'certs',
   'assurances',
   'co_extended_attributes',
@@ -78,9 +79,9 @@ Router::mapResources(array(
   'co_org_identity_links',
   'co_people',
   'co_person_roles',
-	'co_services',
-	'co_t_and_c_agreements',
-	'co_terms_and_conditions',
+  'co_services',
+  'co_t_and_c_agreements',
+  'co_terms_and_conditions',
   'cos',
   'cous',
   'email_addresses',

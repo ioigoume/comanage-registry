@@ -53,6 +53,7 @@ class OrgIdentitiesController extends StandardController {
   
   public $edit_contains = array(
     'Address',
+    'AdHocAttribute',
     'Co',
     'CoOrgIdentityLink' => array('CoPerson' => array('Co', 'PrimaryName')),
     'EmailAddress',
@@ -68,6 +69,7 @@ class OrgIdentitiesController extends StandardController {
   
   public $view_contains = array(
     'Address',
+    'AdHocAttribute',
     'Co',
     'CoOrgIdentityLink' => array('CoPerson' => array('Co', 'PrimaryName')),
     'EmailAddress',

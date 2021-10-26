@@ -84,27 +84,35 @@ class TelephoneNumbersController extends MVPAController {
     // Is this a read only record? True if it belongs to an Org Identity that has
     // an OrgIdentity Source Record. As of the initial implementation, not even
     // CMP admins can edit such a record.
-    
+
+    $readOnly = false;
+
     if($this->action == 'edit' && !empty($this->request->params['pass'][0])) {
-      $orgIdentityId = $this->TelephoneNumber->field('org_identity_id', array('id' => $this->request->params['pass'][0]));
-      
-      if($orgIdentityId) {
-        $readOnly = $this->TelephoneNumber->OrgIdentity->readOnly($orgIdentityId);
-        
-        if($readOnly) {
-          // Proactively redirect to view. This will also prevent (eg) the REST API
-          // from editing a read only record.
-          $args = array(
-            'controller' => 'telephone_numbers',
-            'action'     => 'view',
-            filter_var($this->request->params['pass'][0],FILTER_SANITIZE_SPECIAL_CHARS)
-          );
-          
-          $this->redirect($args);
+      $sourceAttributeId = (bool)$this->TelephoneNumber->field('source_telephone_number_id', array('id' => $this->request->params['pass'][0]));
+
+      if($sourceAttributeId) {
+        $readOnly = true;
+      } else {
+        $orgIdentityId = $this->TelephoneNumber->field('org_identity_id', array('id' => $this->request->params['pass'][0]));
+
+        if($orgIdentityId) {
+          $readOnly = $this->TelephoneNumber->OrgIdentity->readOnly($orgIdentityId);
         }
       }
     }
-    
+
+    if($readOnly) {
+      // Proactively redirect to view. This will also prevent (eg) the REST API
+      // from editing a read only record.
+      $args = array(
+        'controller' => 'telephone_numbers',
+        'action'     => 'view',
+        filter_var($this->request->params['pass'][0],FILTER_SANITIZE_SPECIAL_CHARS)
+      );
+
+      $this->redirect($args);
+    }
+
     // In order to manipulate an telephone number, the authenticated user must have permission
     // over the associated Org Identity or CO Person Role. For add action, we accept
     // the identifier passed in the URL, otherwise we lookup based on the record ID.

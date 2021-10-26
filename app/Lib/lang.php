@@ -65,6 +65,8 @@ $cm_texts['en_US'] = array(
   'co.select' =>      'Select the CO you wish to work with.',
   
   // Titles, per-controller
+  'ct.ad_hoc_attributes.1' =>   'Ad Hoc Attribute',
+  'ct.ad_hoc_attributes.pl' =>  'Ad Hoc Attributes',
   'ct.addresses.1' =>           'Address',
   'ct.addresses.pl' =>          'Addresses',
   'ct.api_users.1' =>           'API User',
@@ -1269,6 +1271,8 @@ original notification at
   'fd.actions' =>     'Actions',
   'fd.actor' =>       'Actor',
   'fd.actor.self' =>  'Self Signup',
+  'fd.ad_hoc_attribute.tag' => 'Tag',
+  'fd.ad_hoc_attribute.value' => 'Value',
   'fd.address' =>     'Address',
   // The next set must be named fd.model.validation-field
   'fd.address.country' => 'Country',
@@ -1635,7 +1639,6 @@ original notification at
   'fd.ordr'  =>       'Order',
   'fd.order.es.desc' => 'The order in which this source will be queried, among all sources configured for this enrollment flow with this mode',
   'fd.order.prov.desc' => 'The order in which this provisioner will be run when automatic provisioning occurs (leave blank to run after all current provisioners)',
-  'fd.organization_id' => 'Organization ID',
   'fd.org.actions' => 'CSV URL Action List',
   'fd.org.actions.desc' => 'CSV URL list of actions related to OrgIdentities tab in COPerson Canvas(format: label1,URL1 new line label2,URL2)',
   'fd.ou' =>          'Department',

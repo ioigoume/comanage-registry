@@ -263,6 +263,12 @@
           
           $args['mvpa_model'] = 'Address';
           $args['mvpa_format'] = 'formatAddress';
+
+          print $this->element('mvpa', $args);
+
+          $args['mvpa_model'] = 'AdHocAttribute';
+          $args['self_service'] = false;
+          $args['mvpa_format'] = 'formatAdHoc';
           
           print $this->element('mvpa', $args);
         }
