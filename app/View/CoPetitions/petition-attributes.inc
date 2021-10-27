@@ -559,7 +559,13 @@
                 // Render the form field, label, and error (if any)
                 // error is output by default with class "error-message"
                 print $this->Form->label($fieldName, filter_var($ea['label'], FILTER_SANITIZE_SPECIAL_CHARS) . $requiredSymbol, array('class' => 'mdl-textfield__label'));
-                print $this->Form->input($fieldName, $args);
+                if( $ea["attribute"] == 'e:textfield' ) {
+                  $args['maxlength'] = '4000';
+                  print $this->Form->textarea($fieldName, $args);
+                }
+                else {
+                  print $this->Form->input($fieldName, $args);
+                }
               }
               print "</div>" . PHP_EOL;
 
@@ -611,7 +617,17 @@
                 print $this->Time->nice($co_petition_attribute_values[ $ea['id'] ][ $ea['field'] ], $vv_tz);
                 break;
               default:
-                print $co_petition_attribute_values[ $ea['id'] ][ $ea['field'] ];
+                if($ea["attribute"] == 'e:textfield' && strlen($co_petition_attribute_values[ $ea['id'] ][ $ea['field'] ]) > 100) {
+                  $string = $co_petition_attribute_values[ $ea['id'] ][ $ea['field'] ];
+                   // truncate string
+                  $string = $this->App->truncateString($string);
+                  $string .= '... <a href="#" onclick="return false" data-eaid="'.$ea['id'].'" id="textfield-read-more-'.$ea['id'].'">Read More</a>';
+                  print $string;
+                  $divs_dialogs = '<div id="textfield-dialog-'.$ea['id'].'" title="'.$ea['label'].'"><p>'.$co_petition_attribute_values[ $ea['id'] ][ $ea['field'] ].'</p></div>';
+                }
+                else {
+                  print $co_petition_attribute_values[ $ea['id'] ][ $ea['field'] ];
+                }
                 break;
               }
             }
@@ -761,4 +777,36 @@
 <script type="text/javascript">
   givenNameAttr = <?php print '"' . $givenNameAttr . '"'; ?>;
   familyNameAttr = <?php print '"' . $familyNameAttr . '"'; ?>;
+  $(function() {
+    $("a[id^=textfield-read-more-]").click(function(){
+      $("#textfield-dialog-" + $(this).data("eaid")).dialog("open");
+    })
+    
+    $("div[id^=textfield-dialog-]").dialog({
+        autoOpen: false,
+        buttons: {
+          "<?php print _txt('op.ok'); ?>": function() {
+            $(this).dialog("close");
+          },
+        },
+        modal: true,
+        show: {
+          effect: "fade"
+        },
+        width: "70%",
+        hide: {
+          effect: "fade"
+        },
+        open: function(e) {    
+          var scroll_pos=(0);          
+          $('html, body').animate({scrollTop:(scroll_pos)}, '2000');
+        }
+    });
+  });
 </script>
+
+<?php
+  if(!empty($divs_dialogs)) {
+    print nl2br($divs_dialogs);
+  }
+?>
