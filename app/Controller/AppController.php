@@ -234,6 +234,12 @@ class AppController extends Controller {
       $coid = $this->parseCOID();
       
       if($coid == -1) {
+        // Load Platform Localizations
+        // Load Localizations
+        $this->Co = ClassRegistry::init('Co');
+        // XXX I am using -1 since no CO ID can be negative. As a result only Global localizations will be fetched
+        $this->Co->CoLocalization->load($coid);
+
         if($this->requires_co) {
           throw new InvalidArgumentException(_txt('er.co.specify'));
         }
