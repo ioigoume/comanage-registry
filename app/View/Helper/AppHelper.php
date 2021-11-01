@@ -1,7 +1,15 @@
 <?php
 
 App::uses('Helper', 'View');
-class AppHelper extends Helper {
+class AppHelper extends Helper { 
+       
+    /**
+     * truncateString
+     *
+     * @param  string $string
+     * @param  integer $limit
+     * @return string
+     */
     function truncateString($string, $limit = 100) {
         $stringCut = substr($string, 0, $limit);
         $endPoint = strrpos($stringCut, ' ');
