@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+### Fixed
+
+- Load global localizations in the case of unregistered users
+
 ### Changed
 
 - Change petition's attribute 'textfield' type from varchar(512) to text(4000)
