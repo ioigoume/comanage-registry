@@ -31,6 +31,7 @@
   // Determine if fields are editable -- this isn't quite the right description for this view
   $e = false;
   $es = false;
+  $eorg = true;
 
   if(($this->action == "invite" && $permissions['invite'])
       || ($this->action == "canvas" && $permissions['canvas']))
@@ -43,6 +44,13 @@
   
   if(!$e && !$permissions['view'])
     return(false);
+
+  if($this->action == "canvas"
+     && !$permissions['roles']['coadmin']
+     && !$permissions['roles']['cmadmin']
+  ) {
+    $eorg = false;
+  }
 
   // Add breadcrumbs
   print $this->element("coCrumb");
@@ -1246,17 +1254,18 @@
                     </td>
                     <td>
                       <?php
-                        print $this->Html->link(_txt($e && !$es ? 'op.edit' : 'op.view'),
+                        print $this->Html->link(_txt($e && !$es && $eorg ? 'op.edit' : 'op.view'),
                             array('controller' => 'org_identities',
-                              'action' => ($e && !$es ? 'edit' : 'view'),
+                              'action' => ($e && !$es && $eorg ? 'edit' : 'view'),
                               $link['OrgIdentity']['id']),
-                            array('class' => ($e && !$es ? 'editbutton' : 'viewbutton'))) . "\n";
+                            array('class' => ($e && !$es && $eorg ? 'editbutton' : 'viewbutton'))) . "\n";
 
                         if($permissions['relink']) {
                         print '<a class="relinkbutton" title="' . _txt('op.relink') . '" onclick="javascript:js_confirm_generic(\'' . _jtxt(_txt('op.relink.confirm')) . '\', \'' . $this->Html->url(array('controller' => 'co_people', 'action' => 'relink', $co_people[0]['CoPerson']['id'], 'linkid' => $link['id'])) . '\');">' . _txt('op.relink') . '</a>' . "\n";
                       }
 
                       if($permissions['delete']
+                        && $eorg
                         && count($co_people[0]['CoOrgIdentityLink']) > 1) {
                         // An Org Identity Link can only be removed if there is at least one other remaining
                         // XXX Is this still a valid restriction? As of 0.9.1 one can relink an org identity

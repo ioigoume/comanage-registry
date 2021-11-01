@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
 
 - Load global localizations in the case of unregistered users
+- Limit permissions to OrgIdentities for COU Administrators
 
 ### Changed
 

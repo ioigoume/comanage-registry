@@ -537,19 +537,19 @@ class OrgIdentitiesController extends StandardController {
       $p['viewsource'] = $roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin'];
     } else {
       // Add a new Org Identity?
-      $p['add'] = ($roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin']);
+      $p['add'] = ($roles['cmadmin'] || $roles['coadmin']);
       
       // Delete an existing Org Identity?
       $p['delete'] = ($roles['cmadmin']
-                      || ($managed && ($roles['coadmin'] || $roles['couadmin'])));
+                      || ($managed && $roles['coadmin']));
       
       // Edit an existing Org Identity?
       $p['edit'] = !$readOnly
                    && ($roles['cmadmin']
-                       || ($managed && ($roles['coadmin'] || $roles['couadmin'])));
+                       || ($managed && $roles['coadmin']));
       
       // Find an Org Identity to add to a CO?
-      $p['find'] = ($roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin']);
+      $p['find'] = ($roles['cmadmin'] || $roles['coadmin']);
       
       // View history? This correlates with HistoryRecordsController
       $p['history'] = ($roles['cmadmin']
@@ -557,17 +557,8 @@ class OrgIdentitiesController extends StandardController {
       
       // View all existing Org Identity?
       $p['index'] = ($roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin']);
-      $p['search'] = $p['index'];
+      $p['search'] = $p['view'] = $p['index'];
 
-      if($this->action == 'index' && $p['index']) {
-        // For rendering index, we currently assume that anyone who can view the
-        // index can manipulate all records. This is probably right.
-        
-        $p['delete'] = true;
-        $p['edit'] = true;
-        $p['view'] = true;
-      }
-      
       // View job history? This correlates with CoJobHistoryRecordsController
       $p['jobhistory'] = ($roles['cmadmin'] || $roles['admin']);
       
@@ -590,6 +581,15 @@ class OrgIdentitiesController extends StandardController {
       // View a Org Identity Source Record? (Matches OrgIdentitySourceRecordsController)
       $p['viewsource'] = ($roles['cmadmin']
                           || ($managed && ($roles['coadmin'] || $roles['couadmin'])));
+
+      if($this->action == 'index' && $p['index']) {
+        // For rendering index, we currently assume that anyone who can view the
+        // index can manipulate all records. This is probably right.
+
+        //        $p['delete'] = true;
+        //        $p['edit'] = true;
+        $p['view'] = true;
+      }
     }
     
     $this->set('permissions', $p);

@@ -173,6 +173,16 @@ if(isset($permissions['search']) && $permissions['search'] ) {
                   ),
                   array('class' => 'editbutton spin')
                 ) . "\n";
+              } elseif($permissions['view']) {
+                print $this->Html->link(
+                    _txt('op.view'),
+                    array(
+                      'controller' => 'org_identities',
+                      'action' => 'view',
+                      $p['OrgIdentity']['id']
+                    ),
+                    array('class' => 'viewbutton spin')
+                  ) . "\n";
               }
             }
             
