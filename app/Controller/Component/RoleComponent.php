@@ -683,8 +683,10 @@ class RoleComponent extends Component {
         do {
           if(!empty($parent['Cou'])) {
             $parent_id = $parent['Cou']['id'];
-            $root_cou = array();
-            $root_cou[$parent['Cou']['id']] = $parent['Cou']['name'];
+            // Only get the COU if there is not parent
+            if(empty($Cou->getParentNode($parent_id))) {
+              $root_cou[$parent['Cou']['id']] = $parent['Cou']['name'];
+            }
           }
           $parent = $Cou->getParentNode($parent_id);
         } while(!empty($parent));

@@ -66,7 +66,11 @@
   }
   if(!empty($args['Search.couid'])) {
     // Render the name of the COU
-    $this->Html->addCrumb(_txt('me.population.cou', array($permissions['cous'][$args['Search.couid']])), $args);
+    if(!empty($permissions['cous'][$args['Search.couid']])) {
+      $this->Html->addCrumb(_txt('me.population.cou', array($permissions['cous'][$args['Search.couid']])), $args);
+    } elseif( !empty($permissions['roles']["admincous_root"][$args['Search.couid']]) ) {
+      $this->Html->addCrumb(_txt('me.population.cou', array( $permissions['roles']["admincous_root"][$args['Search.couid']] )), $args);
+    }
   } else {
     $this->Html->addCrumb(_txt('me.population'), $args);
   }
