@@ -638,9 +638,29 @@ class CoPeopleController extends StandardController {
     
     // Access the canvas for a CO Person? (Basically 'view' but with links)
     $p['canvas'] = ($roles['cmadmin']
-                    || ($roles['coadmin'] || $roles['couadmin'])
+                    || $roles['coadmin']
                     || $self);
-    
+
+    // XXX Give access to COU admins that manage the current CO Person
+    if(!empty($this->request->params["pass"][0])) {
+      $cop_canvas_id = $this->request->params["pass"][0];
+      $cou_keys = array();
+      if(!empty($roles["admincous"])) {
+        $cou_keys = array_keys($roles["admincous"]);
+      }
+      if($roles["admincous_root"]) {
+        $cou_root_keys = array_keys($roles["admincous_root"]);
+        $cou_keys = array_merge($cou_keys, $cou_root_keys);
+      }
+      foreach ($cou_keys as $cou_id) {
+        $canvas_permission = $this->Role->isCouPerson($cop_canvas_id, $this->cur_co["Co"]["id"],$cou_id);
+        if($canvas_permission) {
+          $p['canvas'] = true;
+          break;
+        }
+      }
+    }
+
     // Compare CO attributes and Org attributes?
     $p['compare'] = ($roles['cmadmin']
                      || ($roles['coadmin'] || $roles['couadmin'])
