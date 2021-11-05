@@ -407,6 +407,7 @@ class RoleComponent extends Component {
       'coadmin' => false,
       'couadmin' => false,
       'admincous' => null,
+      'admincous_root' => null,
       'comember' => false,
       'admin' => false,
       'subadmin' => false,
@@ -491,9 +492,11 @@ class RoleComponent extends Component {
       // Is this user an admin of a COU within the current CO?
       
       $ret['admincous'] = null;
+      $ret['admincous_root'] = null;
       
       try {
         $ret['admincous'] = $this->couAdminFor($coPersonId);
+        $ret['admincous_root'] = $this->couAdminParentImplied($coPersonId);
       }
       catch(InvalidArgumentException $e) {
         // Not really clear we should do anything with this error
@@ -636,7 +639,61 @@ class RoleComponent extends Component {
     
     return $childCous;
   }
-  
+
+  /**
+   * Determine the implied Root COU, when the User is Admin only to the sub-cou
+   *
+   * @since  COmanage Registry v0.8
+   * @param  Integer CO Person ID
+   * @return Array List COU IDs and Names
+   * @throws InvalidArgumentException
+   */
+
+  public function couAdminParentImplied($coPersonId) {
+    global $group_sep;
+
+    $couNames = array();
+    $childCous = array();
+
+    if(!$coPersonId) {
+      return array();
+    }
+
+    try {
+      $coId = $this->cachedCoIdLookup($coPersonId);
+    }
+    catch(InvalidArgumentException $e) {
+      throw new InvalidArgumentException($e->getMessage());
+    }
+
+    // First pull the COUs $coPersonId is explicitly an admin for
+
+    $couGroups = $this->cachedGroupGet($coPersonId, "", "", null, false, GroupEnum::Admins, true);
+
+    // What we actually have are the groups associated with each COU for which
+    // coPersonId is an admin.
+
+    $Cou = ClassRegistry::init('Cou');
+
+    $root_cou = array();
+    foreach($couGroups as $couGroup) {
+      if(!empty($couGroup['CoGroup']['cou_id'])) {
+        // Pull the root COU if this is a children
+        $parent_id = $couGroup['CoGroup']['cou_id'];
+        do {
+          if(!empty($parent['Cou'])) {
+            $parent_id = $parent['Cou']['id'];
+            $root_cou = array();
+            $root_cou[$parent['Cou']['id']] = $parent['Cou']['name'];
+          }
+          $parent = $Cou->getParentNode($parent_id);
+        } while(!empty($parent));
+      }
+    }
+
+    return $root_cou;
+  }
+
   /**
    * Determine if an identifier is associated with an Administrator for any CO or COU.
    *
