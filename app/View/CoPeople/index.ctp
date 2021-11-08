@@ -174,8 +174,33 @@ if(isset($permissions['search']) && $permissions['search'] ) {
 </div>
 
 <div id="co_people">
-  <?php $i = 0; ?>
+  <?php
+  $i = 0;
+
+  // Is this a search by COU id?
+  $cou_id = null;
+  if(isset($this->request->params["named"]["Search.couid"])) {
+    $cou_id = $this->request->params["named"]["Search.couid"];
+  }
+  ?>
   <?php foreach ($co_people as $p): ?>
+  <?php
+  // Skip if the user has expired for this particular COU, if we filter by COU
+  // Get user's membershibs
+  $cou_memberships = Hash::extract($p, 'CoPersonRole.{n}.cou_id');
+  $cou_membership_status = Hash::extract($p, 'CoPersonRole.{n}.status');
+  // Combine COU Id with status
+  $cp_cou_membership_status = array_combine($cou_memberships, $cou_membership_status);
+
+  if(isset($cp_cou_membership_status[$cou_id])
+     && !$permissions['roles']['coadmin']
+     && !$permissions['roles']['cmadmin']
+     && $cp_cou_membership_status[$cou_id] === StatusEnum::Expired) {
+    continue;
+  }
+
+
+  ?>
     <div class="co-person line<?php print ($i % 2)+1; ?>">
       <div class="person-panel">
         <?php

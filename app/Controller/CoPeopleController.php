@@ -83,7 +83,7 @@ class CoPeopleController extends StandardController {
     'Assurance',
     'Url'
   );
-  
+
   /**
    * Callback before other controller methods are invoked or views are rendered.
    * - postcondition: $pool_org_identities set
@@ -653,6 +653,8 @@ class CoPeopleController extends StandardController {
         $cou_keys = array_merge($cou_keys, $cou_root_keys);
       }
       foreach ($cou_keys as $cou_id) {
+        // XXX If the user is Expired i will be able to see him in the population list but not access the canvas
+        // XXX I exclude the user on ctp file
         $canvas_permission = $this->Role->isCouPerson($cop_canvas_id, $this->cur_co["Co"]["id"],$cou_id);
         if($canvas_permission) {
           $p['canvas'] = true;
@@ -824,6 +826,10 @@ class CoPeopleController extends StandardController {
       $p['cous'] = $roles['admincous'];
     else
       $p['cous'] = array();
+
+    if(!empty($roles['admincous_root'])) {
+      $p['cous_root'] = $roles['admincous_root'];
+    }
 
     // Pass the roles to the view
     $p['roles'] = $roles;
