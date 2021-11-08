@@ -1146,8 +1146,10 @@
         <!-- Org Ids -->
         <li id="fields-orgid" class="fieldGroup">
           <?php
-          if(!empty($vv_custom_actions)
-             || (isset($permissions['link']) && $permissions['link'])) {
+          if(isset($permissions['self'])
+             && $permissions['self']
+             && (!empty($vv_custom_actions)
+                 || (isset($permissions['link']) && $permissions['link']))) {
             print '<span id="org-action-menu" style="position: relative; display: block;">';
             $linkparams = array(
               'id' => 'org-action-menu-content',
@@ -1174,8 +1176,8 @@
                 'style' => array('display: block; text-decoration: none; color: unset;')
               );
               print $this->Html->link(_txt('op.link'),
-                $linktarget,
-                $linkparams);
+                                      $linktarget,
+                                      $linkparams);
               print '</li>';
             }
             // Custom buttons

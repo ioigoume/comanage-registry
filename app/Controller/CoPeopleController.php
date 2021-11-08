@@ -606,7 +606,13 @@ class CoPeopleController extends StandardController {
        ($this->action == 'editself' && isset($roles['copersonid'])))) {
       $self = true;
     }
-    
+
+
+    // Construct the permission set for this user, which will also be passed to the view.
+    $p = array();
+
+    $p['self'] = $self;
+
     // Is this a record we can manage?
     $managed = false;
     
@@ -622,10 +628,7 @@ class CoPeopleController extends StandardController {
       $managed = $this->Role->isCoOrCouAdminForCoPerson($roles['copersonid'],
                                                         $this->request->params['pass'][0]);
     }
-    
-    // Construct the permission set for this user, which will also be passed to the view.
-    $p = array();
-    
+
     // Add a new CO Person?
     $p['add'] = ($roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin']);
     $p['enroll'] = $p['add'];
