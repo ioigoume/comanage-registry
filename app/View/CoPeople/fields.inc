@@ -79,6 +79,7 @@
   }
   $render_org_identity_actions = ($render_org_identity_actions
                                  || $permissions['roles']['coadmin']
+                                 || $permissions['self']
                                  || $permissions['roles']['cmadmin'])
                                  && ($this->action == "canvas");
 
@@ -678,7 +679,7 @@
       <?php
         if($this->action != "invite") {
           $args = array(
-            'edit'         => ($e && !$es),
+            'edit'         => (boolean)$permissions['self'],
             'self_service' => false,
             'model'        => 'CoPerson',
             'model_param'  => 'copersonid',
@@ -688,7 +689,7 @@
           
           print $this->element('mvpa', $args);
           
-          $args['edit']         = $e;
+          $args['edit']         = (boolean)$permissions['self'];
           $args['self_service'] = true;
           $args['mvpa_model']   = 'EmailAddress';
           $args['mvpa_field']   = 'mail';
@@ -702,7 +703,7 @@
 
           print $this->element('mvpa', $args);
           
-          $args['edit']         = $e;
+          $args['edit']         = (boolean)$permissions['self'];
           $args['self_service'] = true;
           $args['mvpa_model']   = 'Url';
           $args['mvpa_field']   = 'url';
