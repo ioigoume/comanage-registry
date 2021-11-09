@@ -52,14 +52,35 @@
     $eorg = false;
   }
 
-$render_actions = false;
-if((isset($permissions['self'])
-      && $permissions['self'])
+  $render_actions = false;
+
+  if((isset($permissions['self'])
+      && $permissions['self']
+      && $this->action == "canvas")
      || $permissions['roles']['coadmin']
      || $permissions['roles']['cmadmin']
   ) {
     $render_actions = true;
   }
+
+  // XXX I can not move this in Controller since canvas data exists after beforeRender which is called after isAuthorized
+  // I need the Roles of the COPerson this OrgIdentity is linked to
+  $render_org_identity_actions = false;
+  if(isset($co_people[0]["CoPersonRole"])) {
+    // Extract COU ids
+    $cou_ids = Hash::extract($co_people, '{n}.CoPersonRole.{n}.cou_id');
+    $cou_name = Hash::extract($co_people, '{n}.CoPersonRole.{n}.Cou.name');
+    $cou_keys_i_manage = array_keys($permissions["cous"]);
+    foreach ($cou_keys_i_manage as $key) {
+      if(in_array($key, $cou_ids)) {
+        $render_org_identity_actions = true;
+      }
+    }
+  }
+  $render_org_identity_actions = ($render_org_identity_actions
+                                 || $permissions['roles']['coadmin']
+                                 || $permissions['roles']['cmadmin'])
+                                 && ($this->action == "canvas");
 
   // Add breadcrumbs
   print $this->element("coCrumb");
@@ -1215,7 +1236,9 @@ if((isset($permissions['self'])
                   <th><?php print _txt('fd.valid_from.tz', array($vv_tz)); ?></th>
                   <th><?php print _txt('fd.valid_through.tz', array($vv_tz)); ?></th>
                   <th><?php print _txt('fd.identifier.ids.login'); ?></th>
+                  <?php if($render_org_identity_actions): ?>
                   <th><?php print _txt('fd.actions'); ?></th>
+                  <?php endif; ?>
                 </tr>
                 <?php if(!empty($co_people[0]['CoOrgIdentityLink'])): ?>
                 <?php foreach($co_people[0]['CoOrgIdentityLink'] as $link): ?>
@@ -1267,6 +1290,7 @@ if((isset($permissions['self'])
                         }
                       ?>
                     </td>
+                    <?php if($render_org_identity_actions): ?>
                     <td>
                       <?php
                         print $this->Html->link(_txt($e && !$es && $eorg ? 'op.edit' : 'op.view'),
@@ -1295,6 +1319,7 @@ if((isset($permissions['self'])
                       }
                       ?>
                     </td>
+                    <?php endif; ?>
                   </tr>
                 <?php endforeach; ?>
                 <?php endif; ?>
