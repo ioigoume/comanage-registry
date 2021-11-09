@@ -52,6 +52,15 @@
     $eorg = false;
   }
 
+$render_actions = false;
+if((isset($permissions['self'])
+      && $permissions['self'])
+     || $permissions['roles']['coadmin']
+     || $permissions['roles']['cmadmin']
+  ) {
+    $render_actions = true;
+  }
+
   // Add breadcrumbs
   print $this->element("coCrumb");
   $args = array();
@@ -685,7 +694,7 @@
         <!-- Groups -->
         <li id="fields-group" class="fieldGroup">
           <?php
-          if($e) {
+          if($e && $render_actions) {
             print '<div class="coAddEditButtons">';
             $linktarget = array(
               'controller' => 'co_groups',
@@ -707,7 +716,7 @@
             <?php
             if(isset($co_people[0]['CoGroupMember'])) {
               foreach($co_people[0]['CoGroupMember'] as $g) {
-                if($e && !$es && !$g['CoGroup']['auto']) {
+                if($e && !$es && !$g['CoGroup']['auto'] && $render_actions) {
                   if($g['member'] || $g['owner']) {
                     print '<li class="field-data-container"><div class="field-data">';
                     print $this->Html->link($g['CoGroup']['name'], array('controller' => 'co_groups', 'action' => 'edit', $g['co_group_id'], 'co' => $cur_co['Co']['id']));
