@@ -580,7 +580,7 @@ class OrgIdentitiesController extends StandardController {
                        || ($managed && ($roles['coadmin'] || $roles['couadmin'])));
       
       // View all existing Org Identity?
-      $p['index'] = ($roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin']);
+      $p['index'] = ($roles['cmadmin'] || $roles['coadmin']);
       $p['search'] = $p['view'] = $p['index'];
 
       // View job history? This correlates with CoJobHistoryRecordsController
