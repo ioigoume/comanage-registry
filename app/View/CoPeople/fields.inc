@@ -485,7 +485,6 @@
               //'escape' => false
             );
 
-            //print $this->Html->link('<span class="ui-button-icon-primary ui-icon ui-icon-circle-plus"></span>' . _txt('op.add'),
             print $this->Html->link(_txt('op.add'),
               $linktarget,
               $linkparams);
@@ -623,7 +622,7 @@
           <?php foreach($co_people[0]['Name'] as $n): ?>
             <li class="field-data-container">
               <?php
-                $perm = $this->Permission->selfService($permissions, $e, 'Name', (!empty($n['type']) ? $n['type'] : null));
+                $perm = $this->Permission->selfService($permissions, $eorg, 'Name', (!empty($n['type']) ? $n['type'] : null));
               ?>
               <div class="field-data <?php if($perm == PermissionEnum::ReadOnly) { print ' field-data-alone'; }; ?>">
                 <?php
@@ -690,6 +689,12 @@
                             'action' => 'edit',
                             $n['id']),
                           array('class' => 'editbutton')) . "\n";
+                     } elseif ($perm == PermissionEnum::ReadOnly) {
+                      print $this->Html->link(_txt('op.view'),
+                                              array('controller' => 'names',
+                                                'action' => 'view',
+                                                $n['id']),
+                                              array('class' => 'viewbutton')) . "\n";
                     }
                   }  
                 ?>
