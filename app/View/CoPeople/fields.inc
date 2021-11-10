@@ -647,7 +647,7 @@
               </div>
               <div class="field-actions">
                 <?php
-                  if(!empty($n['SourceName']['id'])) {
+                  if(!empty($n['SourceName']['id']) && $render_mvpa_buttons) {
                     // This name came from an OIS and so can't be edited, and for the moment
                     // can't be made primary (though maybe that'll change with a use case).
                     print $this->Html->link(_txt('op.view'),
@@ -689,7 +689,7 @@
                             'action' => 'edit',
                             $n['id']),
                           array('class' => 'editbutton')) . "\n";
-                     } elseif ($perm == PermissionEnum::ReadOnly) {
+                     } elseif ($perm == PermissionEnum::ReadOnly && $render_mvpa_buttons) {
                       print $this->Html->link(_txt('op.view'),
                                               array('controller' => 'names',
                                                 'action' => 'view',
