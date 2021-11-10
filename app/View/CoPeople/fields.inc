@@ -33,6 +33,9 @@
   $es = false;
   $eorg = true;
 
+  $admincous_keys = array_keys($permissions['cous']);
+
+
   if(($this->action == "invite" && $permissions['invite'])
       || ($this->action == "canvas" && $permissions['canvas']))
     $e = true;
@@ -1026,11 +1029,9 @@
                         }
 
                         // The user can not edit an owned empty COU
-                        $es = $es && !empty($r['Cou']);
-
                         if ($es // Editing self
                             ||  $can_ax_empty_cou // Empty COU accessible
-                            || (isset($r['Cou']['name']) && in_array($r['Cou']['name'], $permissions['cous']))
+                            || (isset($r['cou_id']) && in_array($r['cou_id'], $admincous_keys))
                         ) // Admin for the COU
                         {
                           // COU Admins can only edit their own folks, so we need a bit of
