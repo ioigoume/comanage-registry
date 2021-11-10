@@ -471,7 +471,7 @@
 
       <!-- Names -->
       <li id="fields-name" class="fieldGroup">
-        <?php if($this->action != 'invite' && $this->Permission->selfService($permissions, $e, 'Name') == PermissionEnum::ReadWrite): ?>
+        <?php if($this->action != 'invite' && $this->Permission->selfService($permissions, $eorg, 'Name') == PermissionEnum::ReadWrite): ?>
           <div class="coAddEditButtons">
             <?php
             $linktarget = array(
@@ -689,7 +689,8 @@
                             'action' => 'edit',
                             $n['id']),
                           array('class' => 'editbutton')) . "\n";
-                     } elseif ($perm == PermissionEnum::ReadOnly && $render_mvpa_buttons) {
+                     } elseif ($perm == PermissionEnum::ReadOnly
+                               && ($render_mvpa_buttons || $permissions['self'])) {
                       print $this->Html->link(_txt('op.view'),
                                               array('controller' => 'names',
                                                 'action' => 'view',
@@ -1135,7 +1136,7 @@
         <!-- SSH keys -->
         <li id="fields-sshkey" class="fieldGroup">
           <?php
-            if($e) {
+            if($e && $render_mvpa_buttons) {
               print '<div class="coAddEditButtons">';
               $linktarget = array(
                 'controller' => 'ssh_keys',
@@ -1157,48 +1158,43 @@
           <ul id="tabs-sshkeys" class="fields data-list">
 
             <?php
-            if($e)
-            {
-              if(isset($co_people[0]['SshKey'])) {
-                foreach($co_people[0]['SshKey'] as $sk) {
-                  print '<li class="field-data-container">';
-                  print '<div class="field-data">';
-                  print $this->Html->link($sk['comment'], array('controller' => 'ssh_keys', 'action' => 'edit', $sk['id']));
-                  print ' (' . _txt('en.sshkey.type', null, $sk['type']). ')';
-                  print '</div>';
-                  print '<div class="field-actions">';
-                  // XXX we already checked for $permissions['edit'], but not ['delete']... should we?
-                  print '<button type="button" class="deletebutton" title="' . _txt('op.delete')
-                    . '" onclick="javascript:js_confirm_generic(\''
-                    . _txt('js.remove') . '\',\''    // dialog body text
-                    . $this->Html->url(              // dialog confirm URL
-                      array(
-                        'controller' => 'ssh_keys',
-                        'action' => 'delete',
-                        $sk['id']
-                      )
-                    ) . '\',\''
-                    . _txt('op.remove') . '\',\''    // dialog confirm button
-                    . _txt('op.cancel') . '\',\''    // dialog cancel button
-                    . _txt('op.remove') . '\',[\''   // dialog title
-                    . filter_var(_jtxt($sk['comment']),FILTER_SANITIZE_STRING)  // dialog body text replacement strings
-                    . '\']);">'
-                    . _txt('op.delete')
-                    . '</button>';
-                  print $this->Html->link(_txt('op.edit'),
-                      array('controller' => 'ssh_keys', 'action' => 'edit', $sk['id']),
-                      array('class' => 'editbutton')) . "\n";
-                  print '</div>';
-                  print '</li>';
-                }
+            if($e && $render_mvpa_buttons && isset($co_people[0]['SshKey'])) {
+              foreach($co_people[0]['SshKey'] as $sk) {
+                print '<li class="field-data-container">';
+                print '<div class="field-data">';
+                print $this->Html->link($sk['comment'], array('controller' => 'ssh_keys', 'action' => 'edit', $sk['id']));
+                print ' (' . _txt('en.sshkey.type', null, $sk['type']). ')';
+                print '</div>';
+                print '<div class="field-actions">';
+                // XXX we already checked for $permissions['edit'], but not ['delete']... should we?
+                print '<button type="button" class="deletebutton" title="' . _txt('op.delete')
+                  . '" onclick="javascript:js_confirm_generic(\''
+                  . _txt('js.remove') . '\',\''    // dialog body text
+                  . $this->Html->url(              // dialog confirm URL
+                    array(
+                      'controller' => 'ssh_keys',
+                      'action' => 'delete',
+                      $sk['id']
+                    )
+                  ) . '\',\''
+                  . _txt('op.remove') . '\',\''    // dialog confirm button
+                  . _txt('op.cancel') . '\',\''    // dialog cancel button
+                  . _txt('op.remove') . '\',[\''   // dialog title
+                  . filter_var(_jtxt($sk['comment']),FILTER_SANITIZE_STRING)  // dialog body text replacement strings
+                  . '\']);">'
+                  . _txt('op.delete')
+                  . '</button>';
+                print $this->Html->link(_txt('op.edit'),
+                    array('controller' => 'ssh_keys', 'action' => 'edit', $sk['id']),
+                    array('class' => 'editbutton')) . "\n";
+                print '</div>';
+                print '</li>';
               }
-            } else {
-              if(isset($co_people[0]['SshKey'])) {
-                foreach($co_people[0]['SshKey'] as $sk) {
-                  print '<li class="field-data-container">';
-                  print filter_var($sk['comment'],FILTER_SANITIZE_SPECIAL_CHARS) . "\n";
-                  print '</li>';
-                }
+            } elseif(isset($co_people[0]['SshKey'])) {
+              foreach($co_people[0]['SshKey'] as $sk) {
+                print '<li class="field-data-container">';
+                print filter_var($sk['comment'],FILTER_SANITIZE_SPECIAL_CHARS) . "\n";
+                print '</li>';
               }
             }
             ?>
