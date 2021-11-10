@@ -133,22 +133,24 @@ class CoLdapProvisionerDn extends AppModel {
     // Walk through available identifiers looking for a match
     
     $dn = "";
-    
-    foreach($coPersonData['Identifier'] as $identifier) {
-      if(!empty($identifier['type'])
-         && $identifier['type'] == $coProvisioningTargetData['CoLdapProvisionerTarget']['dn_identifier_type']
-         && !empty($identifier['identifier'])
-         && $identifier['status'] == StatusEnum::Active) {
-        // Match. We'll use the first active row found... it's undefined how to behave
-        // if multiple active identifiers of a given type are found. (We don't actually
-        // need to check for Status=Active since ProvisionerBehavior will filter out
-        // non-Active status.)
-        
-        $dn = $coProvisioningTargetData['CoLdapProvisionerTarget']['dn_attribute_name']
-            . "=" . $identifier['identifier']
-            . "," . $coProvisioningTargetData['CoLdapProvisionerTarget']['basedn'];
-        
-        break;
+
+    if(!empty($coPersonData['Identifier'])) {
+      foreach($coPersonData['Identifier'] as $identifier) {
+        if(!empty($identifier['type'])
+          && $identifier['type'] == $coProvisioningTargetData['CoLdapProvisionerTarget']['dn_identifier_type']
+          && !empty($identifier['identifier'])
+          && $identifier['status'] == StatusEnum::Active) {
+          // Match. We'll use the first active row found... it's undefined how to behave
+          // if multiple active identifiers of a given type are found. (We don't actually
+          // need to check for Status=Active since ProvisionerBehavior will filter out
+          // non-Active status.)
+          
+          $dn = $coProvisioningTargetData['CoLdapProvisionerTarget']['dn_attribute_name']
+              . "=" . $identifier['identifier']
+              . "," . $coProvisioningTargetData['CoLdapProvisionerTarget']['basedn'];
+          
+          break;
+        }
       }
     }
     
@@ -332,6 +334,7 @@ class CoLdapProvisionerDn extends AppModel {
           $newDnRecord['CoLdapProvisionerDn']['id'] = $dnRecord['CoLdapProvisionerDn']['id'];
         }
         
+        $this->clear();
         if(!$this->save($newDnRecord)) {
           throw new RuntimeException(_txt('er.db.save'));
         }
