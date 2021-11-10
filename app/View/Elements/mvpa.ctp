@@ -49,14 +49,18 @@
  
  // Dictionary lookup for extended types
  $vv_dictionary = 'vv_' . $lmvpapl . '_types';
- 
+
+ $render_actions = isset($render_actions) ? $render_actions : true;
+
  $action = ($edit ? 'edit' : 'view');
+
 ?>
 
   <li id="fields-<?php print $lmvpa; ?>" class="fieldGroup">
     <?php
       // Determine if permission is present for add button
       if(($self_service
+          && $render_actions
           && ($this->Permission->selfService($permissions, $edit, $mvpa_model) == PermissionEnum::ReadWrite))
          || (!$self_service && $edit)):
     ?>
@@ -173,18 +177,25 @@
             // Render the text link
             print '<li class="field-data-container">';
             print '<div class="field-data">';
-            print $this->Html->link($displaystr,
-                                    array('controller' => $lmvpapl,
-                                          'action' => $laction,
-                                          $m['id']));
-            print "&nbsp;(" . $typestr . ")\n";
+            if($render_actions) {
+              print $this->Html->link($displaystr,
+                                      array('controller' => $lmvpapl,
+                                        'action' => $laction,
+                                        $m['id']));
+            } else {
+              print $displaystr;
+            }
+
+            if(!empty($typestr)) {
+              print "&nbsp;(" . $typestr . ")\n";
+            }
             print '</div>';
             print '<div class="field-actions">';
             
             // Render specific buttons
             if($mvpa_model == 'Identifier') {
               // Login identifiers link to Authentication Events
-              if(isset($m['login']) && $m['login']) {
+              if(isset($m['login']) && $m['login'] && $render_actions) {
                 print $this->Html->link(_txt('ct.authentication_events.pl'),
                                         array('controller' => 'authentication_events',
                                               'action' => 'index',
@@ -195,15 +206,17 @@
             }
             
             // This renders the View or Edit button, as appropriate
-            print $this->Html->link(_txt('op.'.$laction),
-                                    array(
-                                      'controller' => $lmvpapl,
-                                      'action' => $laction,
-                                      $m['id']),
-                                    array('class' => $laction.'button')) . "\n";
+            if($render_actions) {
+              print $this->Html->link(_txt('op.'.$laction),
+                                      array(
+                                        'controller' => $lmvpapl,
+                                        'action' => $laction,
+                                        $m['id']),
+                                      array('class' => $laction.'button')) . "\n";
+            }
             
             // Possibly render a delete button
-            if($laction == 'edit' && $editable) {
+            if($laction == 'edit' && $editable && $render_actions) {
               // XXX we already checked for $permissions['edit'], but not ['delete']... should we?
               print '<a class="deletebutton" title="' . _txt('op.delete')
                 . '" onclick="javascript:js_confirm_generic(\''

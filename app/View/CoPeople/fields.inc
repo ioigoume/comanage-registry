@@ -33,7 +33,12 @@
   $es = false;
   $eorg = true;
 
-  $admincous_keys = array_keys($permissions['cous']);
+  $admincous_keys = !empty($permissions['cous'])
+                    ? array_keys($permissions['cous'])
+                    : array();
+  $admincous_root_keys = !empty($permissions['cous_root'])
+                         ? array_keys($permissions['cous_root'])
+                         : array();
 
 
   if(($this->action == "invite" && $permissions['invite'])
@@ -85,6 +90,22 @@
                                  || $permissions['self']
                                  || $permissions['roles']['cmadmin'])
                                  && ($this->action == "canvas");
+
+  // Calculate Render buttons permissions for Root COU members
+  $is_my_member = false;
+  $is_root_member = false;
+  $render_mvpa_buttons = true;
+  foreach($co_people[0]['CoPersonRole'] as $r) {
+    if(isset($r['cou_id']) && in_array($r['cou_id'], $admincous_keys)) {
+      $is_my_member = true;
+    }
+    if(isset($r['cou_id']) && in_array($r['cou_id'], $admincous_root_keys)) {
+      $is_root_member = true;
+    }
+  }
+  if(($is_root_member && !$is_my_member)) {
+    $render_mvpa_buttons = false;
+  }
 
   // Add breadcrumbs
   print $this->element("coCrumb");
@@ -682,8 +703,9 @@
       <?php
         if($this->action != "invite") {
           $args = array(
-            'edit'         => (boolean)$permissions['self'],
+            'edit'         => ($permissions['roles']['coadmin'] || $permissions['roles']['cmadmin']),
             'self_service' => false,
+            'render_actions' => ((boolean)$permissions['self'] || $render_mvpa_buttons),
             'model'        => 'CoPerson',
             'model_param'  => 'copersonid',
             'mvpa_model'   => 'Identifier',
@@ -692,7 +714,8 @@
           
           print $this->element('mvpa', $args);
           
-          $args['edit']         = (boolean)$permissions['self'];
+          $args['edit']         = ($permissions['roles']['coadmin'] || $permissions['roles']['cmadmin']);
+          $args['render_actions'] = ((boolean)$permissions['self'] || $render_mvpa_buttons);
           $args['self_service'] = true;
           $args['mvpa_model']   = 'EmailAddress';
           $args['mvpa_field']   = 'mail';
@@ -700,13 +723,15 @@
           print $this->element('mvpa', $args);
 
           $args['edit']         = false;
+          $args['render_actions'] = ((boolean)$permissions['self'] || $render_mvpa_buttons);
           $args['self_service'] = true;
           $args['mvpa_model'] = 'Cert';
           $args['mvpa_field'] = 'subject';
 
           print $this->element('mvpa', $args);
           
-          $args['edit']         = (boolean)$permissions['self'];
+          $args['edit']         = ($permissions['roles']['coadmin'] || $permissions['roles']['cmadmin']);
+          $args['render_actions'] = ((boolean)$permissions['self'] || $render_mvpa_buttons);
           $args['self_service'] = true;
           $args['mvpa_model']   = 'Url';
           $args['mvpa_field']   = 'url';

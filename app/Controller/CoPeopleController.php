@@ -806,9 +806,10 @@ class CoPeopleController extends StandardController {
     
     // Relink an Org Identity or Role to a different CO Person?
     $p['relink'] = $roles['cmadmin'] || $roles['coadmin'];
-    
+
+    // XXX COU admins will edit only if allowed to
     if($self
-       && (!$roles['cmadmin'] && !$roles['coadmin'] && !$roles['couadmin'])) {
+       && (!$roles['cmadmin'] && !$roles['coadmin'])) {
       // Pull self service permissions if not an admin
       
       $p['selfsvc'] = $this->Co->CoSelfServicePermission->findPermissions($this->cur_co['Co']['id']);
@@ -823,12 +824,13 @@ class CoPeopleController extends StandardController {
     
     // Determine which COUs a person can manage.
     
-    if($roles['cmadmin'] || $roles['coadmin'])
+    if($roles['cmadmin'] || $roles['coadmin']) {
       $p['cous'] = $this->CoPerson->CoPersonRole->Cou->allCous($this->cur_co['Co']['id']);
-    elseif(!empty($roles['admincous']))
+    } elseif(!empty($roles['admincous'])) {
       $p['cous'] = $roles['admincous'];
-    else
+    } else {
       $p['cous'] = array();
+    }
 
     if(!empty($roles['admincous_root'])) {
       $p['cous_root'] = $roles['admincous_root'];
