@@ -676,8 +676,10 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                   // Start with an empty list in case no active keys
                   $attributes[$attr] = array();
                 }
-                foreach($provisioningData['SshKey'] as $sk) {
-                  $attributes[$attr][] = $sk['type'] . " " . $sk['skey'] . " " . $sk['comment'];
+                if(!empty($provisioningData['SshKey'])) {
+                  foreach($provisioningData['SshKey'] as $sk) {
+                    $attributes[$attr][] = $sk['type'] . " " . $sk['skey'] . " " . $sk['comment'];
+                  }
                 }
                 break;
               case 'userPassword':
@@ -685,9 +687,8 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                   // Start with an empty list in case no active passwords
                   $attributes[$attr] = array();
                 }
-                foreach($provisioningData['Password'] as $up) {
-                  // Skip locked passwords
-                  if(!isset($up['AuthenticatorStatus']['locked']) || !$up['AuthenticatorStatus']['locked']) {
+                if(!empty($provisioningData['Password'])) {
+                  foreach($provisioningData['Password'] as $up) {
                     // There's probably a better place for this (an enum somewhere?)
                     switch($up['password_type']) {
                       // XXX we can't use PasswordAuthenticator's enums in case the plugin isn't installed
@@ -708,10 +709,8 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                 if(!$attropts) {
                   $attributes[$attr] = array();
                 }
-                
-                foreach($provisioningData['Certificate'] as $cr) {
-                  // Skip locked certs
-                  if(!isset($cr['AuthenticatorStatus']['locked']) || !$cr['AuthenticatorStatus']['locked']) {
+                if(!empty($provisioningData['Certificate'])) {
+                  foreach($provisioningData['Certificate'] as $cr) {
                     $f = ($attr == 'voPersonCertificateDN' ? 'subject_dn' : 'issuer_dn');
                     
                     if($attropts) {
