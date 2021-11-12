@@ -83,7 +83,7 @@ class CoPeopleController extends StandardController {
     'Assurance',
     'Url'
   );
-  
+
   /**
    * Callback before other controller methods are invoked or views are rendered.
    * - postcondition: $pool_org_identities set
@@ -606,7 +606,13 @@ class CoPeopleController extends StandardController {
        ($this->action == 'editself' && isset($roles['copersonid'])))) {
       $self = true;
     }
-    
+
+
+    // Construct the permission set for this user, which will also be passed to the view.
+    $p = array();
+
+    $p['self'] = $self;
+
     // Is this a record we can manage?
     $managed = false;
     
@@ -622,10 +628,7 @@ class CoPeopleController extends StandardController {
       $managed = $this->Role->isCoOrCouAdminForCoPerson($roles['copersonid'],
                                                         $this->request->params['pass'][0]);
     }
-    
-    // Construct the permission set for this user, which will also be passed to the view.
-    $p = array();
-    
+
     // Add a new CO Person?
     $p['add'] = ($roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin']);
     $p['enroll'] = $p['add'];
@@ -638,9 +641,31 @@ class CoPeopleController extends StandardController {
     
     // Access the canvas for a CO Person? (Basically 'view' but with links)
     $p['canvas'] = ($roles['cmadmin']
-                    || ($roles['coadmin'] || $roles['couadmin'])
+                    || $roles['coadmin']
                     || $self);
-    
+
+    // XXX Give access to COU admins that manage the current CO Person
+    if(!empty($this->request->params["pass"][0])) {
+      $cop_canvas_id = $this->request->params["pass"][0];
+      $cou_keys = array();
+      if(!empty($roles["admincous"])) {
+        $cou_keys = array_keys($roles["admincous"]);
+      }
+      if($roles["admincous_root"]) {
+        $cou_root_keys = array_keys($roles["admincous_root"]);
+        $cou_keys = array_merge($cou_keys, $cou_root_keys);
+      }
+      foreach ($cou_keys as $cou_id) {
+        // XXX If the user is Expired i will be able to see him in the population list but not access the canvas
+        // XXX I exclude the user on ctp file
+        $canvas_permission = $this->Role->isCouPerson($cop_canvas_id, $this->cur_co["Co"]["id"],$cou_id);
+        if($canvas_permission) {
+          $p['canvas'] = true;
+          break;
+        }
+      }
+    }
+
     // Compare CO attributes and Org attributes?
     $p['compare'] = ($roles['cmadmin']
                      || ($roles['coadmin'] || $roles['couadmin'])
@@ -678,14 +703,17 @@ class CoPeopleController extends StandardController {
     // View all existing CO People (or a COU's worth)?
     // For the case of the COU disable index. Enable only for the people belonging to the COU the coperson is an admin
     $myPopulationPermit = false;
-    if((!empty($this->request->params["named"]["Search.couid"]) || !empty($this->request->data["Search"]["couid"]))
-       && !empty($roles["admincous"])
-       && ((isset($this->request->params["named"]["Search.couid"]) && array_key_exists($this->request->params["named"]["Search.couid"], $roles["admincous"]))
-            || (isset($this->request->data["Search"]["couid"]) && array_key_exists($this->request->data["Search"]["couid"], $roles["admincous"]))
-           )
+    if(!empty($this->request->params["named"]["Search.couid"]) || !empty($this->request->data["Search"]["couid"])) {
+      $cou_id = !empty($this->request->params["named"]["Search.couid"])
+                ? $this->request->params["named"]["Search.couid"]
+                : $this->request->data["Search"]["couid"];
+      if((!empty($roles["admincous"]) && array_key_exists($cou_id, $roles["admincous"]))
+         || (!empty($roles["admincous_root"]) && array_key_exists($cou_id, $roles["admincous_root"]))
       ) {
         $myPopulationPermit = true;
+      }
     }
+
     $p['index'] = ($roles['cmadmin'] || $roles['coadmin'] || $myPopulationPermit);
     $p['search'] = $p['index'];
     
@@ -778,9 +806,10 @@ class CoPeopleController extends StandardController {
     
     // Relink an Org Identity or Role to a different CO Person?
     $p['relink'] = $roles['cmadmin'] || $roles['coadmin'];
-    
+
+    // XXX COU admins will edit only if allowed to
     if($self
-       && (!$roles['cmadmin'] && !$roles['coadmin'] && !$roles['couadmin'])) {
+       && (!$roles['cmadmin'] && !$roles['coadmin'])) {
       // Pull self service permissions if not an admin
       
       $p['selfsvc'] = $this->Co->CoSelfServicePermission->findPermissions($this->cur_co['Co']['id']);
@@ -795,12 +824,17 @@ class CoPeopleController extends StandardController {
     
     // Determine which COUs a person can manage.
     
-    if($roles['cmadmin'] || $roles['coadmin'])
+    if($roles['cmadmin'] || $roles['coadmin']) {
       $p['cous'] = $this->CoPerson->CoPersonRole->Cou->allCous($this->cur_co['Co']['id']);
-    elseif(!empty($roles['admincous']))
+    } elseif(!empty($roles['admincous'])) {
       $p['cous'] = $roles['admincous'];
-    else
+    } else {
       $p['cous'] = array();
+    }
+
+    if(!empty($roles['admincous_root'])) {
+      $p['cous_root'] = $roles['admincous_root'];
+    }
 
     // Pass the roles to the view
     $p['roles'] = $roles;

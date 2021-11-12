@@ -698,4 +698,31 @@ class OrgIdentity extends AppModel {
     
     return $newOrgIdentity;
   }
+
+  /**
+   * @param $org_id
+   * @return array|int|null CO Person Linked to OrgIdentity ID
+   */
+  public function getLinkedPersonData($org_id) {
+    $oargs = array();
+    $oargs['conditions']['OrgIdentity.id'] = $org_id;
+    $oargs['conditions']['AND'][] = array(
+      'OR' => array(
+        'OrgIdentity.valid_from IS NULL',
+        'OrgIdentity.valid_from < ' => date('Y-m-d H:i:s', time())
+      )
+    );
+    $oargs['conditions']['AND'][] = array(
+      'OR' => array(
+        'OrgIdentity.valid_through IS NULL',
+        'OrgIdentity.valid_through > ' => date('Y-m-d H:i:s', time())
+      )
+    );
+    // data we need in one clever find
+    $oargs['contain']['CoOrgIdentityLink']['CoPerson'][0] = 'Co';
+    $oargs['contain']['CoOrgIdentityLink']['CoPerson'][1] = 'CoPersonRole';
+    $oargs['contain']['CoOrgIdentityLink']['CoPerson']['CoGroupMember'] = 'CoGroup';
+
+    return $this->find('all', $oargs);
+  }
 }

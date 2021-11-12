@@ -432,7 +432,18 @@ class OrgIdentitiesController extends StandardController {
   
   function isAuthorized() {
     $roles = $this->Role->calculateCMRoles();
-    
+
+    // I need the Roles of the COPerson this OrgIdentity is linked to
+    if(isset($this->request->params['pass'][0])) {
+      $org_person_profile = $this->OrgIdentity->getLinkedPersonData($this->request->params['pass'][0]);
+      // Extract COU ids
+      $cou_ids = Hash::extract($org_person_profile, '{n}.CoOrgIdentityLink.{n}.CoPerson.CoPersonRole.{n}.cou_id');
+      if(is_null($cou_ids)) {
+        // Mimic the empty COU
+        $cou_ids = array(null);
+      }
+    }
+
     // Is this a record we (can) manage?
     $managed = false;
     
@@ -442,8 +453,21 @@ class OrgIdentitiesController extends StandardController {
        && ($this->action == 'delete'
            || $this->action == 'edit'
            || $this->action == 'view')) {
-      $managed = $this->Role->isCoOrCouAdminForOrgIdentity($roles['copersonid'],
-                                                           $this->request->params['pass'][0]);
+      foreach ($cou_ids as $cou_id) {
+        if(is_null($cou_id)
+           && !$roles['coadmin']
+           && !$roles['cmadmin']) {
+          $managed = false;
+        } else {
+          $managed = $this->Role->isCoOrCouAdminForOrgIdentity($roles['copersonid'],
+                                                               $this->request->params['pass'][0],
+                                                               null,
+                                                               $cou_id);
+        }
+        if($managed){
+          break;
+        }
+      }
     }
     
     // Or are we requesting a CO we manage?
@@ -556,7 +580,7 @@ class OrgIdentitiesController extends StandardController {
                        || ($managed && ($roles['coadmin'] || $roles['couadmin'])));
       
       // View all existing Org Identity?
-      $p['index'] = ($roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin']);
+      $p['index'] = ($roles['cmadmin'] || $roles['coadmin']);
       $p['search'] = $p['view'] = $p['index'];
 
       // View job history? This correlates with CoJobHistoryRecordsController

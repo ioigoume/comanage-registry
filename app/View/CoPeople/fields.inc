@@ -33,6 +33,14 @@
   $es = false;
   $eorg = true;
 
+  $admincous_keys = !empty($permissions['cous'])
+                    ? array_keys($permissions['cous'])
+                    : array();
+  $admincous_root_keys = !empty($permissions['cous_root'])
+                         ? array_keys($permissions['cous_root'])
+                         : array();
+
+
   if(($this->action == "invite" && $permissions['invite'])
       || ($this->action == "canvas" && $permissions['canvas']))
     $e = true;
@@ -52,6 +60,53 @@
     $eorg = false;
   }
 
+  $render_actions = false;
+
+  if((isset($permissions['self'])
+      && $permissions['self']
+      && $this->action == "canvas")
+     || $permissions['roles']['coadmin']
+     || $permissions['roles']['cmadmin']
+  ) {
+    $render_actions = true;
+  }
+
+  // XXX I can not move this in Controller since canvas data exists after beforeRender which is called after isAuthorized
+  // I need the Roles of the COPerson this OrgIdentity is linked to
+  $render_org_identity_actions = false;
+  if(isset($co_people[0]["CoPersonRole"])) {
+    // Extract COU ids
+    $cou_ids = Hash::extract($co_people, '{n}.CoPersonRole.{n}.cou_id');
+    $cou_name = Hash::extract($co_people, '{n}.CoPersonRole.{n}.Cou.name');
+    $cou_keys_i_manage = array_keys($permissions["cous"]);
+    foreach ($cou_keys_i_manage as $key) {
+      if(in_array($key, $cou_ids)) {
+        $render_org_identity_actions = true;
+      }
+    }
+  }
+  $render_org_identity_actions = ($render_org_identity_actions
+                                 || $permissions['roles']['coadmin']
+                                 || $permissions['self']
+                                 || $permissions['roles']['cmadmin'])
+                                 && ($this->action == "canvas");
+
+  // Calculate Render buttons permissions for Root COU members
+  $is_my_member = false;
+  $is_root_member = false;
+  $render_mvpa_buttons = true;
+  foreach($co_people[0]['CoPersonRole'] as $r) {
+    if(isset($r['cou_id']) && in_array($r['cou_id'], $admincous_keys)) {
+      $is_my_member = true;
+    }
+    if(isset($r['cou_id']) && in_array($r['cou_id'], $admincous_root_keys)) {
+      $is_root_member = true;
+    }
+  }
+  if(($is_root_member && !$is_my_member)) {
+    $render_mvpa_buttons = false;
+  }
+
   // Add breadcrumbs
   print $this->element("coCrumb");
   $args = array();
@@ -66,7 +121,11 @@
   }
   if(!empty($args['Search.couid'])) {
     // Render the name of the COU
-    $this->Html->addCrumb(_txt('me.population.cou', array($permissions['cous'][$args['Search.couid']])), $args);
+    if(!empty($permissions['cous'][$args['Search.couid']])) {
+      $this->Html->addCrumb(_txt('me.population.cou', array($permissions['cous'][$args['Search.couid']])), $args);
+    } elseif( !empty($permissions['roles']["admincous_root"][$args['Search.couid']]) ) {
+      $this->Html->addCrumb(_txt('me.population.cou', array( $permissions['roles']["admincous_root"][$args['Search.couid']] )), $args);
+    }
   } else {
     $this->Html->addCrumb(_txt('me.population'), $args);
   }
@@ -412,7 +471,7 @@
 
       <!-- Names -->
       <li id="fields-name" class="fieldGroup">
-        <?php if($this->action != 'invite' && $this->Permission->selfService($permissions, $e, 'Name') == PermissionEnum::ReadWrite): ?>
+        <?php if($this->action != 'invite' && $this->Permission->selfService($permissions, $eorg, 'Name') == PermissionEnum::ReadWrite): ?>
           <div class="coAddEditButtons">
             <?php
             $linktarget = array(
@@ -426,7 +485,6 @@
               //'escape' => false
             );
 
-            //print $this->Html->link('<span class="ui-button-icon-primary ui-icon ui-icon-circle-plus"></span>' . _txt('op.add'),
             print $this->Html->link(_txt('op.add'),
               $linktarget,
               $linkparams);
@@ -564,7 +622,7 @@
           <?php foreach($co_people[0]['Name'] as $n): ?>
             <li class="field-data-container">
               <?php
-                $perm = $this->Permission->selfService($permissions, $e, 'Name', (!empty($n['type']) ? $n['type'] : null));
+                $perm = $this->Permission->selfService($permissions, $eorg, 'Name', (!empty($n['type']) ? $n['type'] : null));
               ?>
               <div class="field-data <?php if($perm == PermissionEnum::ReadOnly) { print ' field-data-alone'; }; ?>">
                 <?php
@@ -589,7 +647,7 @@
               </div>
               <div class="field-actions">
                 <?php
-                  if(!empty($n['SourceName']['id'])) {
+                  if(!empty($n['SourceName']['id']) && $render_mvpa_buttons) {
                     // This name came from an OIS and so can't be edited, and for the moment
                     // can't be made primary (though maybe that'll change with a use case).
                     print $this->Html->link(_txt('op.view'),
@@ -631,6 +689,13 @@
                             'action' => 'edit',
                             $n['id']),
                           array('class' => 'editbutton')) . "\n";
+                     } elseif ($perm == PermissionEnum::ReadOnly
+                               && ($render_mvpa_buttons || $permissions['self'])) {
+                      print $this->Html->link(_txt('op.view'),
+                                              array('controller' => 'names',
+                                                'action' => 'view',
+                                                $n['id']),
+                                              array('class' => 'viewbutton')) . "\n";
                     }
                   }  
                 ?>
@@ -644,8 +709,9 @@
       <?php
         if($this->action != "invite") {
           $args = array(
-            'edit'         => ($e && !$es),
+            'edit'         => ($permissions['roles']['coadmin'] || $permissions['roles']['cmadmin']),
             'self_service' => false,
+            'render_actions' => ((boolean)$permissions['self'] || $render_mvpa_buttons),
             'model'        => 'CoPerson',
             'model_param'  => 'copersonid',
             'mvpa_model'   => 'Identifier',
@@ -654,7 +720,8 @@
           
           print $this->element('mvpa', $args);
           
-          $args['edit']         = $e;
+          $args['edit']         = ($permissions['roles']['coadmin'] || $permissions['roles']['cmadmin']);
+          $args['render_actions'] = ((boolean)$permissions['self'] || $render_mvpa_buttons);
           $args['self_service'] = true;
           $args['mvpa_model']   = 'EmailAddress';
           $args['mvpa_field']   = 'mail';
@@ -662,13 +729,15 @@
           print $this->element('mvpa', $args);
 
           $args['edit']         = false;
+          $args['render_actions'] = ((boolean)$permissions['self'] || $render_mvpa_buttons);
           $args['self_service'] = true;
           $args['mvpa_model'] = 'Cert';
           $args['mvpa_field'] = 'subject';
 
           print $this->element('mvpa', $args);
           
-          $args['edit']         = $e;
+          $args['edit']         = ($permissions['roles']['coadmin'] || $permissions['roles']['cmadmin']);
+          $args['render_actions'] = ((boolean)$permissions['self'] || $render_mvpa_buttons);
           $args['self_service'] = true;
           $args['mvpa_model']   = 'Url';
           $args['mvpa_field']   = 'url';
@@ -681,7 +750,7 @@
         <!-- Groups -->
         <li id="fields-group" class="fieldGroup">
           <?php
-          if($e) {
+          if($e && $render_actions) {
             print '<div class="coAddEditButtons">';
             $linktarget = array(
               'controller' => 'co_groups',
@@ -703,7 +772,7 @@
             <?php
             if(isset($co_people[0]['CoGroupMember'])) {
               foreach($co_people[0]['CoGroupMember'] as $g) {
-                if($e && !$es && !$g['CoGroup']['auto']) {
+                if($e && !$es && !$g['CoGroup']['auto'] && $render_actions) {
                   if($g['member'] || $g['owner']) {
                     print '<li class="field-data-container"><div class="field-data">';
                     print $this->Html->link($g['CoGroup']['name'], array('controller' => 'co_groups', 'action' => 'edit', $g['co_group_id'], 'co' => $cur_co['Co']['id']));
@@ -991,11 +1060,9 @@
                         }
 
                         // The user can not edit an owned empty COU
-                        $es = $es && !empty($r['Cou']);
-
                         if ($es // Editing self
                             ||  $can_ax_empty_cou // Empty COU accessible
-                            || (isset($r['Cou']['name']) && in_array($r['Cou']['name'], $permissions['cous']))
+                            || (isset($r['cou_id']) && in_array($r['cou_id'], $admincous_keys))
                         ) // Admin for the COU
                         {
                           // COU Admins can only edit their own folks, so we need a bit of
@@ -1069,7 +1136,7 @@
         <!-- SSH keys -->
         <li id="fields-sshkey" class="fieldGroup">
           <?php
-            if($e) {
+            if($e && $render_mvpa_buttons) {
               print '<div class="coAddEditButtons">';
               $linktarget = array(
                 'controller' => 'ssh_keys',
@@ -1091,48 +1158,43 @@
           <ul id="tabs-sshkeys" class="fields data-list">
 
             <?php
-            if($e)
-            {
-              if(isset($co_people[0]['SshKey'])) {
-                foreach($co_people[0]['SshKey'] as $sk) {
-                  print '<li class="field-data-container">';
-                  print '<div class="field-data">';
-                  print $this->Html->link($sk['comment'], array('controller' => 'ssh_keys', 'action' => 'edit', $sk['id']));
-                  print ' (' . _txt('en.sshkey.type', null, $sk['type']). ')';
-                  print '</div>';
-                  print '<div class="field-actions">';
-                  // XXX we already checked for $permissions['edit'], but not ['delete']... should we?
-                  print '<button type="button" class="deletebutton" title="' . _txt('op.delete')
-                    . '" onclick="javascript:js_confirm_generic(\''
-                    . _txt('js.remove') . '\',\''    // dialog body text
-                    . $this->Html->url(              // dialog confirm URL
-                      array(
-                        'controller' => 'ssh_keys',
-                        'action' => 'delete',
-                        $sk['id']
-                      )
-                    ) . '\',\''
-                    . _txt('op.remove') . '\',\''    // dialog confirm button
-                    . _txt('op.cancel') . '\',\''    // dialog cancel button
-                    . _txt('op.remove') . '\',[\''   // dialog title
-                    . filter_var(_jtxt($sk['comment']),FILTER_SANITIZE_STRING)  // dialog body text replacement strings
-                    . '\']);">'
-                    . _txt('op.delete')
-                    . '</button>';
-                  print $this->Html->link(_txt('op.edit'),
-                      array('controller' => 'ssh_keys', 'action' => 'edit', $sk['id']),
-                      array('class' => 'editbutton')) . "\n";
-                  print '</div>';
-                  print '</li>';
-                }
+            if($e && $render_mvpa_buttons && isset($co_people[0]['SshKey'])) {
+              foreach($co_people[0]['SshKey'] as $sk) {
+                print '<li class="field-data-container">';
+                print '<div class="field-data">';
+                print $this->Html->link($sk['comment'], array('controller' => 'ssh_keys', 'action' => 'edit', $sk['id']));
+                print ' (' . _txt('en.sshkey.type', null, $sk['type']). ')';
+                print '</div>';
+                print '<div class="field-actions">';
+                // XXX we already checked for $permissions['edit'], but not ['delete']... should we?
+                print '<button type="button" class="deletebutton" title="' . _txt('op.delete')
+                  . '" onclick="javascript:js_confirm_generic(\''
+                  . _txt('js.remove') . '\',\''    // dialog body text
+                  . $this->Html->url(              // dialog confirm URL
+                    array(
+                      'controller' => 'ssh_keys',
+                      'action' => 'delete',
+                      $sk['id']
+                    )
+                  ) . '\',\''
+                  . _txt('op.remove') . '\',\''    // dialog confirm button
+                  . _txt('op.cancel') . '\',\''    // dialog cancel button
+                  . _txt('op.remove') . '\',[\''   // dialog title
+                  . filter_var(_jtxt($sk['comment']),FILTER_SANITIZE_STRING)  // dialog body text replacement strings
+                  . '\']);">'
+                  . _txt('op.delete')
+                  . '</button>';
+                print $this->Html->link(_txt('op.edit'),
+                    array('controller' => 'ssh_keys', 'action' => 'edit', $sk['id']),
+                    array('class' => 'editbutton')) . "\n";
+                print '</div>';
+                print '</li>';
               }
-            } else {
-              if(isset($co_people[0]['SshKey'])) {
-                foreach($co_people[0]['SshKey'] as $sk) {
-                  print '<li class="field-data-container">';
-                  print filter_var($sk['comment'],FILTER_SANITIZE_SPECIAL_CHARS) . "\n";
-                  print '</li>';
-                }
+            } elseif(isset($co_people[0]['SshKey'])) {
+              foreach($co_people[0]['SshKey'] as $sk) {
+                print '<li class="field-data-container">';
+                print filter_var($sk['comment'],FILTER_SANITIZE_SPECIAL_CHARS) . "\n";
+                print '</li>';
               }
             }
             ?>
@@ -1142,8 +1204,10 @@
         <!-- Org Ids -->
         <li id="fields-orgid" class="fieldGroup">
           <?php
-          if(!empty($vv_custom_actions)
-             || (isset($permissions['link']) && $permissions['link'])) {
+          if(isset($permissions['self'])
+             && $permissions['self']
+             && (!empty($vv_custom_actions)
+                 || (isset($permissions['link']) && $permissions['link']))) {
             print '<span id="org-action-menu" style="position: relative; display: block;">';
             $linkparams = array(
               'id' => 'org-action-menu-content',
@@ -1170,8 +1234,8 @@
                 'style' => array('display: block; text-decoration: none; color: unset;')
               );
               print $this->Html->link(_txt('op.link'),
-                $linktarget,
-                $linkparams);
+                                      $linktarget,
+                                      $linkparams);
               print '</li>';
             }
             // Custom buttons
@@ -1200,7 +1264,9 @@
                   <th><?php print _txt('fd.valid_from.tz', array($vv_tz)); ?></th>
                   <th><?php print _txt('fd.valid_through.tz', array($vv_tz)); ?></th>
                   <th><?php print _txt('fd.identifier.ids.login'); ?></th>
+                  <?php if($render_org_identity_actions): ?>
                   <th><?php print _txt('fd.actions'); ?></th>
+                  <?php endif; ?>
                 </tr>
                 <?php if(!empty($co_people[0]['CoOrgIdentityLink'])): ?>
                 <?php foreach($co_people[0]['CoOrgIdentityLink'] as $link): ?>
@@ -1252,6 +1318,7 @@
                         }
                       ?>
                     </td>
+                    <?php if($render_org_identity_actions): ?>
                     <td>
                       <?php
                         print $this->Html->link(_txt($e && !$es && $eorg ? 'op.edit' : 'op.view'),
@@ -1280,6 +1347,7 @@
                       }
                       ?>
                     </td>
+                    <?php endif; ?>
                   </tr>
                 <?php endforeach; ?>
                 <?php endif; ?>

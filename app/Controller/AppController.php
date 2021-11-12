@@ -893,7 +893,7 @@ class AppController extends Controller {
     $p['menu']['cogroups'] = $roles['cmadmin'] || $roles['user'];
     
     // Manage org identity data?
-    $p['menu']['orgidentities'] = $roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin'];
+    $p['menu']['orgidentities'] = $roles['cmadmin'] || $roles['coadmin'];
     
     // Manage the CO (or COU) population?
     // XXX This permission is somewhat confusingly named (implies cmp admin managing COs)
@@ -901,7 +901,8 @@ class AppController extends Controller {
     $p['menu']['cos'] = $roles['cmadmin'] || $roles['coadmin'];
     // Which COUs?
     $p['menu']['admincous'] = $roles['admincous'];
-    
+    $p['menu']['admincous_root'] = $roles['admincous_root'];
+
     // Manage Authenticators?
     $p['menu']['authenticator'] = $roles['cmadmin'] || $roles['coadmin'];
     
