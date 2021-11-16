@@ -270,6 +270,9 @@ class IdentifiersController extends MVPAController {
           if(!empty($identifier['Identifier']['co_person_id'])) {
             $managed = $this->Role->isCoOrCouAdminForCoPerson($roles['copersonid'],
                                                               $identifier['Identifier']['co_person_id']);
+            if($identifier['Identifier']['co_person_id'] == $roles['copersonid']) {
+              $self = true;
+            }
           } elseif(!empty($identifier['Identifier']['org_identity_id'])) {
             $managed = $this->Role->isCoOrCouAdminForOrgidentity($roles['copersonid'],
                                                                  $identifier['Identifier']['org_identity_id']);
@@ -314,9 +317,9 @@ class IdentifiersController extends MVPAController {
     
     // View an existing Identifier?
     $p['view'] = ($roles['cmadmin']
-                  || $self
                   || $roles['coadmin']
-                  || ($managed && $roles['couadmin']));
+                  || $self
+                  || $managed );
     
     $this->set('permissions', $p);
     return $p[$this->action];
