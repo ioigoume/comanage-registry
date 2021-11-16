@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [3.3.7-rciam] - 2021-11-16
+
+### Fixed
+
+- Grant CO Person view permisions for Identifiers Model to self
+- Render root VO Population link only once under Main Menu
+
 ## [3.3.6-rciam] - 2021-11-15
 
 ### Fixed

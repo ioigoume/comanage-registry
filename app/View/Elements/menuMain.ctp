@@ -71,17 +71,19 @@
         // print parent cou if any
         if(!empty($permissions['menu']['admincous_root'])) {
           foreach ($permissions['menu']['admincous_root'] as $couid => $couname) {
-            print '<li class="mdl-js-ripple-effect">';
-            $args = array();
-            $args['plugin'] = null;
-            $args['controller'] = 'co_people';
-            $args['action'] = 'index';
-            $args['co'] = $menuCoId;
-            $args['Search.couid'] = $couid;
+            if(!isset($permissions['menu']['admincous'][$couid])) {
+              print '<li class="mdl-js-ripple-effect">';
+              $args = array();
+              $args['plugin'] = null;
+              $args['controller'] = 'co_people';
+              $args['action'] = 'index';
+              $args['co'] = $menuCoId;
+              $args['Search.couid'] = $couid;
 
-            print $this->Html->link(_txt('me.population.cou', array($couname)), $args, array('class' => 'spin'));
-            print '<span class="mdl-ripple"></span>';
-            print "</li>";
+              print $this->Html->link(_txt('me.population.cou', array($couname)), $args, array('class' => 'spin'));
+              print '<span class="mdl-ripple"></span>';
+              print "</li>";
+            }
           }
         }
         foreach ($permissions['menu']['admincous'] as $couid => $couname) {
