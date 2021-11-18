@@ -709,20 +709,23 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                 if(!$attropts) {
                   $attributes[$attr] = array();
                 }
-                if(!empty($provisioningData['Certificate'])) {
-                  foreach($provisioningData['Certificate'] as $cr) {
-                    $f = ($attr == 'voPersonCertificateDN' ? 'subject_dn' : 'issuer_dn');
-                    
-                    if($attropts) {
-                      $lrattr = $lattr . ";scope-" . $cr['id'];
-                      
-                      $attributes[$lrattr][] = $cr[$f];
-                    } else {
-                      $attributes[$attr][] = $cr[$f];
+                if(!empty($provisioningData['CoOrgIdentityLink'])) {
+                  foreach($provisioningData['CoOrgIdentityLink'] as $orgId) {
+                    foreach($orgId['OrgIdentity']['Cert'] as $cert) {
+                      $f = ($attr == 'voPersonCertificateDN' ? 'subject' : 'issuer');
+                      if(!empty($cert[$f])) {
+                        $cert[$f] = $this->opensslToRfc2253(trim($cert[$f]));
+                        if($attropts) {
+                            $lrattr = $lattr . ";scope-" . $cert['id'];
+                            $attributes[$lrattr][] = $cert[$f];
+                        } else {
+                            $attributes[$attr][] = $cert[$f];
+                        }
+                      }
                     }
                   }
                 }
-                
+
                 if(!$attropts && empty($attributes[$attr]) && !$modify) {
                   // This is the same as the approach using $found, but without an extra variable
                   unset($attributes[$attr]);
@@ -1470,6 +1473,9 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                             : ProvisioningActionEnum::CoGroupAdded),
                            $provisioningData);
         } else {
+          if(!empty($attributes)) {
+            $this->log(get_class($this) . "::{" . var_export($attributes, true) . "}::@", LOG_ERROR);
+          }
           throw new RuntimeException(ldap_error($cxn), ldap_errno($cxn));
         }
       }
@@ -2037,5 +2043,41 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
     }
     
     return true;
+  }
+  
+  /**
+   * opensslToRfc2253
+   *
+   * @param string $inputDN
+   * @param boolean $withWildCards
+   * @return string
+   */
+
+  public static function opensslToRfc2253($inputDN, $withWildCards = false) {
+    if(!empty($inputDN) && substr($inputDN, 0, 1) != "/") {
+      // we assume is already rfc2253
+      return $inputDN;
+    }
+    $inputDN = str_replace(',', '\\,', $inputDN);
+    $parts = explode('/', $inputDN);
+    $avas = array();
+    array_push($avas, $parts[1]);
+    if(count($parts) < 2) {
+      return substr($inputDN, 1);
+    }
+    for($i = 2, $j = 0, $len = count($parts); $i < $len; $i++) {
+      if(!(strpos($parts[$i], '=') != false || ($withWildCards && strpos($parts[$i], '*') != false))) {
+        $cur = $avas[$j];
+        $avas[++$j] = $cur . '/' . $parts[$i];
+      } else {
+        array_push($avas, $parts[$i]);
+      }
+    }
+    $buf = '';
+    for($i = count($avas) - 1; $i > 0; $i--) {
+      $buf .= $avas[$i] . ',';
+    }
+    $buf .= $avas[0];
+    return $buf;
   }
 }

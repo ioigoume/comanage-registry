@@ -916,7 +916,7 @@ class ProvisionerBehavior extends ModelBehavior {
       'CoGroupMember' => array('CoGroup' => array('EmailListAdmin', 'EmailListMember', 'EmailListModerator')),
       // 'CoGroup'
       // 'CoGroupMember.CoGroup',
-      'CoOrgIdentityLink' => array('OrgIdentity' => array('Identifier')),
+      'CoOrgIdentityLink' => array('OrgIdentity' => array('Identifier', 'Cert')),
       //'CoOrgIdentityLink',
       // We normally don't pull org identity data, but we'll make an exception
       // for Identifier to be able to expose eppn
