@@ -491,4 +491,40 @@ class Cert extends AppModel {
     return true;
   }
 
+  /**
+   * afterSave
+   *
+   * @param  boolean true if a new record was created (rather than update)
+   * @param  array, the same passed into Model::save()
+   * @return none
+   */
+  function afterSave($created, $options = Array()) {
+        $this->manualProvisionCert();
+  }
+
+  /**
+   * afterDelete
+   *
+   * @return none
+   */
+  function afterDelete() {
+    $this->manualProvisionCert();
+  }
+  
+  /**
+   * manualProvisionCert
+   *
+   * @return none
+   */
+  function manualProvisionCert() {
+    $sAction = ProvisioningActionEnum::CoPersonUpdated;
+    $coPerson = $this->OrgIdentity->getLinkedPersonData($this->data['Cert']['org_identity_id']);
+    $sId = $coPerson[0]['CoOrgIdentityLink'][0]['co_person_id'];
+    // Since we do not copy the Certificates under the CoPerson we need to manually trigger CoPerson provisioning every time they become updated
+    if(!empty($sId)) {
+      $this->CoPerson->Behaviors->load('Provisioner');   
+      $this->CoPerson->manualProvision(null, $sId, null, $sAction);
+    }
+  }
+
 }
