@@ -1474,7 +1474,7 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                            $provisioningData);
         } else {
           if(!empty($attributes)) {
-            $this->log(get_class($this) . "::{" . var_export($attributes, true) . "}::@", LOG_ERROR);
+            $this->log(__METHOD__ . "::replace::{" . var_export($attributes, true) . "}::@", LOG_ERROR);
           }
           throw new RuntimeException(ldap_error($cxn), ldap_errno($cxn));
         }
@@ -1492,6 +1492,9 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
       }
 
       if(!@ldap_add($cxn, $dns['newdn'], $attributes)) {
+        if(!empty($attributes)) {
+          $this->log(__METHOD__ . "::add::{" . var_export($attributes, true) . "}::@", LOG_ERROR);
+        }
         throw new RuntimeException(ldap_error($cxn), ldap_errno($cxn));
       }
     }

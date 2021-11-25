@@ -76,7 +76,7 @@ class LdapSyncEntitlements {
           . ":role=" . $role             // role
           . "#" . $this->config['urn_authority']; // AA FQDN
         // Enable legacy URN syntax for compatibility reasons?
-        if($this->config['urn_legacy']) {
+        if(!empty($this->config['urn_legacy']) && $this->config['urn_legacy']) {
           $this->state['Attributes']['eduPersonEntitlement'][] =
             $this->config['urn_namespace']          // URN namespace
             . ':' . $this->config['urn_authority']  // AA FQDN
