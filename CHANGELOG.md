@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
 
 - Provision certificates from OrgIdentity (LDAP Provisioner)
+- Handle undefined variables (LDAP Provisioner)
+- Log errors when LDAP Provisioner fails to write at LDAP
 
 ## [3.3.7-rciam] - 2021-11-16
 
