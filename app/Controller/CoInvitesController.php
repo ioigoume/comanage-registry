@@ -614,8 +614,9 @@ class CoInvitesController extends AppController {
 
           $enrollmentAttributes = $this->CoInvite->CoPetition->filterHistoricalAttributes($enrollmentAttributes, $v_attrs_history);
 
-          $this->CoInvite->CoPetition->id = $invite['CoPetition']['id'];
-          $this->CoInvite->CoPetition->saveField('ef_attrs', serialize($enrollmentAttributes));
+          // XXX We do not need to save the new attribute set since we will recalculate every time for this use case
+          // $this->CoInvite->CoPetition->id = $invite['CoPetition']['id'];
+          // $this->CoInvite->CoPetition->saveField('ef_attrs', serialize($enrollmentAttributes));
         } else {
           $enrollmentAttributes = unserialize($enrollmentAttributes);
         }
