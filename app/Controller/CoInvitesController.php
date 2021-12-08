@@ -582,23 +582,24 @@ class CoInvitesController extends AppController {
         $vAttrs = $this->CoInvite->CoPetition->CoPetitionAttribute->find("all", $vArgs);
 
         $enrollmentAttributes = $petition[0]['CoPetition']['ef_attrs'];
+        // XXX Check if the Petition is linked to an archived EF. If it is then
+        // XXX CoPetition.co_enrollment_flow_id will have a value and will not be null
+        $actualEfId = $this->CoInvite->CoPetition->CoEnrollmentFlow->field(
+          'co_enrollment_flow_id',
+          array(
+            'CoEnrollmentFlow.id' => $invite['CoPetition']['co_enrollment_flow_id']
+          )
+        );
+
+        if(!is_null($actualEfId)) {
+          // XXX Empty my attributes and force re-calculation
+          // XXX The problem is that an old petition will be recalculated over and over again. This will be rare.
+          $enrollmentAttributes = null;
+        }
+
+
         // XXX Get the attributes from the petition table. If empty then recalculate
         if(empty($enrollmentAttributes)) {
-          // For viewing a petition, we want the attributes defined at the time the
-          // petition attributes were submitted. This turns out to be somewhat
-          // complicated to determine, so we hand it off for filtering.
-
-          // We need a slightly different set of data here. Strictly speaking we
-          // should do a select distinct, but practically it won't matter since
-          // all petition attributes for a given enrollment attribute will have
-          // approximately the same created time.
-
-          // This is duplicated from CoPetitionsController.
-
-          // We pull the same attributes twice, because we need them in two different
-          // formats. (This could presumably be refactored at some point.) First, grab
-          // them so we can filter them historically.
-
           $enrollmentAttributes = $this->CoInvite
                                        ->CoPetition
                                        ->CoEnrollmentFlow
