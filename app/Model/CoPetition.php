@@ -164,6 +164,10 @@ class CoPetition extends AppModel {
       'required' => false,
       'allowEmpty' => true
     ),
+    'ef_attrs' => array(
+      'required' => false,
+      'allowEmpty' => true
+    ),
   );
   
   // Enum type hints
@@ -1544,7 +1548,6 @@ class CoPetition extends AppModel {
     // set of errors at once when re-rendering the petition form.
     
     // Start by pulling the enrollment attributes configuration.
-    
     $efAttrs = $this->CoEnrollmentFlow->CoEnrollmentAttribute->enrollmentFlowAttributes($enrollmentFlowId);
     
     // And info about this petition
@@ -1561,7 +1564,11 @@ class CoPetition extends AppModel {
     
     // Set for future saveFields
     $this->id = $id;
-    
+
+    // XXX: ioigoume: Since this gets the current enrollment flow we do not have to search up the CHANGELOG tree.
+    // Save efAttrs in the petition table
+    $this->saveField('ef_attrs', serialize($efAttrs));
+
     // Obtain a list of attributes that are to be copied to the CO Person (Role) from the Org Identity
     
     $cArgs = array();
