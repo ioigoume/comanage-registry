@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [unrelease]
+
+### Changed
+
+- Improved Enrollment Flow attributes' calculation performance during signup
+
 ## [3.3.8-rciam] - 2021-11-29
 
 ### Fixed

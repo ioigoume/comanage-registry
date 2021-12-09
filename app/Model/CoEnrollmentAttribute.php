@@ -119,8 +119,68 @@ class CoEnrollmentAttribute extends AppModel {
       'required' => false,
       'allowEmpty' => true
     )
-  );  
-  
+  );
+
+  /**
+   * Execute logic after a CO Person Role delete operation.
+   * For now manage membership of CO Person in COU members groups.
+   *
+   */
+
+  public function afterDelete() {
+    // I need to find the Enrollment Flow and any linked Petitions. If there are no linked petitions
+    // then i do nothing. The invitation controller will handle the case were the EnrollmentFlow has been
+    // updated. If a petition is found then update ef_attrs to null or empty.
+    $eof_id = $this->field('co_enrollment_flow_id');
+    $this->updateEfAttrs($eof_id, '');
+
+    return true;
+  }
+
+  /**
+   * Actions to take after a save operation is executed.
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  boolean $created True if a new record was created (rather than update)
+   * @param  array   $options As passed into Model::save()
+   */
+
+  public function afterSave($created, $options = array())
+  {
+    if(!empty($this->data['CoEnrollmentAttribute']['id'])
+       && !empty($this->data['CoEnrollmentAttribute']['co_enrollment_flow_id'])) {
+      // I need to find the Enrollment Flow and any linked Petitions. If there are no linked petitions
+      // then i do nothing. The invitation controller will handle the case were the EnrollmentFlow has been
+      // updated. If a petition is found then update ef_attrs to null or empty.
+      $this->updateEfAttrs($this->data['CoEnrollmentAttribute']['co_enrollment_flow_id'], '');
+    }
+
+    return true;
+  }
+
+  /**
+   * Upddate ef_attrs field into a given value
+   *
+   * @param integer $eof_id
+   * @param string  $value
+   * @return void
+   */
+  public function updateEfAttrs($eof_id, $value) {
+    $args = array();
+    $args['conditions']['CoPetition.deleted'] = FALSE;
+    $args['conditions']['CoPetition.co_enrollment_flow_id'] = $eof_id;
+    $args['fields'] = array('CoPetition.id');
+    $args['contain'] = false;
+    $petitions = $this->CoEnrollmentFlow->CoPetition->find('all', $args);
+
+    if(!empty($petitions)) {
+      foreach ($petitions as $pt) {
+        $this->CoEnrollmentFlow->CoPetition->id = $pt['CoPetition']['id'];
+        $this->CoEnrollmentFlow->CoPetition->saveField('ef_attrs', $value);
+      }
+    }
+  }
+
   /**
    * Determine the attributes available to be requested as part of an Enrollment Flow.
    *
