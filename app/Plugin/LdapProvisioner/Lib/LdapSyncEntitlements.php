@@ -1,6 +1,7 @@
 <?php
 App::uses('CoProvisionerPluginTarget', 'Model');
 App::uses('CakeLog', 'Log');
+App::uses('LdapQueryConstructor', 'LdapProvisioner.Lib');
 
 class LdapSyncEntitlements {
   public  $state = array();
@@ -31,7 +32,7 @@ class LdapSyncEntitlements {
    * @return array Array contents: [group_name, cou_id, affiliation, title, member, owner]
    */
   public static function getMemberships($co_id, $co_person_id){
-    $membership_query = QueryConstructor::getMembershipQuery($co_id, $co_person_id);
+    $membership_query = LdapQueryConstructor::getMembershipQuery($co_id, $co_person_id);
     $CoGroup = ClassRegistry::init('CoGroup');
     return $CoGroup->query($membership_query);
   }
@@ -101,7 +102,7 @@ class LdapSyncEntitlements {
       if(empty($cou['group_name']) || empty($cou['cou_id'])) {
         continue;
       }
-      $recursive_query = QueryConstructor::getRecursiveQuery($cou['cou_id']);
+      $recursive_query = LdapQueryConstructor::getRecursiveQuery($cou['cou_id']);
       $CoGroup = ClassRegistry::init('CoGroup');
       $result = $CoGroup->query($recursive_query);
 
