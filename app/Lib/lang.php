@@ -2242,10 +2242,14 @@ original notification at
   // Shell
   
   'sh.job.arg.coid' =>    'Numeric CO ID to run tasks for (all COs if not specified)',
-  'sh.job.arg.epilog' =>  "If no task specified, all run.\nAvailable tasks: expirations, groupvalidity, syncorgsources",
+  'sh.job.arg.epilog' =>  "If no task specified, all run.\nAvailable tasks: expirations, groupvalidity, syncorgsources, provision",
   'sh.job.done' =>        'Job shell finished',
   'sh.job.gv' =>          'Reprovisioning group memberships based on validity dates for CO %1$s (%2$s)',
   'sh.job.gv.disabled' => 'Reprovisioning group memberships is disabled for this CO',
+  'sh.job.provision' =>   'Provisioning for CO %1$s (%2$s)',
+  'sh.job.provision.disabled' => 'Provisioning is disabled for this CO',
+  'sh.job.provision.failed' => 'Provisioning of %1$s Model failed',
+  'sh.job.provision.percent' => 'Percent completed %1$s%',
   'sh.job.sync.ois' =>    'Syncing Organizational Identity Sources for CO %1$s (%2$s)',
   'sh.job.sync.ois.disabled' => 'Organizational Identity Source sync is disabled for this CO',
   'sh.job.xp' =>          'Running expirations for CO %1$s (%2$s)',
