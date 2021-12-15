@@ -97,6 +97,27 @@
   </li>
   <li>
     <div class="field-name">
+      <div class="field-title"><?php print _txt('fd.prov.disable'); ?></div>
+      <div class="field-desc"><?php print _txt('fd.prov.disable.desc'); ?></div>
+    </div>
+    <div class="field-info checkbox">
+      <?php
+      if ($e) {
+        $checked = isset($co_settings[0]['CoSetting']['disable_provisioning'])
+                   ? filter_var($co_settings[0]['CoSetting']['disable_provisioning'], FILTER_VALIDATE_BOOLEAN)
+                   : false;
+
+        $attrs = array();
+        $attrs['checked'] = $checked;
+
+        print $this->Form->checkbox('disable_provisioning', $attrs) . ' ' . $this->Form->label('disable_provisioning',_txt('fd.prov.disable'));
+      } else {
+        print ($co_settings[0]['CoSetting']['disable_provisioning']) ? _txt('fd.yes') : _txt('fd.no');
+      }
+      ?>
+  </li>
+  <li>
+    <div class="field-name">
       <div class="field-title"><?php print _txt('fd.ois.sync.disable'); ?></div>
       <div class="field-desc"><?php print _txt('fd.ois.sync.disable.desc'); ?></div>
     </div>

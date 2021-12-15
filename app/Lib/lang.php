@@ -1664,6 +1664,8 @@ original notification at
   'fd.pipeline.desc.ois' => 'Org Identities created from this Source will be processed using the specified Pipeline',
   'fd.plugin' =>      'Plugin',
   'fd.plugin.warn' => 'Once a new %1$s has been created, the Plugin cannot be changed',
+  'fd.prov.disable' => 'Disable Provisioning',
+  'fd.prov.disable.desc' => 'Disable automatic (scheduled) provisioning. This setting does not impact manual provisioning',
   'fd.prov.group' =>  'Provisioning Group',
   'fd.prov.group.desc' => 'If set, only provision members of the specified group to this target',
   'fd.prov.status' => 'Provisioning Status',
