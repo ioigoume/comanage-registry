@@ -117,8 +117,8 @@ class PaginatedSqlIterator implements Iterator {
     $args = array();
     if($this->conditions) {
       $args['conditions'] = $this->conditions;
-      $args['contain'] =  $this->contain;
     }
+    $args['contain'] =  $this->contain;
     $this->initialCount = $this->model->find('count', $args);
   }
 
