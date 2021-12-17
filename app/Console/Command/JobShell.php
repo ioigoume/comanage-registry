@@ -213,7 +213,7 @@ class JobShell extends AppShell {
     $success = 0;
     $successTotal = 0;
     $failed = 0;
-    $failedTotal=0;
+    $failedTotal = 0;
     $modelCount = 0; // How many models we've worked with so far
 
     foreach($modelsTodo as $sModel) {
@@ -269,8 +269,7 @@ class JobShell extends AppShell {
            $success++;
          } catch (Exception $e) {
            $this->out(_txt('sh.job.provision.failed', array($sModel)));
-           $this->out($Model->name . " id:". $v[$sModel]['id']);
-           //$this->out(var_export($e, true),  1, Shell::CODE_ERROR);
+           $this->out($Model->name . " id:" . $v[$sModel]['id']);
            $failed++;
          }
          $this->progressBar($success + $failed, $total);
@@ -282,9 +281,9 @@ class JobShell extends AppShell {
        else {
         $this->out("\n" . _txt('sh.job.provision.completed', array($sModel)));
        }
-       $successTotal +=$success;
+       $successTotal += $success;
        $success = 0;
-       $failedTotal +=$failed;
+       $failedTotal += $failed;
        $failed = 0;
        $modelCount++;
  
