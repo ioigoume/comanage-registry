@@ -91,15 +91,17 @@ class JobShell extends AppShell {
    * Provision for the specified CO
    *
    * @since  COmanage Registry v2.0.0
-   * @param  Integer  $coId       CO ID
+   * @param integer $coId        CO Id
+   * @param integer $ptid        Provisioner Target ID
+   * @param array $modelsTodo    List of models to provision
    */
 
-  protected function provision($coId) {
+  protected function provision($coId, $ptid, $modelsTodo) {
     // First see if syncing is enabled
 
     if($this->CoSetting->provisionEnabled($coId)) {
       try {
-        $this->OrgIdentitySource->syncAll($coId);
+        $this->provision_execute($coId, $ptid, $modelsTodo);
       }
       catch(Exception $e) {
         $this->out("- " . $e->getMessage());
@@ -192,7 +194,7 @@ class JobShell extends AppShell {
           }
           unset($modelsTodo_validate);
           // Execute provisions
-          $this->provision_execute($co['Co']['id'], $this->args[1], $modelsTodo);
+          $this->provision($co['Co']['id'], $this->args[1], $modelsTodo);
         }
       }
     }
@@ -211,10 +213,14 @@ class JobShell extends AppShell {
   public function provision_execute($coId, $ptid, $modelsTodo) {
     // Track number of results
     $success = 0;
+    $successTotal = 0;
     $failed = 0;
+    $failedTotal = 0;
     $modelCount = 0; // How many models we've worked with so far
 
     foreach($modelsTodo as $sModel) {
+      $this->out("\n" . _txt('sh.job.provision.now', array($sModel)));
+      $this->log(__METHOD__ . '::' . _txt('sh.job.provision.now', array($sModel)), LOG_INFO);
       // We need to manually assemble the model dependencies that ProvisionerBehavior
       // expects, since in Shell they aren't loaded automatically for some reason.
       $Model = ClassRegistry::init($sModel);
@@ -253,10 +259,8 @@ class JobShell extends AppShell {
        );
        $total = $iterator->count();
 
-       // For calculating totals, what percent of models have we processed?
-       $modelsDone = $modelCount/count($modelsTodo);
-       $modelFraction = 1/count($modelsTodo);
        foreach($iterator as $v) {
+
          try {
            $Model->manualProvision($ptid,  // coProvisioningTargetId
        /* $coPersonId */           ($Model->name == 'CoPerson' ? $v[$sModel]['id'] : null),
@@ -268,20 +272,44 @@ class JobShell extends AppShell {
            $success++;
          } catch (Exception $e) {
            $this->out(_txt('sh.job.provision.failed', array($sModel)));
-           $this->out(var_export($e, true),  1, Shell::CODE_ERROR);
+           $this->log(__METHOD__ . '::' . _txt('sh.job.provision.failed', array($sModel)), LOG_ERROR);
+           $this->out($Model->name . " id:" . $v[$sModel]['id']);
+           $this->log(__METHOD__ . '::' . $Model->name . " id:" . $v[$sModel]['id'], LOG_ERROR);
            $failed++;
          }
+         $this->progressBar($success + $failed, $total);
 
-         // If we're working with multiple models, this calculation is a bit off
-         // since we don't pull all records at once, just the models that we're
-         // currently working with.
-         $pctDone = ($modelsDone * 100)
-           +
-           ($modelFraction * ((($success + $failed) * 100)/$total));
-         $this->out(_txt('sh.job.provision.percent', array($pctDone)));
        }
+       if($success == 0 && $failed == 0) {
+        $this->out(_txt('sh.job.provision.nothing', array($sModel)));
+        $this->log(__METHOD__ . '::' . _txt('sh.job.provision.nothing', array($sModel)), LOG_INFO);
+       }
+       else {
+        $this->out("\n" . _txt('sh.job.provision.completed', array($sModel)));
+        $this->log(__METHOD__ . '::' . _txt('sh.job.provision.completed', array($sModel)), LOG_INFO);
+       }
+       $successTotal += $success;
+       $success = 0;
+       $failedTotal += $failed;
+       $failed = 0;
+       $modelCount++;
 
-      $modelCount++;
     }
+    $this->out(_txt('sh.job.provision.total', array($successTotal, $failedTotal)));
+    $this->log(__METHOD__ . '::' . _txt('sh.job.provision.total', array($successTotal, $failedTotal)), LOG_INFO);
+  }
+
+  /**
+   * progressBar
+   *
+   * @param  mixed $done
+   * @param  mixed $total
+   * @return void
+   */
+  public function progressBar($done, $total) {
+    $perc = floor(($done / $total) * 100);
+    $left = 100 - $perc;
+    $write = sprintf("\033[0G\033[2K[%'={$perc}s>%-{$left}s] - $perc%% -- $done/$total", "", "");
+    fwrite(STDERR, $write);
   }
 }
