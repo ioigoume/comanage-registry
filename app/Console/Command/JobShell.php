@@ -250,7 +250,7 @@ class JobShell extends AppShell {
        // Pull IDs of all objects of the requested type
        $iterator = new PaginatedSqlIterator(
          $Model,
-         array($sModel.'.co_id' => $coId,$sModel.'.deleted'=> false),
+         array($sModel.'.co_id' => $coId),
          array($sModel.'.id', $sModel.'.status'),
          false
        );
