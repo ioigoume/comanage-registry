@@ -211,10 +211,13 @@ class JobShell extends AppShell {
   public function provision_execute($coId, $ptid, $modelsTodo) {
     // Track number of results
     $success = 0;
+    $successTotal = 0;
     $failed = 0;
+    $failedTotal=0;
     $modelCount = 0; // How many models we've worked with so far
 
     foreach($modelsTodo as $sModel) {
+      $this->out("\n" . _txt('sh.job.provision.now', array($sModel)));
       // We need to manually assemble the model dependencies that ProvisionerBehavior
       // expects, since in Shell they aren't loaded automatically for some reason.
       $Model = ClassRegistry::init($sModel);
@@ -247,16 +250,14 @@ class JobShell extends AppShell {
        // Pull IDs of all objects of the requested type
        $iterator = new PaginatedSqlIterator(
          $Model,
-         array($sModel.'.co_id' => $coId),
+         array($sModel.'.co_id' => $coId,$sModel.'.deleted'=> false),
          array($sModel.'.id', $sModel.'.status'),
          false
        );
        $total = $iterator->count();
-
-       // For calculating totals, what percent of models have we processed?
-       $modelsDone = $modelCount/count($modelsTodo);
-       $modelFraction = 1/count($modelsTodo);
+      
        foreach($iterator as $v) {
+        
          try {
            $Model->manualProvision($ptid,  // coProvisioningTargetId
        /* $coPersonId */           ($Model->name == 'CoPerson' ? $v[$sModel]['id'] : null),
@@ -268,20 +269,40 @@ class JobShell extends AppShell {
            $success++;
          } catch (Exception $e) {
            $this->out(_txt('sh.job.provision.failed', array($sModel)));
-           $this->out(var_export($e, true),  1, Shell::CODE_ERROR);
+           $this->out($Model->name . " id:". $v[$sModel]['id']);
+           //$this->out(var_export($e, true),  1, Shell::CODE_ERROR);
            $failed++;
          }
-
-         // If we're working with multiple models, this calculation is a bit off
-         // since we don't pull all records at once, just the models that we're
-         // currently working with.
-         $pctDone = ($modelsDone * 100)
-           +
-           ($modelFraction * ((($success + $failed) * 100)/$total));
-         $this->out(_txt('sh.job.provision.percent', array($pctDone)));
+         $this->progressBar($success + $failed, $total);
+       
        }
-
-      $modelCount++;
+       if($success == 0 && $failed == 0) {
+        $this->out(_txt('sh.job.provision.nothing', array($sModel)));
+       }
+       else {
+        $this->out("\n" . _txt('sh.job.provision.completed', array($sModel)));
+       }
+       $successTotal +=$success;
+       $success = 0;
+       $failedTotal +=$failed;
+       $failed = 0;
+       $modelCount++;
+ 
     }
+    $this->out(_txt('sh.job.provision.total', array($successTotal, $failedTotal)));
+  }
+    
+  /**
+   * progressBar
+   *
+   * @param  mixed $done
+   * @param  mixed $total
+   * @return void
+   */
+  public function progressBar($done, $total) {
+    $perc = floor(($done / $total) * 100);
+    $left = 100 - $perc;
+    $write = sprintf("\033[0G\033[2K[%'={$perc}s>%-{$left}s] - $perc%% -- $done/$total", "", "");
+    fwrite(STDERR, $write);
   }
 }
