@@ -63,6 +63,11 @@ class CoSetting extends AppModel {
       'required' => false,
       'allowEmpty' => true
     ),
+    'disable_provisioning' => array(
+      'rule' => 'boolean',
+      'required' => false,
+      'allowEmpty' => true
+    ),
     'disable_ois_sync' => array(
       'rule' => 'boolean',
       'required' => false,
@@ -159,6 +164,7 @@ class CoSetting extends AppModel {
   
   protected $defaultSettings = array(
     'disable_expiration'    => false,
+    'disable_provisioning'    => false,
     'disable_ois_sync'      => false,
     'enable_normalization'  => true,
     'enable_eof_ui'         => false,
@@ -216,6 +222,20 @@ class CoSetting extends AppModel {
     // Note we flip the value. The data model specifies "disabled" so that
     // the default (ie: no value present in the table) is enabled.
     return !$this->lookupValue($coId, 'disable_expiration');
+  }
+
+  /**
+   * Determine if provisioning jobs are enabled for the specified CO.
+   *
+   * @since  COmanage Registry v3.1.1
+   * @param  integer $coId CO ID
+   * @return boolean True if enabled, false otherwise
+   */
+
+  public function provisionEnabled($coId) {
+    // Note we flip the value. The data model specifies "disabled" so that
+    // the default (ie: no value present in the table) is enabled.
+    return !$this->lookupValue($coId, 'disable_provisioning');
   }
   
   /**

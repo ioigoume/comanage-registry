@@ -2300,6 +2300,7 @@
     </field>
     <field name="enable_nsf_demo" type="L" />
     <field name="disable_expiration" type="L" />
+    <field name="disable_provisioning" type="L" />
     <field name="disable_ois_sync" type="L" />
     <field name="group_validity_sync_window" type="I" />
     <field name="enable_normalization" type="L" />
