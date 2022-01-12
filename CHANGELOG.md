@@ -3,11 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [unreleased]
+## [3.3.12-rciam] - 2022-01-12
 
 ### Fixed
 
-- Fix buggy Population search
+- Fix bug in Population search for users with expired COU membership
 
 ## [3.3.11-rciam] - 2021-12-22
 
