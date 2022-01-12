@@ -190,18 +190,50 @@ if(isset($permissions['search']) && $permissions['search'] ) {
   $cou_memberships = Hash::extract($p, 'CoPersonRole.{n}.cou_id');
   $cou_membership_status = Hash::extract($p, 'CoPersonRole.{n}.status');
   // Combine COU Id with status
-  $cp_cou_membership_status = array_combine($cou_memberships, $cou_membership_status);
+  $cp_cou_membership_status = array();
+  foreach ($cou_memberships as $idx =>  $tcou_id) {
+    $cp_cou_membership_status[$tcou_id][] = $cou_membership_status[$idx];
+  }
 
+  // If the user has one of the statuses bellow i give access to the VO manager as if the user was a member
+  $allowed_statuses = array(StatusEnum::Active,
+                            StatusEnum::Approved,
+                            StatusEnum::Confirmed,
+                            StatusEnum::Declined,
+                            StatusEnum::Denied,
+                            StatusEnum::Duplicate,
+                            StatusEnum::GracePeriod,
+                            StatusEnum::Invited,
+                            StatusEnum::Pending,
+                            StatusEnum::PendingApproval,
+                            StatusEnum::PendingConfirmation,
+                            StatusEnum::Suspended);
+  $status_permitted = null;
+  foreach ($cp_cou_membership_status[$cou_id] as $person_role_cou_status) {
+    $status_permitted = in_array($person_role_cou_status, $allowed_statuses);
+    if($status_permitted) {
+      break;
+    }
+  }
+
+  $access = true;
   if(isset($cp_cou_membership_status[$cou_id])
      && !$permissions['roles']['coadmin']
      && !$permissions['roles']['cmadmin']
-     && $cp_cou_membership_status[$cou_id] === StatusEnum::Expired) {
-    continue;
+     && !$status_permitted) {
+    $access = false;
   }
 
 
   ?>
-    <div class="co-person line<?php print ($i % 2)+1; ?>">
+    <div
+      class="co-person line<?php
+      print ($i % 2)+1;
+      if(!$access) {
+        print " ui-state-disabled";
+      }
+      ?>"
+    >
       <div class="person-panel">
         <?php
           $nameWithoutEmailClass = 'nameWithEmail';
@@ -213,15 +245,18 @@ if(isset($permissions['search']) && $permissions['search'] ) {
           <div class="person-info-inner">
             <span class="person-name <?php print $nameWithoutEmailClass; ?>">
               <?php
+              if($access) {
                 print $this->Html->link(generateCn($p['PrimaryName']),
-                  array(
-                    'controller' => 'co_people',
-                    'action' => ($permissions['edit'] ? 'canvas' : ($permissions['view'] ? 'view' : '')),
-                    $p['CoPerson']['id'])
+                                        array(
+                                          'controller' => 'co_people',
+                                          'action' => ($permissions['edit'] ? 'canvas' : ($permissions['view'] ? 'view' : '')),
+                                          $p['CoPerson']['id'])
                 );
+              } else {
+                print generateCn($p['PrimaryName']);
+              }
               ?>
             </span>
-
             <span class="person-email">
               <?php
                   if(isset($p['EmailAddress'][0]['mail'])) {
@@ -242,11 +277,17 @@ if(isset($permissions['search']) && $permissions['search'] ) {
           <span class="person-status">
             <?php
               global $status_t;
-              if(!empty($p['CoPerson']['status']) ) print _txt('en.status', null, $p['CoPerson']['status']);
+              if($access) {
+                if(!empty($p['CoPerson']['status']) ) print _txt('en.status', null, $p['CoPerson']['status']);
+              } else {
+                // XXX Here i might have multiple statuses. I will print only the first one. Most probably they will
+                // all be expired.
+                print '<mark>' . _txt('ct.cous.1') . " Membership " . _txt('en.status', null, $cp_cou_membership_status[$cou_id][0]) . '</mark>';
+              }
             ?>
           </span>
         </div>
-        
+        <?php if($access): ?>
         <div class="person-admin">
           <?php
             if(true || $myPerson) {
@@ -377,8 +418,10 @@ if(isset($permissions['search']) && $permissions['search'] ) {
             }
           ?>
         </div>
+        <?php endif; ?>
         <span class="clearfix"></span>
       </div>
+      <?php if ($access): ?>
       <div class = "role-panel">
         <div class="roles-title"><?php print _txt('fd.roles'); ?></div>
         <div class="roles">
@@ -487,6 +530,7 @@ if(isset($permissions['search']) && $permissions['search'] ) {
           ?>
         </div>
       </div>
+      <?php endif; ?>
     </div>
     <?php $i++; ?>
   <?php endforeach; // $co_people ?>
