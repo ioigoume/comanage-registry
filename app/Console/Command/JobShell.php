@@ -94,14 +94,16 @@ class JobShell extends AppShell {
    * @param integer $coId        CO Id
    * @param integer $ptid        Provisioner Target ID
    * @param array $modelsTodo    List of models to provision
+   * @param integer $modelId     The id of the object model to be provisioned
+   * @param integer $failure_summary The failure message if any
    */
 
-  protected function provision($coId, $ptid, $modelsTodo) {
+  protected function provision($coId, $ptid, $modelsTodo, $modelId = null, &$failure_summary = null) {
     // First see if syncing is enabled
 
     if($this->CoSetting->provisionEnabled($coId)) {
       try {
-        $this->provision_execute($coId, $ptid, $modelsTodo);
+        $this->provision_execute($coId, $ptid, $modelsTodo, $modelId, $failure_summary);
       }
       catch(Exception $e) {
         $this->out("- " . $e->getMessage());
@@ -196,6 +198,49 @@ class JobShell extends AppShell {
           // Execute provisions
           $this->provision($co['Co']['id'], $this->args[1], $modelsTodo);
         }
+        if($runAll
+            || in_array('provisionJobScheduler', $this->args)
+          ) {
+          $this->out(_txt('sh.job.provision', array($co['Co']['name'], $co['Co']['id'])));
+ 
+          if (CakePlugin::loaded('JobScheduler')) {
+            // get the configuration of job scheduler
+            $JobSchedulerConfig = ClassRegistry::init('JobScheduler.JobSchedulerConfig');
+            $config = $JobSchedulerConfig->getConfiguration($co['Co']['id']);
+            if(empty($config)) {
+              $this->out(_txt('sh.job.no_configuration'));
+              return;
+            }
+            $JobScheduler = ClassRegistry::init('JobScheduler.JobScheduler');
+            $jobs = $JobScheduler->getActiveJobs($co['Co']['id'], $config['JobSchedulerConfig']['job_max_tries']);
+            foreach($jobs as $job) {
+              $this->out(var_export($job['JobScheduler']['job_params'], true));
+              $job_params=explode(" ", $job['JobScheduler']['job_params']);
+              if(count($job_params) == 4 && $job_params[0] == 'provisioner') {
+                $provisionerTargetId = $job_params[1];
+                $pModel = array($job_params[2]);
+                $modelId = $job_params[3];
+                // Execute provision
+                $failure_summary = '';
+                $this->provision($co['Co']['id'],  $provisionerTargetId, $pModel, $modelId, $failure_summary);
+                if(empty($failure_summary)) {
+                  $JobScheduler->delete($job['JobScheduler']['id']);
+                } else {
+                  $JobScheduler->id = $job['JobScheduler']['id'];
+                  $tries = !empty($job['JobScheduler']['tries']) ? 
+                            $job['JobScheduler']['tries'] + 1 : 1;
+                  $JobScheduler->save(
+                    array(
+                      'failure_summary' => $failure_summary,
+                      'tries' => $tries
+                    ),
+                    false
+                  );
+                }
+              }
+            }
+          }
+        }
       }
     }
 
@@ -208,9 +253,12 @@ class JobShell extends AppShell {
    * @param integer $coId        CO Id
    * @param integer $ptid        Provisioner Target ID
    * @param array $modelsTodo    List of models to provision
+   * @param integer $modelId     The id of the object model to be provisioned
+   * @param integer $failure_summary The failure message if any
    * @return void
    */
-  public function provision_execute($coId, $ptid, $modelsTodo) {
+
+  public function provision_execute($coId, $ptid, $modelsTodo, $modelId = null, &$failure_summary = null) {
     // Track number of results
     $success = 0;
     $successTotal = 0;
@@ -251,13 +299,18 @@ class JobShell extends AppShell {
       }
 
        // Pull IDs of all objects of the requested type
-       $iterator = new PaginatedSqlIterator(
-         $Model,
-         array($sModel.'.co_id' => $coId),
-         array($sModel.'.id', $sModel.'.status'),
-         false
-       );
-       $total = $iterator->count();
+       if(empty($modelId)) {
+        $iterator = new PaginatedSqlIterator(
+          $Model,
+          array($sModel . '.co_id' => $coId),
+          array($sModel . '.id', $sModel . '.status'),
+          false
+        );
+        $total = $iterator->count();
+      } else {
+        $iterator = array(array($sModel => array('id' => $modelId)));
+        $total = 1;
+      }
 
        foreach($iterator as $v) {
 
@@ -267,7 +320,8 @@ class JobShell extends AppShell {
        /* $coGroupId */            ($Model->name == 'CoGroup' ? $v[$sModel]['id'] : null),
        /* provisioningAction */    $sAction,
        /* coEmailListId */         ($Model->name == 'CoEmailList' ? $v[$sModel]['id'] : null),
-       /* CoGroupMemberId */       null
+       /* CoGroupMemberId */       null,
+       /* JobShellFlag */          true
                                    );
            $success++;
          } catch (Exception $e) {
@@ -275,6 +329,9 @@ class JobShell extends AppShell {
            $this->log(__METHOD__ . '::' . _txt('sh.job.provision.failed', array($sModel)), LOG_ERROR);
            $this->out($Model->name . " id:" . $v[$sModel]['id']);
            $this->log(__METHOD__ . '::' . $Model->name . " id:" . $v[$sModel]['id'], LOG_ERROR);
+           if(isset($failure_summary)) {
+            $failure_summary .= $e->getMessage() . '<br/>';
+           }
            $failed++;
          }
          $this->progressBar($success + $failed, $total);

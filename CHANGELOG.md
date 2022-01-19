@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [unreleased]
+
+### Added
+
+- Run provisioned actions as background jobs if configuration option is enabled
+
 ## [3.4.0-rciam] - 2022-02-02
 
 ### Added

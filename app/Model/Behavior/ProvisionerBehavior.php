@@ -527,9 +527,10 @@ class ProvisionerBehavior extends ModelBehavior {
    * @throws RuntimeException
    */
   
-  private function invokePlugin($coProvisioningTarget, $provisioningData, $action) {
+  private function invokePlugin($coProvisioningTarget, $provisioningData, $action, $jobShellFlag = false) {
     $pAction = $action; // We might override the provided action
-    
+    $status = false;
+
     // Before we do anything else, see if this plugin is configured to only operate
     // on a specified group. We do this here rather than in marshallXData because
     // here we have access to the plugin configuration, and the action change is not
@@ -573,69 +574,84 @@ class ProvisionerBehavior extends ModelBehavior {
       
       if(!empty($pluginTarget)) {
         try {
-          $pluginModel->provision($pluginTarget,
-                                  $pAction,
-                                  $provisioningData);
-          
-          // Create/update the export record, unless this is a delete operation
-          // (in which case we're about to delete the entity, so creating a record
-          // will interfere with the delete).
-          
-          if($pAction != ProvisioningActionEnum::CoEmailListDeleted
-             && $pAction != ProvisioningActionEnum::CoGroupDeleted
-             && $pAction != ProvisioningActionEnum::CoPersonDeleted) {
-            $pluginModel->CoProvisioningTarget->CoProvisioningExport->record(
-              $coProvisioningTarget['id'],
-              !empty($provisioningData['CoPerson']['id']) ? $provisioningData['CoPerson']['id'] : null,
-              !empty($provisioningData['CoGroup']['id']) ? $provisioningData['CoGroup']['id'] : null,
-              !empty($provisioningData['CoEmailList']['id']) ? $provisioningData['CoEmailList']['id'] : null
-            );
+          // XXX RCIAM-code: When we don't come from JobShell Class
+          if(!$jobShellFlag) { 
+            $Co = ClassRegistry::init('Co');
+            // XXX RCIAM-code: Check if the configuration option for background job is enabled
+            if($Co->CoSetting->backgroundJobEnabled($coProvisioningTarget['co_id'])) {
+              $JobScheduler = ClassRegistry::init('JobScheduler.JobScheduler');
+              // add a record to JobScheduler table
+              $status = $JobScheduler->addJobScheduler($pluginTarget, $pluginModel, $provisioningData);
+            }
           }
-          
-          // Cut a history record if we're provisioning a record (and not deleting it).
-          
-          if(!empty($provisioningData['CoEmailList']['id'])
-             && $pAction != ProvisioningActionEnum::CoEmailListDeleted) {
-            // It's a bit of a walk to get to HistoryRecord
-            $pluginModel->CoProvisioningTarget->Co->CoEmailList->HistoryRecord->record(
-              null,
-              null,
-              null,
-              CakeSession::read('Auth.User.co_person_id'),
-              ($pAction == ProvisioningActionEnum::CoEmailListReprovisionRequested
-               ? ActionEnum::CoEmailListManuallyProvisioned
-               : ActionEnum::CoEmailListProvisioned),
-              _txt('rs.prov-a', array($coProvisioningTarget['description'])),
-              null,
-              $provisioningData['CoEmailList']['id']
-            );
-          } elseif(!empty($provisioningData['CoGroup']['id'])
-             && $pAction != ProvisioningActionEnum::CoGroupDeleted) {
-            // It's a bit of a walk to get to HistoryRecord
-            $pluginModel->CoProvisioningTarget->Co->CoGroup->HistoryRecord->record(
-              null,
-              null,
-              null,
-              CakeSession::read('Auth.User.co_person_id'),
-              ($pAction == ProvisioningActionEnum::CoGroupReprovisionRequested
-               ? ActionEnum::CoGroupManuallyProvisioned
-               : ActionEnum::CoGroupProvisioned),
-              _txt('rs.prov-a', array($coProvisioningTarget['description'])),
-              $provisioningData['CoGroup']['id']
-            );
-          } elseif(!empty($provisioningData['CoPerson']['id'])
-             && $pAction != ProvisioningActionEnum::CoPersonDeleted) {
-            // It's a bit of a walk to get to HistoryRecord
-            $pluginModel->CoProvisioningTarget->Co->CoPerson->HistoryRecord->record(
-              $provisioningData['CoPerson']['id'],
-              null,
-              null,
-              CakeSession::read('Auth.User.co_person_id'),
-              ($pAction == ProvisioningActionEnum::CoPersonReprovisionRequested
-               ? ActionEnum::CoPersonManuallyProvisioned
-               : ActionEnum::CoPersonProvisioned),
-              _txt('rs.prov-a', array($coProvisioningTarget['description']))
-            );
+          // XXX RCIAM-code: When we come from JobShell Class
+          // or when configuration option for background job is not enabled
+          // then proceed to provision
+          if($jobShellFlag || !$status) {
+            $pluginModel->provision($pluginTarget,
+                                    $pAction,
+                                    $provisioningData);
+            
+            // Create/update the export record, unless this is a delete operation
+            // (in which case we're about to delete the entity, so creating a record
+            // will interfere with the delete).
+            
+            if($pAction != ProvisioningActionEnum::CoEmailListDeleted
+              && $pAction != ProvisioningActionEnum::CoGroupDeleted
+              && $pAction != ProvisioningActionEnum::CoPersonDeleted) {
+              $pluginModel->CoProvisioningTarget->CoProvisioningExport->record(
+                $coProvisioningTarget['id'],
+                !empty($provisioningData['CoPerson']['id']) ? $provisioningData['CoPerson']['id'] : null,
+                !empty($provisioningData['CoGroup']['id']) ? $provisioningData['CoGroup']['id'] : null,
+                !empty($provisioningData['CoEmailList']['id']) ? $provisioningData['CoEmailList']['id'] : null
+              );
+            }
+            
+            // Cut a history record if we're provisioning a record (and not deleting it).
+            
+            if(!empty($provisioningData['CoEmailList']['id'])
+              && $pAction != ProvisioningActionEnum::CoEmailListDeleted) {
+              // It's a bit of a walk to get to HistoryRecord
+              $pluginModel->CoProvisioningTarget->Co->CoEmailList->HistoryRecord->record(
+                null,
+                null,
+                null,
+                CakeSession::read('Auth.User.co_person_id'),
+                ($pAction == ProvisioningActionEnum::CoEmailListReprovisionRequested
+                ? ActionEnum::CoEmailListManuallyProvisioned
+                : ActionEnum::CoEmailListProvisioned),
+                _txt('rs.prov-a', array($coProvisioningTarget['description'])),
+                null,
+                $provisioningData['CoEmailList']['id']
+              );
+            } elseif(!empty($provisioningData['CoGroup']['id'])
+              && $pAction != ProvisioningActionEnum::CoGroupDeleted) {
+              // It's a bit of a walk to get to HistoryRecord
+              $pluginModel->CoProvisioningTarget->Co->CoGroup->HistoryRecord->record(
+                null,
+                null,
+                null,
+                CakeSession::read('Auth.User.co_person_id'),
+                ($pAction == ProvisioningActionEnum::CoGroupReprovisionRequested
+                ? ActionEnum::CoGroupManuallyProvisioned
+                : ActionEnum::CoGroupProvisioned),
+                _txt('rs.prov-a', array($coProvisioningTarget['description'])),
+                $provisioningData['CoGroup']['id']
+              );
+            } elseif(!empty($provisioningData['CoPerson']['id'])
+              && $pAction != ProvisioningActionEnum::CoPersonDeleted) {
+              // It's a bit of a walk to get to HistoryRecord
+              $pluginModel->CoProvisioningTarget->Co->CoPerson->HistoryRecord->record(
+                $provisioningData['CoPerson']['id'],
+                null,
+                null,
+                CakeSession::read('Auth.User.co_person_id'),
+                ($pAction == ProvisioningActionEnum::CoPersonReprovisionRequested
+                ? ActionEnum::CoPersonManuallyProvisioned
+                : ActionEnum::CoPersonProvisioned),
+                _txt('rs.prov-a', array($coProvisioningTarget['description']))
+              );
+            }
           }
         }
         catch(InvalidArgumentException $e) {
@@ -768,7 +784,8 @@ class ProvisionerBehavior extends ModelBehavior {
                                   $coGroupId=null,
                                   $provisioningAction=ProvisioningActionEnum::CoPersonReprovisionRequested,
                                   $coEmailListId=null,
-                                  $coGroupMemberId=null) {
+                                  $coGroupMemberId=null,
+                                  $jobShellFlag=false) {
     // First marshall the provisioning data
     $provisioningData = array();
     
@@ -808,7 +825,9 @@ class ProvisionerBehavior extends ModelBehavior {
         try {
           $this->invokePlugin($copt['CoProvisioningTarget'],
                               $provisioningData,
-                              $provisioningAction);
+                              $provisioningAction,
+                              $jobShellFlag
+                            );
         }
         catch(InvalidArgumentException $e) {
           throw new InvalidArgumentException($e->getMessage());
