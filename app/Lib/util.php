@@ -210,6 +210,29 @@ function generateCn($name, $showHonorific = false) {
 }
 
 /**
+ * Generate a random token, suitable for use as (eg) an API Key.
+ *
+ * @since  COmanage Registry v3.3.0
+ * @return string Token
+ */
+
+function generateRandomToken() {
+  // Note we use Security::randomBytes() rather than php random_bytes, which was not added until 7.0
+  // XXX as part of Registry v5, switch to random_bytes()
+  // skip l to avoid confusion with 1
+  $token = substr(preg_replace("/[^a-km-z0-9]+/", "", base64_encode(Security::randomBytes(60))),
+                  0,
+                  16);
+
+  // Insert some dashes to improve readability
+  $token = substr_replace($token, '-', 4, 0);
+  $token = substr_replace($token, '-', 9, 0);
+  $token = substr_replace($token, '-', 14, 0);
+
+  return $token;
+}
+
+/**
  * Obtain the preferred language requested by the browser, if supported.
  *
  * @since  COmanage Registry v0.8.2
@@ -302,6 +325,49 @@ function processTemplate($template, $substitutions, $identifiers=array()) {
   }
   
   return str_replace($searchKeys, $replaceVals, $template);
+}
+
+/**
+ * Retrieve menu links for plugin-defined menu items.
+ * - postcondition: HTML emitted
+ *
+ * @since  COmanage Registry v3.2.0
+ * @param  Array   $plugins Array of plugins as created by AppController
+ * @param  String  $context Which menu items to render
+ * @param  Integer $coId    CO ID
+ * @return Array            Array of menu labels and their URL information
+ */
+
+function retrieve_plugin_menus($plugins, $menu, $coId=null) {
+  $ret = array();
+
+  if(!empty($plugins)) {
+    foreach(array_keys($plugins) as $plugin) {
+      if(isset($plugins[$plugin][$menu])) {
+        foreach(array_keys($plugins[$plugin][$menu]) as $label) {
+          $args = $plugins[$plugin][$menu][$label];
+
+          if(is_array($args)) {
+            $args['plugin'] = Inflector::underscore($plugin);
+
+            if(!empty($coId)){
+              $args['co'] = $coId;
+            }
+          }
+
+          // Migrate 'icon' to its own key
+          if(!empty($args['icon'])) {
+            $ret[$label]['icon'] = $args['icon'];
+            unset($args['icon']);
+          }
+
+          $ret[$label]['url'] = $args;
+        }
+      }
+    }
+  }
+
+  return $ret;
 }
 
 /**

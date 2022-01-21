@@ -144,7 +144,35 @@ class AppController extends Controller {
       // logged in (ie: via a cookie provided via an AJAX initiated REST call)
       
       if(!$this->Session->check('Auth.User.username')) {
-        $this->Auth->authenticate = array('Basic');
+        $this->Auth->authenticate = array(
+          'Basic' => array(
+            'userModel' => 'ApiUser',
+            'scope' => array(
+              // Only look at active users
+              'ApiUser.status' => SuspendableStatusEnum::Active,
+              // That don't have validity dates or where the dates are in effect
+              'AND' => array(
+                0 => array(
+                  'OR' => array(
+                    'ApiUser.valid_from IS NULL',
+                    'ApiUser.valid_from < ' => date('Y-m-d H:i:s', time())
+                  )
+                ),
+                1 => array(
+                  'OR' => array(
+                    'ApiUser.valid_through IS NULL',
+                    'ApiUser.valid_through > ' => date('Y-m-d H:i:s', time())
+                  )
+                )
+              )
+              // We also want to check REMOTE_IP, but there's not a good SQL way
+              // to do a regular expression comparison, so we'll do that separately.
+              // XXX When migrating to PE, we should do all these checks separately
+              // so we can log what failed more clearly.
+            ),
+            'contain' => false
+          )
+        );
         
 //      debug(AuthComponent::password($_SERVER['PHP_AUTH_PW']));
         
@@ -158,11 +186,31 @@ class AppController extends Controller {
           $this->response->send();
           exit;
         }
+
+        // Perform the IP Address check
+        $ipregex = $this->Session->read('Auth.User.remote_ip');
+
+        if(!empty($ipregex) && !preg_match($ipregex, $_SERVER['REMOTE_ADDR'])) {
+          $this->Api->restResultHeader(401, "Unauthorized");
+          // We force an exit here to prevent any views from rendering, but also
+          // to prevent Cake from dumping the default layout
+          $this->response->send();
+          exit;
+        }
+
+        // Record the Authentication Event
+        $this->loadModel('AuthenticationEvent');
+
+        $this->AuthenticationEvent->record($this->Session->read('Auth.User.username'),
+                                           AuthenticationEventEnum::ApiLogin,
+                                           $_SERVER['REMOTE_ADDR']);
+
+        $this->Session->write('Auth.User.api', true);
       }
-      
-      // In order to properly check authz for REST users (not yet fully supported, CO-91)
-      // we need to know the CO ID before we can check for authorizations. We'll need to
-      // parse the REST body for most use cases to find it.
+
+      // In order to properly check authz for REST users we need to know the CO
+      // ID before we can check for authorizations. We'll need to parse the REST
+      // body for most use cases to find it.
       
       $this->Api->parseRestRequestDocument();
       
@@ -191,11 +239,8 @@ class AppController extends Controller {
         $this->response->send();
         exit;
       }
-      
-      // For now, since API users are considered CMP admins (CO-91), calling isAuthorized()
-      // is mostly unnecessary. However, there are a couple of calls made by a
-      // currently logged in user (reprovisioning, reordering enrollment attributes,
-      // etc) where we do need to do this check.
+
+      // Run authorization check
       
       if(!$this->Auth->isAuthorized()) {
         $this->Api->restResultHeader(401, "Unauthorized");
@@ -903,6 +948,9 @@ class AppController extends Controller {
     $p['menu']['admincous'] = $roles['admincous'];
     $p['menu']['admincous_root'] = $roles['admincous_root'];
 
+    // Manage API Users?
+    $p['menu']['api_users'] = $roles['cmadmin'] || $roles['coadmin'];
+
     // Manage Authenticators?
     $p['menu']['authenticator'] = $roles['cmadmin'] || $roles['coadmin'];
     
@@ -1172,6 +1220,13 @@ class AppController extends Controller {
             $coid = $this->request->data['Co']['id'];
           } elseif(isset($this->request->data[$req]['co_id'])) {
             $coid = $this->request->data[$req]['co_id'];
+          }
+        }
+        // CO ID can be passed via a query parameter when we use the API Model
+        elseif($this->request->is('restful')
+               && $this->request->params["ext"] === 'json') {
+          if(isset($this->request->query['coid'])) {
+            $coid = $this->request->query['coid'];
           }
         }
       }
