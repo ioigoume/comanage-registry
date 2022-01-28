@@ -1545,6 +1545,8 @@ original notification at
   'fd.inv.for' =>     'Invitation for %1$s',
   'fd.inv.to' =>      'Invitation to %1$s',
   'fd.ip' =>          'IP Address',
+  'fd.bj.enable' =>   'Enable Background Job Scheduler',
+  'fd.bj.enable.desc'=> 'All provisions will be made asynchronously as background jobs',
   'fd.job.complete_time' => 'Finished',
   'fd.job.finish_summary' => 'Finish Summary',
   'fd.job.mode' =>    'Job Mode',

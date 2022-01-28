@@ -112,7 +112,7 @@ class CoSettingsController extends StandardController {
       
       // Pull the set of available themes
       $args = array();
-      $args['conditions']['CoTheme.co_id'] = $this->cur_co['Co']['id'];;
+      $args['conditions']['CoTheme.co_id'] = $this->cur_co['Co']['id'];
       $args['order'] = array('CoTheme.name ASC');
       
       $this->set('vv_co_themes', $this->Co->CoTheme->find("list", $args));

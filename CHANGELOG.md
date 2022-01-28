@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [unreleased]
+
+### Changed
+
+- API Users' permissions can be configured per CO
+- Add configuration option for enabling Background Job Scheduler
+
 ## [3.3.12-rciam] - 2022-01-12
 
 ### Fixed
