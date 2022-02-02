@@ -28,6 +28,7 @@
 class UpgradeVersionShell extends AppShell {
   var $uses = array('Meta',
                     'Address',
+                    'ApiUser',
                     'CmpEnrollmentConfiguration',
                     'Co',
                     'CoEnrollmentAttributeDefault',
@@ -376,5 +377,45 @@ class UpgradeVersionShell extends AppShell {
 
       $this->CoExtendedType->addDefault($co['Co']['id'], 'Url.type');
     }
+  }
+
+  public function post330() {
+    // 3.3.0 moves SSH key management into an authenticator plugin.
+    $this->out(_txt('sh.ug.330.ssh'));
+
+    $args = array();
+    $args['contain'] = false;
+
+    $cos = $this->Co->find('all', $args);
+
+    // We update inactive COs as well, in case they become active again
+    foreach($cos as $co) {
+      $this->out('- ' . $co['Co']['name']);
+
+      $this->SshKeyAuthenticator->_ug330($co['Co']['id']);
+    }
+
+    // The users view is no longer required.
+    $prefix = "";
+    $db = ConnectionManager::getDataSource('default');
+
+    if(isset($db->config['prefix'])) {
+      $prefix = $db->config['prefix'];
+    }
+
+    $this->out(_txt('sh.ug.330.users'));
+    $this->Co->query("DROP VIEW " . $prefix . "users");
+
+    // API Users is now more configurable. Set existing api users to be
+    // active and fully privileged.
+    $this->out(_txt('sh.ug.330.ssh'));
+    $this->ApiUser->updateAll(
+      array(
+        'ApiUser.co_id' => 1,
+        'ApiUser.privileged' => true,
+        'ApiUser.status' => "'A'"  // Wacky updateAll syntax
+      ),
+      true
+    );
   }
 }

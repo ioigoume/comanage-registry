@@ -389,15 +389,6 @@
       print '</a>';
       print '<ul aria-expanded="false" class="collapse">';
 
-      print '<li class="mdl-js-ripple-effect">';
-      $args               = array();
-      $args['plugin']     = null;
-      $args['controller'] = 'api_users';
-      $args['action']     = 'index';
-      print $this->Html->link(_txt('ct.api_users.pl'), $args, array('class' => 'spin'));
-      print '<span class="mdl-ripple"></span>';
-      print '</li>';
-
       if ($pool_org_identities) {
         print '<li class="mdl-js-ripple-effect">';
         $args               = array();
