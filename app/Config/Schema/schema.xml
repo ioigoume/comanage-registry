@@ -2327,6 +2327,7 @@
     </field>
     <field name="elect_strategy_primary_name" type="C" size="2" />
     <field name="enable_pending_petition_handler" type="L" />
+    <field name="enable_background_job_scheduler" type="L" />
     <field name="created" type="T" />
     <field name="modified" type="T" />
     

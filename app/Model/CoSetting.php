@@ -158,6 +158,11 @@ class CoSetting extends AppModel {
       'required' => false,
       'allowEmpty' => true
     ),
+    'enable_background_job_scheduler' => array(
+      'rule' => 'boolean',
+      'required' => false,
+      'allowEmpty' => true
+    ), 
   );
   
   // Default values for each setting
@@ -180,6 +185,7 @@ class CoSetting extends AppModel {
     'org_identities_actions'=> null,
     'group_validity_sync_window' => DEF_GROUP_SYNC_WINDOW,
     'enable_pending_petition_handler' => false,
+    'enable_background_job_scheduler' => false,
   );
   
   /**
@@ -477,6 +483,17 @@ class CoSetting extends AppModel {
   
   public function pendingpetitionsHandlerEnabled($coId) {
     return (boolean)$this->lookupValue($coId, 'enable_pending_petition_handler');
+  }
+
+  /**
+   * Determine if background jobs is enabled for the specified CO.
+   *
+   * @param  integer $coId CO ID
+   * @return boolean True if enabled, false otherwise
+   */
+  
+  public function backgroundJobEnabled($coId) {
+    return (boolean)$this->lookupValue($coId, 'enable_background_job_scheduler');
   }
 
   /**

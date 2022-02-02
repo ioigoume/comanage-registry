@@ -67,9 +67,27 @@
   }
 </script>
 <ul id="<?php print $this->action; ?>_co_settings" class="fields form-list form-list-admin">
+  <?php if(CakePlugin::loaded('JobScheduler')): ?>
+    <li>
+      <div class="field-name">
+        <div class="field-title"><?php print _txt('fd.bj.enable'); ?></div>
+        <div class="field-desc"><?php print _txt('fd.bj.enable.desc'); ?></div>
+      </div>
+      <div class="field-info checkbox">
+        <?php print ($e
+                    ? $this->Form->input('enable_background_job_scheduler')
+                    : (isset($co_settings[0]['CoSetting']['enable_background_job_scheduler'])
+                        && $co_settings[0]['CoSetting']['enable_background_job_scheduler']
+                        ? _txt('fd.yes') : _txt('fd.no')));
+              print ' ' . $this->Form->label('enable_background_job_scheduler',_txt('fd.bj.enable'));
+        
+        ?>
+      </div>
+    </li>
+  <?php endif; ?>
   <li>
     <div class="field-name">
-          <div class="field-title"><?php print _txt('fd.ppt.enable'); ?></div>
+      <div class="field-title"><?php print _txt('fd.ppt.enable'); ?></div>
       <div class="field-desc"><?php print _txt('fd.ppt.enable.desc'); ?></div>
     </div>
     <div class="field-info checkbox">
