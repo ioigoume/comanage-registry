@@ -50,7 +50,6 @@
       $editAction = 'canvas';
     }
 
-    // disable the edit button for the case of vo of the co, not for the case of voms provisioner
     $a = array('controller' => $modelpl, 'action' => $editAction, $d[0][$req]['id']);
 
     if(empty($d[0]['OrgIdentity']['OrgIdentitySourceRecord']['id'])
@@ -107,7 +106,7 @@
     }
     if($permissions['isEnrollee'] && $permissions['delete'] && $model == 'CoPetitions' && $co_petitions[0]['CoPetition']['status'] != PetitionStatusEnum::Finalized) {
       $displayNameWithId = (!empty($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']) ? generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']) : _txt('fd.enrollee.new')) . ' (' . $co_petitions[0]['CoPetition']['status'] . ')';
-      
+
       $params['topLinks'][] = '<a type="button" class="deletebutton" style="float:right;" title="' . _txt('op.delete-a',array($displayNameWithId))
         . '" onclick="javascript:js_confirm_generic(\''
         . _txt('js.remove') . '\',\''    // dialog body text
@@ -129,6 +128,9 @@
     }
   }
   print $this->element("pageTitleAndButtons", $params);
+  if(file_exists(APP . "View/" . $model . "/tabs.inc")) {
+    include(APP . "View/" . $model . "/tabs.inc");
+  }
 ?>
 <?php if(!empty($d[0]['OrgIdentity']['OrgIdentitySourceRecord']['description'])): ?>
 <div class="ui-state-highlight ui-corner-all co-info-topbox">

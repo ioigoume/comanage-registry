@@ -37,6 +37,7 @@ class Co extends AppModel {
   
   // Association rules from this model to other models
   public $hasMany = array(
+    "ApiUser" => array('dependent' => true),
     "AttributeEnumeration" => array('dependent' => true),
     "Authenticator" => array('dependent' => true),
     "CoDepartment" => array('dependent' => true),

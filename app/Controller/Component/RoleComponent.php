@@ -394,18 +394,18 @@ class RoleComponent extends Component {
    * - admin: Valid admin in any CO
    * - subadmin: Valid admin for any COU
    * - user: Valid user in any CO (ie: to the platform)
-   * - apiuser: Valid API (REST) user (for now, API users are equivalent to cmadmins)
+   * - apiuser: Valid API (REST) user (not necessarily for the current CO)
    * - orgidentityid: Org Identity ID of current user (or false)
    * - copersonid: CO Person ID of current user in current CO (or false, including if co person is not in current CO)
    * - orgidentities: Array of Org Identities for current user
    */
-  
+
   public function calculateCMRoles() {
     // We basically translate from the currently logged in info as determined by
     // UsersController to role information as determined by CoRole.
-    
+
     global $group_sep;
-    
+
     $ret = array(
       'cmadmin' => false,
       'coadmin' => false,
@@ -421,83 +421,94 @@ class RoleComponent extends Component {
       'copersonid' => false,
       'orgidentities' => null
     );
-    
+
     $coId = null;     // CO ID as requested by user
     $coPersonId = null;
     $username = null;
-    $orgIdentitiesLinked = null;
-    
+
     if($this->Session->check('Auth.User.username')) {
       $username = $this->Session->read('Auth.User.username');
     }
-    
+
     // Pull the current CO from our invoking controller
     $controller = $this->_Collection->getController();
-    
-    $coId = $controller->cur_co['Co']['id'];
-    
+
+    if(!empty($controller->cur_co['Co']['id'])) {
+      $coId = $controller->cur_co['Co']['id'];
+    } else {
+      $coId = $controller->parseCOID();
+    }
+
+    // API user or Org Person?
+
+    if($this->Session->check('Auth.User.api')) {
+      $ret['apiuser'] = true;
+
+      $authCoId = $this->Session->read('Auth.User.co_id');
+      $privd = $this->Session->read('Auth.User.privileged');
+
+      if($authCoId == 1) {
+        // API users in CO 1 are given platform privileges
+        $ret['cmadmin'] = true;
+      } elseif(($coId == $authCoId) && $privd) {
+        // Privileged users in other COs are given CO privileges
+        $ret['coadmin'] = true;
+      }
+
+      // Return here to avoid triggering a bunch of RoleComponent queries that
+      // may fail since api users are not currently enrolled in any CO.
+
+      return $ret;
+    } elseif($this->Session->check('Auth.User.org_identities')) {
+      $ret['orgidentities'] = $this->Session->read('Auth.User.org_identities');
+    }
+
+    // Is this user a CMP admin?
+
+    if($username != null) {
+      $ret['cmadmin'] = $this->identifierIsCmpAdmin($username);
+    }
+
     // Figure out the revelant CO Person ID for the current user and the current CO
-    
+
     $CoPerson = ClassRegistry::init('CoPerson');
-    
+
     try {
       // XXX We should pass an identifier type that was somehow configured (see also CoRole->identifierIs*Admin)
       $coPersonId = $CoPerson->idForIdentifier($coId, $username, null, true);
-      $orgIdentitiesLinked = $CoPerson->orgIdLinksCoPerson($coPersonId);
     }
     catch(Exception $e) {
       // Not really clear that we should fail here
       //throw new InvalidArgumentException($e->getMessage());
     }
 
-    // API user or Org Person?
-    if($this->Session->check('Auth.User.api_user_id')) {
-      $ret['apiuser'] = true;
-      $ret['cmadmin'] = true;  // API users are currently platform admins (CO-91)
-      
-      // Return here to avoid triggering a bunch of RoleComponent queries that
-      // may fail since api users are not currently enrolled in any CO.
-      
-      return $ret;
-    } elseif($this->Session->check('Auth.User.org_identities')) {
-      $ret['orgidentities'] = $orgIdentitiesLinked;
-      //$ret['orgidentities'] = $this->Session->read('Auth.User.org_identities');
-    }
-    
-    // Is this user a CMP admin?
-    
-    if($username != null) {
-      $ret['cmadmin'] = $this->identifierIsCmpAdmin($username);
-    }
-    
     // Is this user a member of the current CO?
     // We only want to populate $ret['copersonid'] if this CO Person ID is in the current CO
-    
+
     if($coPersonId && $coId && $this->isCoPerson($coPersonId, $coId)) {
       $ret['copersonid'] = $coPersonId;
       $ret['comember'] = true;
     }
-    
+
     // Also store the co_person_id directly in the session to make it easier to find.
     // The above check will only succeed if $coPersonId has an active role, but we have
     // use cases for having a CO Person ID even if not in the current CO (typically recording
     // ActorCoPersonId of a CMP Admin when acting in a CO). Code that requires a current
     // CO Member should use isCoPerson to check.
-    
+
     if($coPersonId) {
       $this->Session->write('Auth.User.co_person_id', $coPersonId);
     }
-    
+
     // Is this user an admin of the current CO?
-    
+
     if($ret['comember'] && $coPersonId) {
       $ret['coadmin'] = $this->isCoAdmin($coPersonId);
-      
+
       // Is this user an admin of a COU within the current CO?
-      
+
       $ret['admincous'] = null;
       $ret['admincous_root'] = null;
-      
       try {
         $ret['admincous'] = $this->couAdminFor($coPersonId);
         $ret['admincous_root'] = $this->couAdminParentImplied($coPersonId);
@@ -505,24 +516,24 @@ class RoleComponent extends Component {
       catch(InvalidArgumentException $e) {
         // Not really clear we should do anything with this error
       }
-      
+
       $ret['couadmin'] = !empty($ret['admincous']);
     }
-    
+
     // Is the user an admin of any CO?
-    
+
     $ret['admin'] = ($ret['coadmin'] || $this->identifierIsCoAdmin($username));
-    
+
     // Is the user a COU admin for any CO?
-    
+
     $ret['subadmin'] = ($ret['couadmin'] || $this->identifierIsCouAdmin($username));
-    
+
     // Is the user a platform user?
-    
+
     if($this->Session->check('Auth.User.name')) {
       $ret['user'] = true;
     }
-    
+
     return $ret;
   }
   

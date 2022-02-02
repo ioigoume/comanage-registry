@@ -35,7 +35,20 @@
   // Add page title
   $params = array();
   $params['title'] = $title_for_layout;
+
+  // For Authenticators during enrollment
+  if(!empty($vv_co_enrollment_authenticator)
+     && ($vv_co_enrollment_authenticator['CoEnrollmentAuthenticator']['required'] == RequiredEnum::Optional)
+     && !empty($this->request->params['named']['onFinish'])) {
+    $params['topLinks'][] = $this->Html->link(_txt('op.skip'),
+                                              urldecode($this->request->params['named']['onFinish']),
+                                              array('class' => 'forwardbutton'));
+  }
+
   print $this->element("pageTitleAndButtons", $params);
+  if(file_exists(APP . "View/" . $model . "/tabs.inc")) {
+    include(APP . "View/" . $model . "/tabs.inc");
+  }
 
   $submit_label = _txt('op.add');
   
@@ -50,13 +63,13 @@
   );
   
   if(!empty($this->plugin)) {
-    if(file_exists(APP . "Plugin/" . $this->plugin . "/View/" . $model . "/fields.inc")) {
-      include(APP . "Plugin/" . $this->plugin . "/View/" . $model . "/fields.inc");
-    } elseif(file_exists(LOCAL . "Plugin/" . $this->plugin . "/View/" . $model . "/fields.inc")) {
-      include(LOCAL . "Plugin/" . $this->plugin . "/View/" . $model . "/fields.inc");
+    if(file_exists(APP . "Plugin/" . $this->plugin . "/View/" . $this->viewPath . "/fields.inc")) {
+      include(APP . "Plugin/" . $this->plugin . "/View/" . $this->viewPath . "/fields.inc");
+    } elseif(file_exists(LOCAL . "Plugin/" . $this->plugin . "/View/" . $this->viewPath . "/fields.inc")) {
+      include(LOCAL . "Plugin/" . $this->plugin . "/View/" . $this->viewPath . "/fields.inc");
     }
   } else {
-    include(APP . "View/" . $model . "/fields.inc");
+    include(APP . "View/" . $this->viewPath . "/fields.inc");
   }
   
   print $this->Form->end();
