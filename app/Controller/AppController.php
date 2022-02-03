@@ -173,9 +173,7 @@ class AppController extends Controller {
             'contain' => false
           )
         );
-        
-//      debug(AuthComponent::password($_SERVER['PHP_AUTH_PW']));
-        
+
         // XXX It's unclear why, as of Cake 2.3, we need to manually initialize AuthComponent
         $this->Auth->initialize($this);
         
@@ -241,7 +239,7 @@ class AppController extends Controller {
       }
 
       // Run authorization check
-      
+
       if(!$this->Auth->isAuthorized()) {
         $this->Api->restResultHeader(401, "Unauthorized");
         $this->response->send();
@@ -521,7 +519,12 @@ class AppController extends Controller {
         }
       }
     }
-    
+
+    // CoPersonRole Controller Retrieve user by identifier
+    if(isset($this->request->params['coid'])) {
+      return $this->request->params['coid'];
+    }
+
     // If we get here, assume the parameter is an object ID
     
     if(!empty($this->request->params['pass'][0])) {

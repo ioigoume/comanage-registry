@@ -64,8 +64,8 @@ Router::mapResources(array(
   'addresses',
   'attribute_enumerations',
   'authentication_events',
-	'co_departments',
-	'co_email_lists',
+  'co_departments',
+  'co_email_lists',
   'certs',
   'assurances',
   'co_extended_attributes',
@@ -78,9 +78,9 @@ Router::mapResources(array(
   'co_org_identity_links',
   'co_people',
   'co_person_roles',
-	'co_services',
-	'co_t_and_c_agreements',
-	'co_terms_and_conditions',
+  'co_services',
+  'co_t_and_c_agreements',
+  'co_terms_and_conditions',
   'cos',
   'cous',
   'email_addresses',
@@ -93,10 +93,22 @@ Router::mapResources(array(
   'telephone_numbers',
   'urls'
 ));
-Router::parseExtensions();
+
+Router::connect(
+  '/co_person_roles/co/:coid/identifier/:ident',
+  array('controller' => 'co_person_roles', 'action' => 'retrieve', '[method]' => 'GET'),
+  array(
+    'pass' => array('coid','ident'),
+    'coid' => '[0-9]+',
+    'ident' => '.*'
+  )
+);
+
+
+Router::parseExtensions('json', 'xml');
 
 /**
  * Load the CakePHP default routes. Remove this if you do not want to use
  * the built-in default routes.
  */
-	require CAKE . 'Config' . DS . 'routes.php';
+require CAKE . 'Config' . DS . 'routes.php';

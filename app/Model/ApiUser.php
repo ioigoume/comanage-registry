@@ -110,6 +110,31 @@ class ApiUser extends AppModel {
       'required' => false,
       'allowEmpty' => true
     ),
+    'cou_id_list' => array(
+      'rule' => array('validateMultipleSelect', 'INT'),
+      'required' => false,
+      'allowEmpty' => true
+    ),
+    'identifier_type' => array(
+      'rule' => array('validateExtendedType',
+                      array('attribute' => 'Identifier.type',
+                            'default' => array(IdentifierEnum::Badge,
+                                               IdentifierEnum::Enterprise,
+                                               IdentifierEnum::ePPN,
+                                               IdentifierEnum::ePTID,
+                                               IdentifierEnum::ePUID,
+                                               IdentifierEnum::Mail,
+                                               IdentifierEnum::National,
+                                               IdentifierEnum::Network,
+                                               IdentifierEnum::OpenID,
+                                               IdentifierEnum::ORCID,
+                                               IdentifierEnum::ProvisioningTarget,
+                                               IdentifierEnum::Reference,
+                                               IdentifierEnum::SORID,
+                                               IdentifierEnum::UID))),
+      'required' => true,
+      'allowEmpty' => false
+    )
   );
 
   /**
@@ -144,6 +169,37 @@ class ApiUser extends AppModel {
     $args['fields'] = array('id', 'username');
 
     return $this->find('list', $args);
+  }
+
+  /**
+   * @param $coid
+   * @param $username
+   * @return array|int|null
+   */
+  public function getApiUser($coid, $username) {
+    $args = array();
+    $args['conditions']['ApiUser.co_id'] = $coid;
+    $args['conditions']['ApiUser.username'] = $username;
+    // Don't return suspended users
+    $args['conditions']['ApiUser.status'] = SuspendableStatusEnum::Active;
+    // Or those with invalid dates
+    $args['conditions']['AND'] = array(
+      0 => array(
+        'OR' => array(
+          'ApiUser.valid_from IS NULL',
+          'ApiUser.valid_from < ' => date('Y-m-d H:i:s', time())
+        )
+      ),
+      1 => array(
+        'OR' => array(
+          'ApiUser.valid_through IS NULL',
+          'ApiUser.valid_through > ' => date('Y-m-d H:i:s', time())
+        )
+      )
+    );
+    $args['contain'] = false;
+
+    return $this->find('first', $args);
   }
 
   /**
@@ -192,6 +248,10 @@ class ApiUser extends AppModel {
         // strftime converts a timestamp according to server localtime (which should be UTC)
         $this->data['ApiUser']['valid_through'] = strftime("%F %T", $offsetDT->getTimestamp());
       }
+    }
+
+    if(isset($this->data['ApiUser']['cou_id_list'])) {
+      $this->data['ApiUser']['cou_id_list'] = implode(',', $this->data['ApiUser']['cou_id_list']);
     }
 
     return true;

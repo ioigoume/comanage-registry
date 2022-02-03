@@ -57,7 +57,7 @@ class ApiComponent extends Component {
     if(!$this->reqData) {
       $this->parseRestRequestDocument();
     }
-    
+
     if(!$this->reqData) {
       throw new InvalidArgumentException("Bad Request", 400);
     }
@@ -288,7 +288,8 @@ class ApiComponent extends Component {
     // We do not need to parse because either the data have been parsed already or
     // the data are meaningless to the type of request
     if(!empty($this->reqData)
-      || $this->request->params['[method]'] == 'GET') {
+       || $this->request->params['[method]'] == 'DELETE'
+       || $this->request->params['[method]'] == 'GET') {
       return;
     }
     
@@ -338,13 +339,97 @@ class ApiComponent extends Component {
           break;
       }
     }
-    
+
     if(!empty($this->reqData)) {
+      // first transmodify
+      $this->transModify($this->reqData);
+      // now convert to rest post
       $this->convertRestPost($this->reqData);
     }
     // else DELETE or other bodyless request
   }
-  
+
+  /**
+   * Handle special use cases of data transmodification.
+   * Transform the data so that a custom content fallsback to a know request
+   *
+   * @since  COmanage Registry v3.4.1 RCIAM
+   * @requires $this->reqData
+   * @throw Exception
+   */
+  public function transModify() {
+    if(!$this->reqData || $this->reqConvData) {
+      throw new RuntimeException('Unexpected state (transModify)');
+    }
+
+
+    // Walk through the array of attributes, converting as we go
+
+    foreach(array_keys($this->reqData) as $attr) {
+      if($attr == 'Person') {
+        $Co = ClassRegistry::init('Co');
+
+        // At this point i do not have the CO ID. I will calculate it taking into consideration the current use case.
+        // Then the framework will calculate the CO ID as needed
+        $coId = false;
+        if(!empty($this->reqData['CouId'])
+           && $this->controller->name == 'CoPersonRoles') {
+          $coId = $Co->Cou->field('co_id', array("Cou.id" => (int)$this->reqData['CouId']));
+        } elseif(!empty($this->reqData['Cou'])
+                  && $this->controller->name == 'CoPersonRoles') {
+          if(!isset($this->reqData['Cou']['CoId'])
+             || !isset($this->reqData['Cou']['Name'])) {
+            // XXX Set a false value on purpose and let the framework handle the response
+            $couId = 0;
+          } else {
+            $coId = (int)$this->reqData['Cou']['CoId'];
+            $couId = $Co->Cou->field(
+              'id',
+              array(
+                "Cou.name" => $this->reqData['Cou']['Name'],
+                "Cou.co_id" => $coId
+              )
+            );
+          }
+
+          // Return if COU does not exist
+          if((int)$couId === 0) {
+            $this->restResultHeader(403, "COU does not exist");
+            $this->controller->response->send();
+            exit;
+          }
+
+          unset($this->reqData['Cou']);
+          $this->reqData['CouId'] = $couId;
+        }
+
+        // Find the co_person_id using the identifier. Then modify the reqData
+        if(!empty($this->reqData[$attr]['Identifier'])
+           && $coId
+           && !empty($this->reqData[$attr]['Identifier']['Type'])
+           && !empty($this->reqData[$attr]['Identifier']['Id'])) {
+          try {
+            $coPersonId = $Co->CoPerson->idForIdentifier($coId,
+                                                         $this->reqData[$attr]['Identifier']['Id'],
+                                                         $this->reqData[$attr]['Identifier']['Type'],
+                                                         true);
+
+            // Transmodify the request
+            $this->reqData[$attr]['Id'] = (string)$coPersonId;
+            unset($this->reqData[$attr]['Identifier']);
+          }
+          catch(Exception $e) {
+            $this->restResultHeader(403, "CO Person does not exist");
+            $this->controller->response->send();
+            exit;
+          }
+        }
+
+      } // Person
+    } // foreach
+
+  }
+
   /**
    * Determine the requested COID based on the requested URL, and specifically
    * its query parameters.

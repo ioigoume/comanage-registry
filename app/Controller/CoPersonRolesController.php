@@ -265,7 +265,7 @@ class CoPersonRolesController extends StandardController {
 
     }
   }
-  
+
   /**
    * Perform any dependency checks required prior to a write (add/edit) operation.
    * This method is intended to be overridden by model-specific controllers.
@@ -278,14 +278,15 @@ class CoPersonRolesController extends StandardController {
    */
   
   function checkWriteDependencies($reqdata, $curdata = null) {
-    if($this->request->is('restful') && !empty($this->viewVars['permissions']['cous'])) {
+    if($this->request->is('restful')
+       && !empty($this->viewVars['permissions']['cous'])) {
       // Check that the COU ID provided points to an existing COU.
       
       if(empty($reqdata['CoPersonRole']['cou_id'])) {
         $this->Api->restResultHeader(403, "COU Does Not Exist");
         return false;
-      }      
-      
+      }
+
       $a = $this->CoPersonRole->Cou->findById($reqdata['CoPersonRole']['cou_id']);
       
       if(empty($a)) {
@@ -559,12 +560,27 @@ class CoPersonRolesController extends StandardController {
         $managed = $this->Role->isCouAdmin($roles['copersonid'], $cpr_cou_id);
       }
     }
-    
+
+    if($this->request->is('restful')) {
+      $this->Api->parseRestRequestDocument();
+
+      $reqdata = $this->Api->getData();
+      $cou_managed_list = !empty($roles['admincous']) ? array_keys($roles['admincous']) : array();
+      if(isset($reqdata['cou_id'])) {
+        $managed = in_array($reqdata['cou_id'], $cou_managed_list);
+      } elseif(isset($this->request->query["couid"])) {
+        $managed = in_array($this->request->query["couid"], $cou_managed_list);
+      } elseif($this->request->action == 'delete') {
+        $cou_id = $this->CoPersonRole->field('cou_id', array('id' => $this->request->params['pass'][0]));
+        $managed = in_array($cou_id, $cou_managed_list);
+      }
+    }
+
     // Construct the permission set for this user, which will also be passed to the view.
     $p = array();
     
     // Add a new CO Person Role?
-    $p['add'] = ($roles['cmadmin'] || $roles['coadmin'] || $roles['couadmin']);
+    $p['add'] = ($roles['cmadmin'] || $roles['coadmin'] || $managed);
     
     // Determine which COUs a person can manage.
     if($roles['cmadmin'] || $roles['coadmin']) {
@@ -595,9 +611,9 @@ class CoPersonRolesController extends StandardController {
     // Are we trying to edit our own record? 
     // If we're an admin, we act as an admin, not self.
     $p['editself'] = $self && !$roles['cmadmin'] && !$roles['coadmin'] && !$roles['couadmin'];
-    
+
     // View all existing CO Person Roles (or a COU's worth)? (for REST API)
-    $p['index'] = ($this->request->is('restful') && ($roles['cmadmin'] || $roles['coadmin']));
+    $p['index'] = $roles['apiuser'] && ($roles['cmadmin'] || $roles['coadmin'] || $managed);
     
     if($this->action == 'index' && $p['index']) {
       // For rendering index, we currently assume that anyone who can view the
@@ -636,8 +652,10 @@ class CoPersonRolesController extends StandardController {
     
     // View an existing CO Person Role?
     $p['view'] = ($roles['cmadmin']
-                  || ($roles['coadmin'] || $roles['couadmin'])
+                  || ($roles['coadmin'] || $roles['couadmin'] || $managed)
                   || $self);
+
+    $p['retrieve'] = $roles['apiuser'] && ($roles['cmadmin'] || $roles['coadmin']);
 
     $p['roles'] = $roles;
 
@@ -754,5 +772,41 @@ class CoPersonRolesController extends StandardController {
       
       $this->performRedirect();
     }
+  }
+
+  /**
+   * Get User Roles using the identifier
+   *
+   * @param string  $ident       Identifier string
+   * @param integer $coid        CO Id
+   * @return false|void
+   */
+  function retrieve($coid, $ident) {
+    if(empty($ident)
+       || empty($coid)) {
+      $this->Api->restResultHeader(400, "Bad Request");
+      return false;
+    }
+
+    try {
+      // Get the identifier type from the configuration
+      $identifier_type = $this->Session->read('Auth.User.identifier_type');
+      $coPersonId = $this->CoPersonRole->CoPerson->idForIdentifier($coid,
+                                                                   $ident,
+                                                                   $identifier_type,
+                                                                   true);
+    } catch (Exception $e) {
+      $coPersonId = null;
+    }
+
+    if(empty($coPersonId)) {
+      $this->Api->restResultHeader(404, "CO Person unknown");
+      return false;
+    }
+
+    $records = $this->CoPersonRole->findByPersonId($coPersonId);
+
+    $this->set('co_person_roles', $this->Api->convertRestResponse($records));
+    $this->Api->restResultHeader(200, "OK");
   }
 }

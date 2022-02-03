@@ -101,7 +101,27 @@ class CoPersonRole extends AppModel {
         'rule' => array('numeric'),
         'required' => false,
         'allowEmpty' => true
-      )
+      ),
+      'unique' => array(
+        'rule' => array(
+          'isUniqueChangelog',
+          array(
+            'cou_id',
+            'title',
+            'o',
+            'ou',
+            'status',
+            'valid_from',
+            'valid_through',
+            'affiliation',
+            'co_person_id',
+            'sponsor_co_person_id',
+            'source_org_identity_id'
+          ),
+          false),
+        'message' => array('Role already assigned.'),
+        'last' => 'true'
+      ),
     ),
     'title' => array(
       'content' => array(
