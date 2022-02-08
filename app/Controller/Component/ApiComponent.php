@@ -285,8 +285,10 @@ class ApiComponent extends Component {
    */
   
   public function parseRestRequestDocument() {
-    if(!empty($this->reqData)) {
-      // No need to reparse
+    // We do not need to parse because either the data have been parsed already or
+    // the data are meaningless to the type of request
+    if(!empty($this->reqData)
+      || $this->request->params['[method]'] == 'GET') {
       return;
     }
     
@@ -312,9 +314,7 @@ class ApiComponent extends Component {
       
       switch($this->request->params['ext']) {
         case 'json':
-          $fh = fopen('php://input', 'r');
-          $doc = stream_get_contents($fh);
-          fclose($fh);
+          $doc = file_get_contents("php://input");
           if(!empty($doc)) {
             $json = json_decode($doc, true);
             
@@ -328,9 +328,7 @@ class ApiComponent extends Component {
           }
           break;
         case 'xml':
-          $fh = fopen('php://input', 'r');
-          $doc = stream_get_contents($fh);
-          fclose($fh);
+          $doc = file_get_contents("php://input");
           if(!empty($doc)) {
             $xml = Xml::toArray(Xml::build($doc));
             $this->reqData = $xml[$this->reqModelNamePl][$this->reqModelName];
@@ -348,6 +346,116 @@ class ApiComponent extends Component {
   }
   
   /**
+   * Determine the requested COID based on the requested URL, and specifically
+   * its query parameters.
+   *
+   * @since  COmanage Registry v3.3.0
+   * @param  $model   Cake Model
+   * @param  $request Cake Request
+   * @param  $data    Parsed PUT/POST body
+   * @return int      CO ID, or null if not found
+   */
+
+  public function requestedCOID($model, $request, $data) {
+    // As of Registry v3.3.0, CO level API users are allowed to assert a CO ID
+    // for REST operations that meet the following requirements:
+    //
+    // (1) The request does not include a specific ID (eg view by CO, not view by ID)
+    // (2) The requested model directly belongsTo the parent link
+    // (Note Registry v5 implements this as a per-model check instead, but
+    // we don't have the infrastructure for that.)
+
+    if(empty($request->params['pass'])) {
+      // For historical reasons, the query string keys aren't standard
+      $permittedKeys = array(
+        'GET' => array(
+          'clusterid' => 'Cluster',
+          'codeptid' => 'CoDepartment',
+          'cogroupid' => 'CoGroup',
+          'coid' => 'Co',
+          'copersonid' => 'CoPerson',
+          'copersonroleid' => 'CoPersonRole',
+          'couid' => 'Cou',
+          'organizationid' => 'Organization',
+          'orgidentityid' => 'OrgIdentity'
+        ),
+        'POST' => array(
+          'cluster_id' => 'Cluster',
+          'co_department_id' => 'CoDepartment',
+          'co_group_id' => 'CoGroup',
+          'co_id' => 'Co',
+          'co_person_id' => 'CoPerson',
+          'co_person_role_id' => 'CoPersonRole',
+          'cou_id' => 'Cou',
+          'org_identity_id' => 'OrgIdentity',
+          'organization_id' => 'Organization'
+        )
+      );
+
+      // PUT and POST are basically the same
+      $permittedKeys['PUT'] = $permittedKeys['POST'];
+
+      if(!empty($model->permittedApiFilters)) {
+        // Merge in the plugin's additional permitted key
+        foreach(array('GET', 'POST', 'PUT') as $a) {
+          $permittedKeys[$a] = array_merge($permittedKeys[$a], $model->permittedApiFilters);
+        }
+      }
+
+      if(!empty($permittedKeys[$request->method()])) {
+        foreach($permittedKeys[$request->method()] as $k => $m) {
+          // For plugins, $m is of the form Plugin.Model, but belongsTo[]
+          // will be keyed only on Model
+          $b = strstr($m, '.');
+
+          if($b) {
+            $b = ltrim($b, '.');
+          } else {
+            $b = $m;
+          }
+
+          if(!empty($model->belongsTo[$b])) {
+            if($request->method() == 'GET') {
+              if(!empty($request->query[$k])) {
+                if($k == 'coid') {
+                  return $request->query['coid'];
+                } else {
+                  // For any other key, we need to map it to a CO
+                  $ParentModel = ClassRegistry::init($m);
+                  return $ParentModel->findCoForRecord($request->query[$k]);
+                }
+              }
+            } else {
+              if(!empty($data[$k])) {
+                if($k == 'co_id') {
+                  return $data['co_id'];
+                } else {
+                  // For any other key, we need to map it to a CO
+                  $ParentModel = ClassRegistry::init($m);
+                  return $ParentModel->findCoForRecord($data[$k]);
+                }
+              }
+            }
+          }
+        }
+        // Since i am here no direct CO relation found. Get the parents and retry
+        $mparents = $model->belongsTo ?: array();
+        foreach ($mparents as $mname => $mproperties) {
+          // Load the model before performing any more logic
+          $model = ClassRegistry::init($mname);
+          // Get up the tree until we find if we can associate the key with the model
+          $coid = $this->requestedCOID($model, $request, $data);
+          if(!is_null($coid)) {
+            return $coid;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Prepare a REST result HTTP header.
    * - precondition: HTTP headers must not yet have been sent
    * - postcondition: CakeResponse configured with header
@@ -357,7 +465,7 @@ class ApiComponent extends Component {
    * @param  string HTTP result comment
    */
   
-  public function restResultHeader($status, $txt) {
+  public function restResultHeader($status, $txt=null) {
     if(isset($txt)) {
       // We need to update the text associated with $status
       

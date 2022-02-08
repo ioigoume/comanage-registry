@@ -438,7 +438,7 @@ class AppController extends Controller {
     $req = $this->modelClass;
     $model = $this->$req;
     $modelpl = Inflector::tableize($req);
-    
+
     // XXX This list should really be set on a per-Controller basis (eg: link only applies to CoPeople)
     // As of v3.1.0, we will now look at $impliedCoIdActions. XXX Backport to other controllers. (CO-959)
     if($this->action == 'add'
@@ -1172,7 +1172,7 @@ class AppController extends Controller {
     $this->loadModel('CoEnrollmentFlow');
     $this->set('vv_enrollment_flow_cos', $this->CoEnrollmentFlow->find('all', $args));
   }
-  
+
   /**
    * For Models that accept a CO ID, find the provided CO ID.
    * - precondition: A coid must be provided in $this->request (params or data)
@@ -1181,13 +1181,13 @@ class AppController extends Controller {
    * @param  Array $data Array of data for calculating implied CO ID
    * @return Integer The CO ID if found, or -1 if not
    */
-  
+
   function parseCOID($data = null) {
     // Get a pointer to our model
     $req = $this->modelClass;
     $model = $this->$req;
     $coid = null;
-    
+
     try {
       // First try to look up the CO ID based on the request.
       $coid = $this->calculateImpliedCoId($data);
@@ -1195,43 +1195,44 @@ class AppController extends Controller {
     catch(Exception $e) {
       // Most likely no CO found, so just keep going
     }
-    
+
     if(!$coid) {
       $coid = -1;
-      
-      // Only certain actions are permitted to explicitly provide a CO ID
-      // XXX Note that CoExtendedTypesController, CoDashboardsController, and others override
-      // this function to support addDefaults. It might be better just to allow controllers
-      // to specify a list.
-      if($this->action == 'index'
-         || $this->action == 'find'
-         || $this->action == 'search'
-         // Add and select operations only when attached directly to a CO (otherwise we need
-         // to pull the CO ID from the object being attached to, eg co person).
-         ||
-         (isset($model->Co)
-          && ($this->action == 'select' || $this->action == 'add'))) {
-        if(isset($this->params['named']['co'])) {
-          $coid = $this->params['named']['co'];
+
+      if($this->request->is('restful')) {
+        $coid = $this->Api->requestedCOID($model, $this->request, $data);
+
+        if(!$coid) {
+          $coid = -1;
         }
-        // CO ID can be passed via a form submission
-        elseif($this->action != 'index') {
-          if(isset($this->request->data['Co']['id'])) {
-            $coid = $this->request->data['Co']['id'];
-          } elseif(isset($this->request->data[$req]['co_id'])) {
-            $coid = $this->request->data[$req]['co_id'];
+      } else {
+        // Only certain actions are permitted to explicitly provide a CO ID
+        // XXX Note that CoExtendedTypesController, CoDashboardsController, and others override
+        // this function to support addDefaults. It might be better just to allow controllers
+        // to specify a list.
+        if($this->action == 'index'
+          || $this->action == 'find'
+          || $this->action == 'search'
+          // Add and select operations only when attached directly to a CO (otherwise we need
+          // to pull the CO ID from the object being attached to, eg co person).
+          ||
+          (isset($model->Co)
+            && ($this->action == 'select' || $this->action == 'add'))) {
+          if(isset($this->params['named']['co'])) {
+            $coid = $this->params['named']['co'];
           }
-        }
-        // CO ID can be passed via a query parameter when we use the API Model
-        elseif($this->request->is('restful')
-               && $this->request->params["ext"] === 'json') {
-          if(isset($this->request->query['coid'])) {
-            $coid = $this->request->query['coid'];
+          // CO ID can be passed via a form submission
+          elseif($this->action != 'index') {
+            if(isset($this->request->data['Co']['id'])) {
+              $coid = $this->request->data['Co']['id'];
+            } elseif(isset($this->request->data[$req]['co_id'])) {
+              $coid = $this->request->data[$req]['co_id'];
+            }
           }
         }
       }
     }
-    
+
     return $coid;
   }
   
