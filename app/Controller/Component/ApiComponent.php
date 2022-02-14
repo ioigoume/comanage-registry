@@ -288,8 +288,8 @@ class ApiComponent extends Component {
     // We do not need to parse because either the data have been parsed already or
     // the data are meaningless to the type of request
     if(!empty($this->reqData)
-       || $this->request->params['[method]'] == 'DELETE'
-       || $this->request->params['[method]'] == 'GET') {
+       || $this->request->method() == 'GET'
+       || $this->request->method() == 'DELETE') {
       return;
     }
     
