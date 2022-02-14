@@ -1590,6 +1590,15 @@ ul.form-list li.modelbox-data #ui-datepicker-div {
   position: relative !important; /* a fix for datepickers appended to fields in the form-list */
   margin: 0 0 0 9px;
 }
+ul.form-list li.field-flex {
+  display: flex;
+  align-items: center;
+}
+
+ul.form-list .field-info-flex .checkbox input {
+  width: auto;
+  flex-grow: 1;
+}
 ul.field-children {
   margin: 0.5em;
   padding: 0;

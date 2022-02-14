@@ -453,6 +453,30 @@ class RoleComponent extends Component {
       } elseif(($coId == $authCoId) && $privd) {
         // Privileged users in other COs are given CO privileges
         $ret['coadmin'] = true;
+      } elseif(($coId == $authCoId) && $ret['apiuser']) {
+        $ApiUser = ClassRegistry::init('ApiUser');
+        $Cou = ClassRegistry::init('Cou');
+        $api_user = $ApiUser->getApiUser($coId, $username);
+        if(!empty($api_user)
+           && !empty($api_user['ApiUser']['cou_id_list'])) {
+          $api_cou_keys = explode(',', $api_user['ApiUser']['cou_id_list']);
+          $childCous = array();
+
+          foreach($api_cou_keys as $cou_id) {
+            try {
+              $childCous = array_unique($childCous + $Cou->childCousById((int)$cou_id, true));
+            }
+            catch(InvalidArgumentException $e) {
+              throw new InvalidArgumentException($e->getMessage());
+            }
+          }
+
+          $ret['couadmin'] = true;
+          $ret['admincous'] = $childCous;
+          // XXX For the API user we will not use parent implied. The admin has to explicitly
+          //     update the cou configuration list
+//          $ret['admincous_root'] = $this->couAdminParentImplied($coPersonId);
+        }
       }
 
       // Return here to avoid triggering a bunch of RoleComponent queries that

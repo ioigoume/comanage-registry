@@ -64,6 +64,23 @@ class ApiUsersController extends StandardController {
   }
 
   /**
+   * Callback before views are rendered.
+   *
+   * @since  COmanage Registry v3.4.0 RCIAM
+   */
+
+  function beforeRender() {
+    parent::beforeRender();
+
+    if (!$this->request->is('restful')) {
+      // COU list
+      $this->set('vv_cous', $this->ApiUser->Co->Cou->allCous($this->cur_co['Co']['id']));
+      // Identifier types
+      $this->set('vv_identifier_types', $this->ApiUser->Co->CoPerson->Identifier->types($this->cur_co['Co']['id'], 'type'));
+    }
+
+  }
+  /**
    * Generate an API Key.
    *
    * @since  COmanage Registry v3.3.0
