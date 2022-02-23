@@ -182,7 +182,10 @@ class CoPersonRole extends AppModel {
                                         StatusEnum::Pending,
                                         StatusEnum::PendingApproval,
                                         StatusEnum::PendingConfirmation,
-                                        StatusEnum::Suspended))
+                                        StatusEnum::Suspended)),
+        'required' => true,
+        'allowEmpty' => false,
+        'message' => 'A valid status must be selected'
       )
     ),
     'sponsor_co_person_id' => array(
@@ -451,6 +454,55 @@ class CoPersonRole extends AppModel {
                                                : _txt('rs.xp.role'));
       }
     }
+  }
+
+  /**
+   * Get Role details or list of Roles details for CO Person
+   *
+   * @param integer $coPersonId
+   * @param string $cou_name
+   * @return array|int|null
+   */
+  public function findByPersonId($coPersonId, $cou_name = null) {
+    $args = array();
+    if(!is_null($cou_name)) {
+      $args['joins'][0]['table'] = 'co_people';
+      $args['joins'][0]['alias'] = 'CoPerson';
+      $args['joins'][0]['type'] = 'INNER';
+      $args['joins'][0]['conditions'][0] = 'CoPersonRole.co_person_id=CoPerson.id';
+      $args['joins'][1]['table'] = 'cous';
+      $args['joins'][1]['alias'] = 'Cou';
+      $args['joins'][1]['type'] = 'INNER';
+      $args['joins'][1]['conditions'][0] = 'Cou.id=CoPersonRole.cou_id';
+      $args['conditions']['Cou.name'] = $cou_name;
+    }
+    $args['conditions']['CoPersonRole.co_person_id'] = $coPersonId;
+    $args['conditions'][] = 'CoPersonRole.deleted IS NOT TRUE';
+    $args['contain'] = false;
+
+    return $this->find('all', $args);
+  }
+
+  /**
+   * @param $coid
+   * @param $cou_name
+   * @return array|int|null
+   */
+  public function findAllMembers($coid, $cou_name) {
+    if(empty($coid))
+       return array();
+
+    $args = array();
+    $args['joins'][0]['table'] = 'cous';
+    $args['joins'][0]['alias'] = 'Cou';
+    $args['joins'][0]['type'] = 'INNER';
+    $args['joins'][0]['conditions'][0] = 'Cou.id=CoPersonRole.cou_id';
+    $args['conditions']['Cou.name'] = $cou_name;
+    $args['conditions']['Cou.co_id'] = $coid;
+    $args['conditions'][] = 'CoPersonRole.deleted IS NOT TRUE';
+    $args['contain'] = false;
+
+    return $this->find('all', $args);
   }
 
   /**

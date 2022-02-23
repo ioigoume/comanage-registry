@@ -104,6 +104,27 @@ Router::connect(
   )
 );
 
+Router::connect(
+  '/co_person_roles/co/:coid/cou/:couname/identifier/:ident',
+  array('controller' => 'co_person_roles', 'action' => 'retrieve', '[method]' => 'GET'),
+  array(
+    'pass' => array('coid'),
+    'coid' => '[0-9]+',
+    'couname' => '.*',
+    'ident' => '.*'
+  )
+);
+
+Router::connect(
+  '/co_person_roles/co/:coid/cou/:couname',
+  array('controller' => 'co_person_roles', 'action' => 'retrieve', '[method]' => 'GET'),
+  array(
+    'pass' => array('coid'),
+    'coid' => '[0-9]+',
+    'couname' => '.*'
+  )
+);
+
 
 Router::parseExtensions('json', 'xml');
 

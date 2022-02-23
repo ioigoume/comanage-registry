@@ -566,10 +566,21 @@ class CoPersonRolesController extends StandardController {
 
       $reqdata = $this->Api->getData();
       $cou_managed_list = !empty($roles['admincous']) ? array_keys($roles['admincous']) : array();
+      $cou_managed_notree = array_map(
+        function($cou) {
+          $tree = explode('/', $cou);
+          return trim(end($tree));
+        },
+        $roles['admincous'] ?? array()
+      );
       if(isset($reqdata['cou_id'])) {
         $managed = in_array($reqdata['cou_id'], $cou_managed_list);
       } elseif(isset($this->request->query["couid"])) {
         $managed = in_array($this->request->query["couid"], $cou_managed_list);
+      } elseif(isset($this->request->params["couname"])
+               && $roles["couadmin"]
+               && $roles["apiuser"]) {
+        $managed = in_array($this->request->params["couname"], $cou_managed_notree);
       } elseif($this->request->action == 'delete') {
         $cou_id = $this->CoPersonRole->field('cou_id', array('id' => $this->request->params['pass'][0]));
         $managed = in_array($cou_id, $cou_managed_list);
@@ -655,7 +666,10 @@ class CoPersonRolesController extends StandardController {
                   || ($roles['coadmin'] || $roles['couadmin'] || $managed)
                   || $self);
 
-    $p['retrieve'] = $roles['apiuser'] && ($roles['cmadmin'] || $roles['coadmin']);
+    $p['retrieve'] = $roles['apiuser']
+                     && ($roles['cmadmin']
+                         || $roles['coadmin']
+                         || $managed);
 
     $p['roles'] = $roles;
 
@@ -781,30 +795,43 @@ class CoPersonRolesController extends StandardController {
    * @param integer $coid        CO Id
    * @return false|void
    */
-  function retrieve($coid, $ident) {
-    if(empty($ident)
-       || empty($coid)) {
+  function retrieve($coid) {
+    if(empty($coid)) {
       $this->Api->restResultHeader(400, "Bad Request");
       return false;
     }
 
-    try {
-      // Get the identifier type from the configuration
-      $identifier_type = $this->Session->read('Auth.User.identifier_type');
-      $coPersonId = $this->CoPersonRole->CoPerson->idForIdentifier($coid,
-                                                                   $ident,
-                                                                   $identifier_type,
-                                                                   true);
-    } catch (Exception $e) {
-      $coPersonId = null;
+    // Get all members of a COU
+    if(!isset($this->request->params["ident"])
+       && isset($this->request->params["couname"])) {
+      $records = $this->CoPersonRole->findAllMembers($coid, $this->request->params["couname"]);
     }
 
-    if(empty($coPersonId)) {
-      $this->Api->restResultHeader(404, "CO Person unknown");
-      return false;
+    if(!isset($records)) {
+      try {
+        // Get the identifier type from the configuration
+        $identifier_type = $this->Session->read('Auth.User.identifier_type');
+
+        if(empty($identifier_type)) {
+          $this->Api->restResultHeader(404, "Identifier Type unknown");
+          return false;
+        }
+
+        $coPersonId = $this->CoPersonRole->CoPerson->idForIdentifier($coid,
+                                                                     $this->request->params["ident"],
+                                                                     $identifier_type,
+                                                                     true);
+      } catch (Exception $e) {
+        $this->Api->restResultHeader(404, "CO Person unknown");
+        return false;
+      }
+
+      $records = $this->CoPersonRole->findByPersonId(
+        $coPersonId,
+        $this->request->params["couname"] ?? null
+      );
     }
 
-    $records = $this->CoPersonRole->findByPersonId($coPersonId);
 
     $this->set('co_person_roles', $this->Api->convertRestResponse($records));
     $this->Api->restResultHeader(200, "OK");

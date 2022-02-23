@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 
 - COU level API User
+- Support VO Members REST API v2
 
 ## [3.4.1-rciam] - 2022-02-11
 

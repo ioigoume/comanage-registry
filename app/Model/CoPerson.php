@@ -163,6 +163,7 @@ class CoPerson extends AppModel {
                                         StatusEnum::PendingConfirmation,
                                         StatusEnum::Suspended)),
         'required' => true,
+        'allowEmpty' => false,
         'message' => 'A valid status must be selected'
       )
     ),
