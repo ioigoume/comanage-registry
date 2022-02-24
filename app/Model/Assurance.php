@@ -217,11 +217,15 @@ class Assurance extends AppModel {
   /**
    * @param string $identifier      OrgIdentity Identifier constructed from the IdP
    */
-  public function syncByIdentifier($identifier) {
+  public function syncByIdentifier($identifier, $jobData = null, &$failure_summary = null) {
     $current_assurances_list = array();
     $current_assurances = $this->getAssurancesByOrgIdentityIdentifier($identifier);
     $active_login_orgs = $this->getOrgIdentityByIdentifier($identifier);
-    $assurance_env_value = $this->getEnvValues();
+    if(empty($active_login_orgs)) {
+      $failure_summary = _txt('er.notfound', array(_txt('ct.org_identities.1'), $identifier));
+      $this->log(__METHOD__ . "::" . _txt('er.notfound', array(_txt('ct.org_identities.1'), $identifier)), LOG_DEBUG);
+    }
+    $assurance_env_value = $jobData == null ? $this->getEnvValues() : implode(";", json_decode($jobData));
     // XXX Is the assurance attribute multi valued?
     $is_assurance_val_multi_val = $this->isEnvMultiVal($assurance_env_value);
 

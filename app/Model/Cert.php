@@ -277,10 +277,14 @@ class Cert extends AppModel {
   /**
    * @param string $identifier      OrgIdentity Identifier constructed from the IdP
    */
-  public function syncByIdentifier($identifier) {
+  public function syncByIdentifier($identifier, $jobData = null, &$failure_summary = null) { 
     $current_certs = $this->getCertsByOrgIdentityIdentifier($identifier);
     $active_login_orgs = $this->getOrgIdentityByIdentifier($identifier);
-    list($subject_dn_env, $issuer_dn_env) = $this->getEnvValues();
+    if(empty($active_login_orgs)) {
+      $failure_summary = _txt('er.notfound', array(_txt('ct.org_identities.1'), $identifier));
+      $this->log(__METHOD__ . "::" . _txt('er.notfound', array(_txt('ct.org_identities.1'), $identifier)), LOG_DEBUG);
+    }
+    list($subject_dn_env, $issuer_dn_env) = $jobData == null ? $this->getEnvValues() : json_decode($jobData);
     // XXX Is the subject DN multi valued?
     $is_sdn_multi_val = $this->isEnvMultiVal($subject_dn_env);
 
@@ -518,6 +522,9 @@ class Cert extends AppModel {
    */
   function manualProvisionCert() {
     $sAction = ProvisioningActionEnum::CoPersonUpdated;
+    if(empty($this->data['Cert']['org_identity_id'])) {
+      return;
+    }
     $coPerson = $this->OrgIdentity->getLinkedPersonData($this->data['Cert']['org_identity_id']);
     $sId = $coPerson[0]['CoOrgIdentityLink'][0]['co_person_id'];
     // Since we do not copy the Certificates under the CoPerson we need to manually trigger CoPerson provisioning every time they become updated

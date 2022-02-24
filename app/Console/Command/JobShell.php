@@ -216,27 +216,38 @@ class JobShell extends AppShell {
             foreach($jobs as $job) {
               $this->out(var_export($job['JobScheduler']['job_params'], true));
               $job_params=explode(" ", $job['JobScheduler']['job_params']);
-              if(count($job_params) == 4 && $job_params[0] == 'provisioner') {
+              $failure_summary = '';
+              if($job['JobScheduler']['job_type'] == JobSchedulerTypeEnum::Provision && count($job_params) == 4 && $job_params[0] == 'provisioner') {
                 $provisionerTargetId = $job_params[1];
                 $pModel = array($job_params[2]);
                 $modelId = $job_params[3];
-                // Execute provision
-                $failure_summary = '';
+                // Execute provision 
                 $this->provision($co['Co']['id'],  $provisionerTargetId, $pModel, $modelId, $failure_summary);
-                if(empty($failure_summary)) {
-                  $JobScheduler->delete($job['JobScheduler']['id']);
-                } else {
+                $JobScheduler->id = $job['JobScheduler']['id'];
+                $JobScheduler->tries = $job['JobScheduler']['tries'];
+                // If there is an error update the job, elsewhere just delete the record.
+                $JobScheduler->jobTracker($failure_summary);
+              }
+              else if($job['JobScheduler']['job_type'] == JobSchedulerTypeEnum::Sync) {
+                // The format of this job_type is "<Model> <OrgIdentityIdentifier>"
+                $pModel = $job_params[0];
+                $orgIdentityIdentifier = $job_params[1];
+                // For now these three models will be supported
+                if(!in_array($pModel, array('Assurance', 'Cert', 'OrgIdentity'))) {
+                  $this->out(_txt('sh.job.sync.model.not.supported', array($pModel)));
                   $JobScheduler->id = $job['JobScheduler']['id'];
-                  $tries = !empty($job['JobScheduler']['tries']) ? 
-                            $job['JobScheduler']['tries'] + 1 : 1;
-                  $JobScheduler->save(
-                    array(
-                      'failure_summary' => $failure_summary,
-                      'tries' => $tries
-                    ),
-                    false
-                  );
+                  $JobScheduler->tries = $job['JobScheduler']['tries'];
+                  // Update the job with the error
+                  $JobScheduler->jobTracker(_txt('sh.job.sync.model.not.supported', array($pModel)));
+                  continue;
                 }
+                $Model = ClassRegistry::init($pModel);
+                $Model->syncByIdentifier($orgIdentityIdentifier, $job['JobScheduler']['job_data'], $failure_summary);
+                $JobScheduler->id = $job['JobScheduler']['id'];
+                $JobScheduler->tries = $job['JobScheduler']['tries'];
+                // If there is an error update the job, elsewhere just delete the record.
+                $JobScheduler->jobTracker($failure_summary);
+
               }
             }
           }
