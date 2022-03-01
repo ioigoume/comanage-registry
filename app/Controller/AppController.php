@@ -131,14 +131,20 @@ class AppController extends Controller {
     
     // Tell the Auth module to call the controller's isAuthorized() function.
     $this->Auth->authorize = array('Controller');
-    
+
     // Set the redirect and error message for auth failures. Note that we can generate
     // a stack trace instead of a redirect by setting unauthorizedRedirect to false.
-    $this->Auth->unauthorizedRedirect = "/";
-    $this->Auth->authError = _txt('er.permission');
-    // Default flash key is 'auth', switch to 'error' so it maps to noty's default type
-    $this->Auth->flash = array('key' => 'error');
-    
+    if($this->request->is('ajax')) {
+      // XXX CO-2135 In case of an ajax request throw an exception and return handling to the front end
+      // If set to false a ForbiddenException exception is thrown instead of redirecting.
+      $this->Auth->unauthorizedRedirect = false;
+    } else {
+      $this->Auth->unauthorizedRedirect = "/";
+      $this->Auth->authError = _txt('er.permission');
+      // Default flash key is 'auth', switch to 'error' so it maps to noty's default type
+      $this->Auth->flash = array('key' => 'error');
+    }
+
     if($this->request->is('restful')) {
       // Do not allow route fallbacks
       $rparams = $this->request->params;
