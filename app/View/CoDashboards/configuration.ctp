@@ -173,7 +173,7 @@ if(!empty($menuContent['plugins'])) {
   foreach($pluginLinks as $label => $pcfg) {
     // $pcfg['url']['co'] is set, but will be overridden below
     $configMenuItems[$label] = $pcfg['url'];
-    $configMenuItems[$label]['icon'] = isset($cfg['icon']) ?  $cfg['icon'] : 'apps';
+    $configMenuItems[$label]['icon'] = isset($pcfg['icon']) ?  $pcfg['icon'] : 'apps';
   }
 }
 
