@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Properly render plugin icons in Configuration View
 - Do not redirect on unauthorized AJAX requests
+- Bring loader in front of the lightbox element
 
 ## [3.4.1-rciam] - 2022-02-11
 

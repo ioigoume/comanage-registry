@@ -71,7 +71,7 @@ var coSpinnerOpts = {
   shadow: false, // Whether to render a shadow
   hwaccel: false, // Whether to use hardware acceleration
   className: 'spinner', // The CSS class to assign to the spinner
-  zIndex: 100 // The z-index (defaults to 2000000000)
+  zIndex: 10000 // The z-index (defaults to 2000000000)
 };
 
 // show a spinner
