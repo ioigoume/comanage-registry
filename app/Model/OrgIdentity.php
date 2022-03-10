@@ -593,109 +593,176 @@ class OrgIdentity extends AppModel {
       $args['contain']['TelephoneNumber']['conditions']['TelephoneNumber.type ='] = ContactEnum::Office;
       
       $curOrgIdentity = $this->find('first', $args);
+      $failure_summary = '';
+      $newOrgIdentity = $this->updateOrgIdentity($curOrgIdentity, $envOrgIdentity, $failure_summary, 'env', $authnAuthority); 
+    }
+    return $newOrgIdentity;
+  }
       
-      // Walk through the models. Start with OrgIdentity, which has to be handled specially.
-      // Start by copying all existing values in this model, since we will not get them all
-      // via the environment, and we may not get any (in which case we need at least id
-      // in order for SaveAssociated to know what to do).
+
+  
+  /**
+   * syncByIdentifier
+   *
+   * @param  mixed $identifier
+   * @param  mixed $jobData
+   * @param  mixed $failure_summary
+   * @return void
+   */
+  public function syncByIdentifier($identifier, $jobData = null, &$failure_summary = null) {
+    
+    if(empty($jobData)) {
+      $failure_summary = _txt('er.orgi.job_data.empty');
+      return false;
+    }
+    $jobData = json_decode($jobData, true);
+    $jobData = $this->getEnvMappingWithValues($jobData);
+    if(empty($jobData['OrgIdentity'])) {
+      $failure_summary = _txt('er.orgi.job_data.empty');
+      return false;
+    }
+    $this->log(__METHOD__ . "::JobData values => " . var_export($jobData, true), LOG_DEBUG);
+    $args = array();
+    $args['joins'][0]['table'] = 'cm_identifiers';
+    $args['joins'][0]['alias'] = 'Identifier';
+    $args['joins'][0]['type'] = 'INNER';
+    $args['joins'][0]['conditions'][0] = 'Identifier.org_identity_id=OrgIdentity.id';
+    $args['conditions']['Identifier.identifier'] = $identifier;
+    $args['conditions']['Identifier.login'] = true;   // Make this login to avoid any conflict with RCAuth
+    $args['conditions']['Identifier.status'] = SuspendableStatusEnum::Active;
+    $args['conditions'][] = 'Identifier.org_identity_id IS NOT NULL';
+    
+    $args['contain'] = array(
+      'Address',
+      //'AdHocAttribute',
+      'EmailAddress',
+      'Identifier',
+      'Name',
+      'TelephoneNumber',
+      'Url'
+    );
+    
+    $curOrgIdentity = $this->find('first', $args);
+    $newOrgIdentity = $this->updateOrgIdentity($curOrgIdentity, $jobData, $failure_summary, 'jobScheduler');
+    $this->log(__METHOD__ . "::newOrgIdentity values => " . var_export($newOrgIdentity, true), LOG_DEBUG);
+    // Return updated OrgIdentity & associated values  
+    return $newOrgIdentity;
+  }
+     
+  /**
+   * updateOrgIdentity
+   *
+   * @param  mixed $curOrgIdentity
+   * @param  mixed $extOrgIdentity
+   * @param  mixed $source
+   * @param  mixed $authnAuthority
+   * @return void
+   */
+  public function updateOrgIdentity($curOrgIdentity, $extOrgIdentity, &$failure_summary, $source, $authnAuthority = NULL) {
+    // Walk through the models. Start with OrgIdentity, which has to be handled specially.
+    // Start by copying all existing values in this model, since we will not get them all
+    // via the environment/ job scheduler, and we may not get any (in which case we need at least id
+    // in order for SaveAssociated to know what to do).
+    $newOrgIdentity['OrgIdentity'] = $curOrgIdentity['OrgIdentity'];
       
-      $newOrgIdentity['OrgIdentity'] = $curOrgIdentity['OrgIdentity'];
+    if(!empty($extOrgIdentity['OrgIdentity'])) {
+      // Copy each defined field to the record to be saved
       
-      if(!empty($envOrgIdentity['OrgIdentity'])) {
-        // Copy each defined field to the record to be saved
-        
-        foreach(array_keys($envOrgIdentity['OrgIdentity']) as $f) {
-          if($f == 'affiliation') {
-            // Affiliation has to be a valid edupersonaffiliation. If it's not, we'll
-            // just drop it on the floor.
-            
-            global $affil_t;
-            
-            if(isset($affil_t[ $envOrgIdentity['OrgIdentity'][$f] ])) {
-              $newOrgIdentity['OrgIdentity'][$f] = $envOrgIdentity['OrgIdentity'][$f];
-            }
-          } else {
-            // Just copy other attributes
-            
-            $newOrgIdentity['OrgIdentity'][$f] = $envOrgIdentity['OrgIdentity'][$f];
+      foreach(array_keys($extOrgIdentity['OrgIdentity']) as $f) {
+        if($f == 'affiliation') {
+          // Affiliation has to be a valid edupersonaffiliation. If it's not, we'll
+          // just drop it on the floor.
+          
+          global $affil_t;
+          
+          if(isset($affil_t[ $extOrgIdentity['OrgIdentity'][$f] ])) {
+            $newOrgIdentity['OrgIdentity'][$f] = $extOrgIdentity['OrgIdentity'][$f];
           }
+        } else {
+          // Just copy other attributes
+          
+          $newOrgIdentity['OrgIdentity'][$f] = $extOrgIdentity['OrgIdentity'][$f];
         }
       }
+    }
 
+    if($source == 'env') {
       // Assign the authn_authority value
       $newOrgIdentity['OrgIdentity']['authn_authority'] = $authnAuthority;
-      
-      // We don't want to save models which have no associated env data, so iterate
-      // through the models defined by the contain and check.
-      
-      // Note that EmailAddress::beforeSave() will correctly decide what to do about verified.
-      // Similarly, Name::beforeSave() will determine what to do about primary_name.
-      
-      foreach(array('Address', 'EmailAddress', 'Name', 'TelephoneNumber') as $m) {
-        if(!empty($envOrgIdentity[$m][0])) {
-          $newModels[] = $m;
+    }
+    
+    // We don't want to save models which have no associated env data, so iterate
+    // through the models defined by the contain and check.
+    
+    // Note that EmailAddress::beforeSave() will correctly decide what to do about verified.
+    // Similarly, Name::beforeSave() will determine what to do about primary_name.
+    
+    foreach(array('Address', 'EmailAddress', 'Name', 'TelephoneNumber') as $m) {
+      if(!empty($extOrgIdentity[$m][0])) {
+        $newModels[] = $m;
 
-          if(!empty($curOrgIdentity[$m])) {
-            // Update any record we find, but we need to preserve id
-            
-            foreach(array_keys($curOrgIdentity[$m]) as $instance) {
-              $id = $curOrgIdentity[$m][$instance]['id'];
+        if(!empty($curOrgIdentity[$m])) {
+          // Update any record we find, but we need to preserve id
+          
+          foreach(array_keys($curOrgIdentity[$m]) as $instance) {
+            $id = $curOrgIdentity[$m][$instance]['id'];
 
-              $newOrgIdentity[$m][$instance] = $envOrgIdentity[$m][0];
-              $newOrgIdentity[$m][$instance]['id'] = $id;
-            }
-          } else {
-            // Create a new instance... simple copy
-            $newOrgIdentity[$m] = $envOrgIdentity[$m];
+            $newOrgIdentity[$m][$instance] = $extOrgIdentity[$m][0];
+            $newOrgIdentity[$m][$instance]['id'] = $id;
           }
-        }
-      }
-      
-      // Use changesToString to determine if anything actually changed
-      
-      $changes = $this->changesToString($newOrgIdentity,
-                                        $curOrgIdentity,
-                                        (!empty($curOrgIdentity['OrgIdentity']['co_id'])
-                                         ? $curOrgIdentity['OrgIdentity']['co_id']
-                                         : null),
-                                        $newModels);
-      
-      if($changes != "") {
-        // Run changesToString again for each associated model, this time to clear
-        // models that had no changes (to avoid updating their modified times)
-        
-        try {
-          foreach($newModels as $m) {
-            $mchanges = $this->$m->changesToString($newOrgIdentity,
-                                                   $curOrgIdentity,
-                                                   (!empty($curOrgIdentity['OrgIdentity']['co_id'])
-                                                    ? $curOrgIdentity['OrgIdentity']['co_id']
-                                                    : null));
-            
-            if($mchanges == "") {
-              // No changes, so don't try to save this model
-              unset($newOrgIdentity[$m]);
-            }
-          }
-          
-          $this->saveAssociated($newOrgIdentity);
-          
-          $this->HistoryRecord->record(null,
-                                       null,
-                                       $curOrgIdentity['OrgIdentity']['id'],
-                                       null,
-                                       ActionEnum::OrgIdEditedLoginEnv,
-                                       _txt('en.action', null, ActionEnum::OrgIdEditedLoginEnv) . ": " .
-                                       $changes);
-        }
-        catch(Exception $e) {
-          throw new RuntimeException($e);
+        } else {
+          // Create a new instance... simple copy
+          $newOrgIdentity[$m] = $extOrgIdentity[$m];
         }
       }
     }
     
-    // Return updated OrgIdentity & associated values
+    // Use changesToString to determine if anything actually changed
     
+    $changes = $this->changesToString($newOrgIdentity,
+                                      $curOrgIdentity,
+                                      (!empty($curOrgIdentity['OrgIdentity']['co_id'])
+                                        ? $curOrgIdentity['OrgIdentity']['co_id']
+                                        : null),
+                                      $newModels);
+    
+    if($changes != "") {
+      // Run changesToString again for each associated model, this time to clear
+      // models that had no changes (to avoid updating their modified times)
+      
+      try {
+        foreach($newModels as $m) {
+          $mchanges = $this->$m->changesToString($newOrgIdentity,
+                                                  $curOrgIdentity,
+                                                  (!empty($curOrgIdentity['OrgIdentity']['co_id'])
+                                                  ? $curOrgIdentity['OrgIdentity']['co_id']
+                                                  : null));
+          
+          if($mchanges == "") {
+            // No changes, so don't try to save this model
+            unset($newOrgIdentity[$m]);
+          }
+        }
+        
+        $status = $this->saveAssociated($newOrgIdentity);
+        if($status === false) {
+          $failure_summary = _txt('er.orgi.save_associated');
+          return false;
+        }
+        $action = ($source == 'jobScheduler' ? ActionEnum::OrgIdEditedJobShell : ActionEnum::OrgIdEditedLoginEnv);
+        $this->HistoryRecord->record(null,
+                                      null,
+                                      $curOrgIdentity['OrgIdentity']['id'],
+                                      null,
+                                      $action,
+                                      _txt('en.action', null, $action) . ": " .
+                                      $changes);
+      }
+      catch(Exception $e) {
+        throw new RuntimeException($e);
+      }
+    }
+    // Return updated OrgIdentity & associated values  
     return $newOrgIdentity;
   }
 
@@ -725,4 +792,44 @@ class OrgIdentity extends AppModel {
 
     return $this->find('all', $oargs);
   }
+
+  /**
+   * Get Attributes map from CMP Enrollment Configuration
+   *
+   * @return string
+   */
+  public function getEnvMappingWithValues($jobData) {
+    
+    $this->CmpEnrollmentConfiguration = ClassRegistry::init('CmpEnrollmentConfiguration');
+    $env_attributes = $this->CmpEnrollmentConfiguration->enrollmentAttributesFromEnv();
+    $this->log(__METHOD__ . "::getEnvMapping values => " . var_export($env_attributes, true), LOG_DEBUG);
+    $modelsWithValues = array();
+    foreach($env_attributes as $attr) {
+      if(strpos($attr['attribute'], ":") !== false) {
+        $model_attr = explode(':', $attr['attribute']);
+        $model = Inflector::camelize(Inflector::singularize($model_attr[0]));
+        $attribute = $model_attr[1];
+        if(!empty($jobData[$attr['env_name']])){
+          $modelsWithValues[$model][0][$attribute] = $jobData[$attr['env_name']][0];
+        }
+        // For now we don't support any other type than 'Official'
+        if(($model == 'EmailAddress' || $model == 'Name') && empty($modelsWithValues[$model][0]['type'])) {
+          $modelsWithValues[$model][0]['type'] = 'official';
+        }
+
+      } else {
+        $model = 'OrgIdentity';
+        $attribute = $attr['attribute'];
+        // If Idp doesn't send affiliation then we store 'member' as default value
+        if($attribute == 'affiliation' && empty($jobData[$attr['env_name']])) {
+          $modelsWithValues[$model][$attribute] = 'member';
+        } else if(!empty($jobData[$attr['env_name']])){
+          $modelsWithValues[$model][$attribute] = $jobData[$attr['env_name']][0];
+        }
+      }     
+    }
+    $this->log(__METHOD__ . "::model values => " . var_export($modelsWithValues, true), LOG_DEBUG);
+    return $modelsWithValues;
+  }
+
 }
