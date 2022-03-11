@@ -102,6 +102,7 @@ class ActionEnum
   const OrgIdAddedSource                = 'AOIS';
   const OrgIdDeletedManual              = 'DOIM';
   const OrgIdDeletedPetition            = 'DOIP';
+  const OrgIdEditedJobShell             = 'EOIJ';
   const OrgIdEditedLoginEnv             = 'EOIE';
   const OrgIdEditedManual               = 'EOIM';
   const OrgIdEditedPetition             = 'EOIP';

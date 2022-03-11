@@ -1210,6 +1210,8 @@ original notification at
   'er.ois.search.mail.none' => 'No records were found matching the email address "%1$s"',
   'er.ois.sync.full.inventory' => 'OIS backend is configured for full sync, but backend does not support inventory() call',
   'er.ois.val.name' => 'Backend did not provide a valid Primary Name',
+  'er.orgi.job_data.empty' => 'JobData variable is empty or no Org Identity included to JobData',
+  'er.orgi.save_associated' => 'Failed to save changes coming from Job Scheduler',
   'er.orgp.nomail' => '%1$s (Org Identity %2$s) has no known email address.<br />Add an email address and then try again.',
   'er.orgp.pool' =>   'Failed to pool organizational identities',
   'er.orgp.unk-a' =>  'Unknown Org Identity "%1$s"',

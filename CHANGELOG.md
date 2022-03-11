@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - COU level API User
 - Support VO Members REST API v2
-- Support Syncing Assurance and Cert Models from Job Shell
+- Support Syncing for Assurance, Cert And OrgIdentity Model from Job Shell
 
 ### Fixed
 
