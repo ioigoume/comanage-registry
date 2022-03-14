@@ -323,6 +323,7 @@ original notification at
     ActionEnum::OrgIdAddedSource            => 'Org Identity Created (Source)',
     ActionEnum::OrgIdDeletedManual          => 'Org Identity Deleted (Manual)',
     ActionEnum::OrgIdDeletedPetition        => 'Org Identity Deleted (Petition)',
+    ActionEnum::OrgIdEditedJobShell         => 'Org Identity Edited (Job Shell)',
     ActionEnum::OrgIdEditedLoginEnv         => 'Org Identity Edited (Login, Env)',
     ActionEnum::OrgIdEditedManual           => 'Org Identity Edited (Manual)',
     ActionEnum::OrgIdEditedPetition         => 'Org Identity Edited (Petition)',
