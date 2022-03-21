@@ -139,7 +139,7 @@
 
             <ul id="<?php print $this->action; ?>_co_petition" class="fields form-list">
               <li>
-                <div class="field-name"><?php print _txt('fd.status'); ?></div>
+                <div class="field-name field-name-status"><?php print _txt('fd.status'); ?></div>
                 <div class="field-info">
                   <?php
                     print '<span class="status ' . $co_petitions[0]['CoPetition']['status'] . '">';
@@ -193,6 +193,16 @@
                   <?php
                     if(isset($co_petitions[0]['ApproverCoPerson']['PrimaryName'])) {
                       print filter_var(generateCn($co_petitions[0]['ApproverCoPerson']['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS);
+                    }
+                  ?>
+                </div>
+              </li>
+              <li>
+                <div class="field-name"><?php print _txt('fd.pt.approver_comment'); ?></div>
+                <div class="field-info">
+                  <?php
+                    if(isset($co_petitions[0]['CoPetition']['approver_comment'])) {
+                      print filter_var($co_petitions[0]['CoPetition']['approver_comment'],FILTER_SANITIZE_SPECIAL_CHARS);
                     }
                   ?>
                 </div>

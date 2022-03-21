@@ -88,42 +88,54 @@ if($permissions['isEnrollee'] && !empty($vv_coef_next_step) && !in_array($status
     array('class' => 'checkbutton approve-button')
   );
 }
-if($status == PetitionStatusEnum::PendingApproval) {
-  if($permissions['isEnrollee'] && !($permissions['approve'])) {
-    print "<button id='notify-approver' class='ui-button ui-widget' onclick='return false;'  data-ptid = \"".$co_petitions[0]['CoPetition']['id']."\" data-coef= \"".$co_petitions[0]['CoPetition']['co_enrollment_flow_id']."\">Notify Approver(s) Again</button><span class='inprogress' style='display:none'>&nbsp;Please wait...</span>";
-  }
-  else if($permissions['approve']) {
-    print $this->Html->link(
-      _txt('op.approve'),
-      array(
-        'controller' => 'co_petitions',
-        'action' => 'approve',
-        $co_petitions[0]['CoPetition']['id'],
-        'co' => $co_petitions[0]['CoPetition']['co_id'],
-        'coef' => $co_petitions[0]['CoPetition']['co_enrollment_flow_id']
-      ),
-      array('class' => 'checkbutton approve-button')
-    );
-  }
-}
 
 if(
   $status == PetitionStatusEnum::PendingApproval
   || $status == PetitionStatusEnum::PendingConfirmation
 ) {
-  if($permissions['deny']) {
-    print $this->Html->link(
-      _txt('op.deny'),
-      array(
-        'controller' => 'co_petitions',
-        'action' => 'deny',
-        $co_petitions[0]['CoPetition']['id'],
-        'co' => $co_petitions[0]['CoPetition']['co_id'],
-        'coef' => $co_petitions[0]['CoPetition']['co_enrollment_flow_id']
-      ),
-      array('class' => 'cancelbutton deny-button')
+  // We create a form here as part of CO-1658, since it's cleaner than
+  // grabbing the comment and stuffing it into a GET paramater on submit.
+  // For now this isn't a problem because even though we're in fields.inc,
+  // petitions only get rendered via view, not edit. However, whenever CO-431
+  // (edit petitions) gets implemented this would change. At that time
+  // this may need to be reimplemented, possibly with the use of the HTML5
+  // "form" attribute eg <input type="text" form="approverForm" ...>
+  // (browser support should be better by then), or by simply only allowing
+  // approval/denial when viewing (not editing) the petition.
+
+  $args = array(
+    'type' => 'post',
+    'url' => array(
+      'controller' => 'co_petitions', 
+      'action' => 'approve',
+      $co_petitions[0]['CoPetition']['id']
+    )
+  );
+
+  print $this->Form->create('CoPetition', $args);
+
+  if($co_petitions[0]['CoPetition']['status'] == PetitionStatusEnum::PendingApproval) {
+    print $this->Form->submit(_txt('op.approve'),
+                              array(
+                                'class' => 'checkbutton approve-button',
+                                'name'  => 'action')
     );
   }
+  print $this->Form->submit(_txt('op.deny'),
+                            array(
+                              'class' => 'cancelbutton deny-button',
+                              'name'  => 'action')
+  );
+
+  print $this->Form->textarea('approver_comment',
+                            array(
+                              'label' => _txt('fd.pt.approver_comment'),
+                              'placeholder' => _txt('en.required', null, RequiredEnum::Optional),
+                              'size' => 4000
+                          ));
+
+  print '<div class="field-desc">' . _txt('fd.pt.approver_comment.desc') . '</div>';
+  print $this->Form->end();
   if($status == PetitionStatusEnum::PendingConfirmation && $permissions['view']) {
     $displayNameWithId = (!empty($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']) ? generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']) : _txt('fd.enrollee.new')) . ' (' . $co_petitions[0]['CoPetition']['status'] . ')';
     if($permissions['resend']) {

@@ -713,6 +713,12 @@ class CoNotification extends AppModel {
     if($this->save($n['CoNotification'])) {
       // Make sure we don't lose it
       $notificationId = $this->id;
+
+      $args = array();
+      $args['conditions']['ActorCoPerson.id'] = $actorCoPersonId;
+      $args['contain'][] = 'PrimaryName';
+
+      $actor = $this->ActorCoPerson->find('first', $args);
       
       foreach($recipients as $recipient) {
         $toaddr = null;
@@ -742,7 +748,7 @@ class CoNotification extends AppModel {
                              $coName,
                              $comment,
                              $sourceurl,
-                             null,
+                             !empty($actor['PrimaryName']) ? generateCn($actor['PrimaryName']) : "(?)",
                              $fromAddress,
                              false,
                              $cc,
