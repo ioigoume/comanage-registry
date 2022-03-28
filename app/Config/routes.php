@@ -78,6 +78,7 @@ Router::mapResources(array(
   'co_org_identity_links',
   'co_people',
   'co_person_roles',
+  'co_provisioning_targets',
   'co_services',
   'co_t_and_c_agreements',
   'co_terms_and_conditions',
@@ -125,6 +126,14 @@ Router::connect(
   )
 );
 
+Router::connect(
+  '/co_provisioning_targets/provision/:id/*',
+  array('controller' => 'co_provisioning_targets', 'action' => 'provision', '[method]' => 'POST'),
+  array(
+    'pass' => array('id'),
+    'id' => '[0-9]+'
+  )
+);
 
 Router::parseExtensions('json', 'xml');
 

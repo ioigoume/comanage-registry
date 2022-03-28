@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Implement notification on membership denial/ approval
 
+### Fixed
+
+- Fix manual provisioning action
+
 ## [3.4.2-rciam] - 2022-03-17
 
 ### Added
