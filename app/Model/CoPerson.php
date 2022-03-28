@@ -132,6 +132,7 @@ class CoPerson extends AppModel {
   // Default display field for cake generated views
   public $displayField = "PrimaryName.family";
 
+  // Select clause for the paginator
   private $paginate_fields = array( "DISTINCT CoPerson.id","PrimaryName.given","PrimaryName.family","CoPerson.status");
 
   // Validation rules for table elements
@@ -755,10 +756,18 @@ class CoPerson extends AppModel {
   public function paginateCount($conditions, $recursive, $extra) {
     $fields = $this->getPaginateFields();
     $parameters = compact('conditions', 'fields');
-    // count does not take into account DISTINCT key in Select statement
-    $result = $this->find('all', array_merge($parameters, $extra));
-    return sizeof($result);
+    if ($recursive != $this->recursive) {
+      $parameters['recursive'] = $recursive;
+    }
+    // count does not take into account DISTINCT key in Select clause
+    $results = $this->find('all', array_merge($parameters, $extra));
 
+    if (!$results) {
+      $count = 0;
+    } else {
+      $count = count($results);
+    }
+    return $count;
   }
 
   /**
