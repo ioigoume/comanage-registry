@@ -209,10 +209,12 @@ if(isset($permissions['search']) && $permissions['search'] ) {
                             StatusEnum::PendingConfirmation,
                             StatusEnum::Suspended);
   $status_permitted = null;
-  foreach ($cp_cou_membership_status[$cou_id] as $person_role_cou_status) {
-    $status_permitted = in_array($person_role_cou_status, $allowed_statuses);
-    if($status_permitted) {
-      break;
+  if(!empty($cp_cou_membership_status[$cou_id])) {
+    foreach ($cp_cou_membership_status[$cou_id] as $person_role_cou_status) {
+      $status_permitted = in_array($person_role_cou_status, $allowed_statuses);
+      if($status_permitted) {
+        break;
+      }
     }
   }
 

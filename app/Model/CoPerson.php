@@ -131,11 +131,9 @@ class CoPerson extends AppModel {
 
   // Default display field for cake generated views
   public $displayField = "PrimaryName.family";
-  
-  // Default ordering for find operations
-// XXX CO-296 Toss default order?
-//  public $order = array("CoPerson.id");
-  
+
+  private $paginate_fields = array( "DISTINCT CoPerson.id","PrimaryName.given","PrimaryName.family","CoPerson.status");
+
   // Validation rules for table elements
   // Validation rules must be named 'content' for petition dynamic rule adjustment
   public $validate = array(
@@ -639,7 +637,15 @@ class CoPerson extends AppModel {
     
     return $ret;
   }
-  
+
+  /**
+   * @return string[]
+   */
+  public function getPaginateFields()
+  {
+    return $this->paginate_fields;
+  }
+
   /**
    * Attempt to match existing records based on the provided criteria.
    *
@@ -734,6 +740,25 @@ class CoPerson extends AppModel {
       array_push($linkedOrgIds, $tmpEntry);
     }
     return $linkedOrgIds;
+  }
+
+  /**
+   * Return number of pages. By default CAKEPHP takes into account
+   * only 'conditions' and ignores 'fields'. As a result DISTINCT is
+   * not part of the count query
+   *
+   * @param $conditions
+   * @param $recursive
+   * @param $extra
+   * @return int|void
+   */
+  public function paginateCount($conditions, $recursive, $extra) {
+    $fields = $this->getPaginateFields();
+    $parameters = compact('conditions', 'fields');
+    // count does not take into account DISTINCT key in Select statement
+    $result = $this->find('all', array_merge($parameters, $extra));
+    return sizeof($result);
+
   }
 
   /**

@@ -1013,8 +1013,6 @@ class CoPeopleController extends StandardController {
     
     // Filter by COU
     if(!empty($this->params['named']['Search.couid'])) {
-      $this->paginate['fields'] = array( "DISTINCT CoPerson.id","PrimaryName.given","PrimaryName.family","CoPerson.status");
-
       $pagcond['conditions']['CoPersonRole.cou_id'] = $this->params['named']['Search.couid'];
       $pagcond['joins'][] = array(
         'table' => 'co_person_roles',
@@ -1025,7 +1023,9 @@ class CoPeopleController extends StandardController {
         )
       );
     }
-    
+
+    $this->paginate['fields'] = $this->CoPerson->getPaginateFields();
+
     // We need to manually add this in for some reason. (It should have been
     // added automatically by Cake based on the CoPerson Model definition of
     // PrimaryName.)
