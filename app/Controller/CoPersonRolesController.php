@@ -561,6 +561,13 @@ class CoPersonRolesController extends StandardController {
       }
     }
 
+    // Assign a Person that i manage, a Role that i manage
+    if(!empty($this->request->params['named']['copersonid'])
+       && $this->request->action == 'add') {
+      $managed = $this->Role->isCoOrCouAdminForCoPerson($roles['copersonid'],
+                                                        $this->request->params['named']['copersonid']);
+    }
+
     if($this->request->is('restful')) {
       $this->Api->parseRestRequestDocument();
 

@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
 
 - Fix manual provisioning action
+- Permit VO managers to manually assign roles to people they manage
 
 ## [3.4.2-rciam] - 2022-03-17
 
