@@ -2088,7 +2088,7 @@ class CoPetition extends AppModel {
       
       $subs = array(
         'APPROVER_COMMENT' => (!empty($pt['CoPetition']['approver_comment'])
-        ? $pt['CoPetition']['approver_comment'] : null),
+                               ? $pt['CoPetition']['approver_comment'] : _txt('rs.pt.empty.approver.comment')),
         'CO_PERSON' => generateCn($pt['EnrolleeCoPerson']['PrimaryName']),
         'NEW_COU'   => (!empty($pt['EnrolleeCoPerson']['CoPersonRole'][0]['Cou']['name'])
                         ? $pt['EnrolleeCoPerson']['CoPersonRole'][0]['Cou']['name'] : null),
