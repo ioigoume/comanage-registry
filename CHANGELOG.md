@@ -3,11 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## Unreleased
+## [3.4.3-rciam] - 2022-03-29
 
 ### Added
 
-- Implement notification on membership denial/ approval
+- Support for adding review comment in notification on membership denial/approval
 
 ### Fixed
 
