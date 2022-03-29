@@ -2197,6 +2197,7 @@ original notification at
   'rs.pt.create.self' => 'Petition Created. You may need to check your email for further information.', 
   'rs.pt.deny' =>     'Petition Denied',
   'rs.pt.dupe' =>     'Petition Flagged as Duplicate',
+  'rs.pt.empty.approver.comment' => 'No comment provided.',
   'rs.pt.final' =>    'Petition Finalized',
   'rs.pt.id.attached' => 'Authenticated identifier "%1$s" attached to organizational identity',
   'rs.pt.id.auth' =>  'Identifier "%1$s" authenticated',
