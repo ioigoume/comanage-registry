@@ -92,7 +92,16 @@ class CoPetitionsController extends StandardController {
   // stored in a petition.
   public $view_contains = array(
     'ApproverCoPerson' => 'PrimaryName',
-    'EnrolleeCoPerson' => 'PrimaryName',
+    'EnrolleeCoPerson' => array(
+      'PrimaryName',
+      'EmailAddress',
+      'CoOrgIdentityLink' => array(
+        'OrgIdentity' => array(
+          'OrgIdentitySourceRecord' => array('OrgIdentitySource'),
+          'Assurance'
+        )
+      )
+    ),
     'EnrolleeOrgIdentity' => 'PrimaryName',
     'PetitionerCoPerson' => 'PrimaryName',
     'SponsorCoPerson' => 'PrimaryName',
@@ -583,6 +592,13 @@ class CoPetitionsController extends StandardController {
     }
     
     parent::beforeRender();
+
+    if($this->request->action == 'view') {
+      // Extract assurance data
+      $co_petitions = $this->viewVars['co_petitions'] ?? array();
+      $org_identities = Hash::extract($co_petitions, '{n}.EnrolleeCoPerson.CoOrgIdentityLink.{n}.OrgIdentity');
+      $this->set('vv_org_identities', $org_identities);
+    }
   }
   
   /**
