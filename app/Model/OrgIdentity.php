@@ -743,8 +743,12 @@ class OrgIdentity extends AppModel {
             unset($newOrgIdentity[$m]);
           }
         }
-        
-        $status = $this->saveAssociated($newOrgIdentity);
+        $options = array();
+        // In order to save if mail is verified we need to pass trustVerified attribute.
+        if(!empty($newOrgIdentity['EmailAddress'][0]) && !empty($newOrgIdentity['EmailAddress'][0]['verified'])) {
+          $options = array('trustVerified' => $newOrgIdentity['EmailAddress'][0]['verified']);
+        }
+        $status = $this->saveAssociated($newOrgIdentity, $options);
         if($status === false) {
           $failure_summary = _txt('er.orgi.save_associated');
           return false;
@@ -812,10 +816,6 @@ class OrgIdentity extends AppModel {
         if(!empty($jobData[$attr['env_name']])){
           $modelsWithValues[$model][0][$attribute] = $jobData[$attr['env_name']][0];
         }
-        // For now we don't support any other type than 'Official'
-        if(($model == 'EmailAddress' || $model == 'Name') && empty($modelsWithValues[$model][0]['type'])) {
-          $modelsWithValues[$model][0]['type'] = 'official';
-        }
 
       } else {
         $model = 'OrgIdentity';
@@ -827,6 +827,24 @@ class OrgIdentity extends AppModel {
           $modelsWithValues[$model][$attribute] = $jobData[$attr['env_name']][0];
         }
       }     
+    }
+    if(!empty($modelsWithValues['Name'][0])) {
+      $modelsWithValues['Name'][0]['primary_name'] = true;
+      if(empty($modelsWithValues['Name'][0]['type'])){
+        $modelsWithValues['Name'][0]['type'] = 'official';
+      }
+    }
+
+    // For now we don't support any other type than 'Official'
+    if(!empty($modelsWithValues['EmailAddress'][0])) {
+      if(empty($modelsWithValues['EmailAddress'][0]['type'])) {
+        $modelsWithValues['EmailAddress'][0]['type'] = 'official';
+      }
+      // This is a custom attribute to check if mail is verified
+      if(!empty($jobData['verified_email'])) {
+        $modelsWithValues['EmailAddress'][0]['verified'] = true;
+      }
+
     }
     $this->log(__METHOD__ . "::model values => " . var_export($modelsWithValues, true), LOG_DEBUG);
     return $modelsWithValues;
