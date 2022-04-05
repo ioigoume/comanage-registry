@@ -133,7 +133,7 @@ class CoPerson extends AppModel {
   public $displayField = "PrimaryName.family";
 
   // Select clause for the paginator
-  private $paginate_fields = array( "DISTINCT CoPerson.id","PrimaryName.given","PrimaryName.family","CoPerson.status");
+  private $paginate_fields = array("DISTINCT CoPerson.id","PrimaryName.given","PrimaryName.family","CoPerson.status");
 
   // Validation rules for table elements
   // Validation rules must be named 'content' for petition dynamic rule adjustment
@@ -751,23 +751,22 @@ class CoPerson extends AppModel {
    * @param $conditions
    * @param $recursive
    * @param $extra
-   * @return int|void
+   * @return int
    */
   public function paginateCount($conditions, $recursive, $extra) {
-    $fields = $this->getPaginateFields();
-    $parameters = compact('conditions', 'fields');
+    $args = array();
+    $args['conditions'] = $conditions;
     if ($recursive != $this->recursive) {
-      $parameters['recursive'] = $recursive;
+      $args['recursive'] = $recursive;
     }
-    // count does not take into account DISTINCT key in Select clause
-    $results = $this->find('all', array_merge($parameters, $extra));
-
-    if (!$results) {
-      $count = 0;
-    } else {
-      $count = count($results);
-    }
-    return $count;
+    $args = array_merge($args, $extra);
+    // NOTE: According to the documentation:
+    //       Don’t pass fields as an array to find('count').
+    //       You would only need to specify fields for a DISTINCT
+    //       count (since otherwise, the count is always the same,
+    //       dictated by the conditions).
+    $args['fields'] = 'DISTINCT "' . $this->name . '"."id"';
+    return $this->find('count', $args);
   }
 
   /**
