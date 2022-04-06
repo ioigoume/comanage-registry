@@ -123,7 +123,8 @@ class Name extends AppModel {
                                                  NameEnum::Author,
                                                  NameEnum::FKA,
                                                  NameEnum::Official,
-                                                 NameEnum::Preferred))),
+                                                 NameEnum::Preferred,
+                                                 NameEnum::SelfAsserted))),
         'required' => true,
         'allowEmpty' => false
       )

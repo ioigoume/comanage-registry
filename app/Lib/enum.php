@@ -252,6 +252,7 @@ class EmailAddressEnum {
   const Personal      = 'personal';
   const Preferred     = 'preferred';
   const Recovery      = 'recovery';
+  const SelfAsserted  = 'selfasserted';
 }
 
 class EnrollmentAuthzEnum {
@@ -405,11 +406,12 @@ class MessageTemplateEnum
 
 class NameEnum
 {
-  const Alternate = 'alternate';
-  const Author    = 'author';
-  const FKA       = 'fka';
-  const Official  = 'official';
-  const Preferred = 'preferred';
+  const Alternate    = 'alternate';
+  const Author       = 'author';
+  const FKA          = 'fka';
+  const Official     = 'official';
+  const Preferred    = 'preferred';
+  const SelfAsserted = 'selfasserted';
 }
 
 class NotificationStatusEnum
