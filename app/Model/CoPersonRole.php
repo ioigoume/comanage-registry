@@ -324,7 +324,10 @@ class CoPersonRole extends AppModel {
     $this->cachedData = null;
 
     // Check for null COU
-    if(!isset($options['trustStatus']) || !$options['trustStatus']) {
+    // XXX Since we are calling RoleComponent we need to identify if the caller is the MVC or the shell
+    //     The shell has no knowledge of the RoleComponent and the code will fail
+    if(!empty($_SESSION)
+       && (!isset($options['trustStatus']) || !$options['trustStatus']) ) {
       if(empty($this->data[$this->alias]['cou_id'])) {
         $actor_identifier = $this->data["CoPersonRole"]["actor_identifier"];
         // Even though it is not a good practice to load RoleComponent in the Model we do not have a choice.

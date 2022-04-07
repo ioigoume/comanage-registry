@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
 
 - MyPopulation load for CO admins
+- Failing to load RoleComponent on a CoPersonRole edit
 
 ## [3.4.3-rciam] - 2022-03-29
 
