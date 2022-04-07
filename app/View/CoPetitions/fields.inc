@@ -242,7 +242,10 @@
                     if(!empty($co_petitions[0]['EnrolleeCoPerson']['id'])) {
                       if($permissions['index']) {
                         print $this->Html->link(
-                          generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']),
+                          generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName'])
+                          . " ("
+                          . ($co_petitions[0]['EnrolleeCoPerson']["EmailAddress"][0]['mail'] ?? 'Unknown Email')
+                          . ")",
                           array(
                             'controller'    => 'co_people',
                             'action'        => 'canvas',
@@ -251,7 +254,10 @@
                         );
                       }                   
                       else { //Show just plain text
-                        print generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']);
+                        print generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName'])
+                          . " ("
+                          . ($co_petitions[0]['EnrolleeCoPerson']["EmailAddress"][0]['mail'] ?? 'Unknown Email')
+                          . ")";
                       }
                     }
                   ?>
@@ -323,6 +329,33 @@
                   ?>
                 </div>
               </li>
+            </ul>
+          </li>
+
+          <li id="assurance-petition" class="fieldGroup">
+            <a href="#tabs-assurance" class="fieldGroupName">
+              <em class="material-icons">indeterminate_check_box</em>
+              <?php print _txt('ct.assurances.1'); ?>
+            </a>
+
+            <ul id=co_petition_assurances" class="fields form-list">
+              <?php foreach($vv_org_identities as $org_identity): ?>
+                <li style="display: flex !important;align-items: center;">
+                  <div class="field-name"><?php
+                      print _txt('ct.org_identities.1')
+                            . ' ('
+                            . ($org_identity['authn_authority'] ?? $org_identity['OrgIdentitySourceRecord']['OrgIdentitySource']['description'] ?? "unknown")
+                            . ')';
+                      ?></div>
+                  <div class="field-info">
+                  <?php
+                    foreach($org_identity['Assurance'] as $assurance) {
+                      print $assurance['value'] . ' (' . $assurance['type'] . ')' . '<br>';
+                    }
+                  ?>
+                  </div>
+                </li>
+              <?php endforeach; ?>
             </ul>
           </li>
         <?php endif; // action != add ?>
