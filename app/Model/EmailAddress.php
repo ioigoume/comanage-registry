@@ -96,7 +96,8 @@ class EmailAddress extends AppModel {
                                                  EmailAddressEnum::Official,
                                                  EmailAddressEnum::Personal,
                                                  EmailAddressEnum::Preferred,
-                                                 EmailAddressEnum::Recovery))),
+                                                 EmailAddressEnum::Recovery,
+                                                 EmailAddressEnum::SelfAsserted))),
         'required' => false,
         'allowEmpty' => false
       )
@@ -203,8 +204,11 @@ class EmailAddress extends AppModel {
           // Email address was changed, flag as unverified
           $this->data['EmailAddress']['verified'] = false;
         } else {
-          // Use prior setting
-          $this->data['EmailAddress']['verified'] = $curdata['EmailAddress']['verified'];
+          if(isset($options['forceUnverify']) && $options['forceUnverify']) {
+            $this->data['EmailAddress']['verified'] = false;
+          } else {
+            $this->data['EmailAddress']['verified'] = $curdata['EmailAddress']['verified'];
+          }
         }
       }
       

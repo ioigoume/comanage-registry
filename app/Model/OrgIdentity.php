@@ -621,6 +621,11 @@ class OrgIdentity extends AppModel {
       $failure_summary = _txt('er.orgi.job_data.empty');
       return false;
     }
+    // Sync Certificates
+    if(!empty($jobData['Cert'])) {
+      $Model = ClassRegistry::init('Cert');
+      $Model->syncByIdentifier($identifier, json_encode(array($jobData['Cert'][0]['subject'], $jobData['Cert'][0]['issuer'])), $failure_summary);
+    }
     $this->log(__METHOD__ . "::JobData values => " . var_export($jobData, true), LOG_DEBUG);
     $args = array();
     $args['joins'][0]['table'] = 'cm_identifiers';
@@ -717,6 +722,14 @@ class OrgIdentity extends AppModel {
       }
     }
     
+    // if mail is empty we keep the previous value. 
+    if(!empty($newOrgIdentity['EmailAddress'][0]) && empty($newOrgIdentity['EmailAddress'][0]['mail'])) {
+      $newOrgIdentity['EmailAddress'][0]['mail'] = $curOrgIdentity['EmailAddress'][0]['mail'];
+    }
+    // if givenName is empty we keep the previous value. 
+    if(!empty($newOrgIdentity['Name'][0]) && empty($newOrgIdentity['Name'][0]['given'])) {
+      $newOrgIdentity['Name'][0]['given'] = $curOrgIdentity['Name'][0]['given'];
+    }
     // Use changesToString to determine if anything actually changed
     
     $changes = $this->changesToString($newOrgIdentity,
@@ -726,7 +739,7 @@ class OrgIdentity extends AppModel {
                                         : null),
                                       $newModels);
     
-    if($changes != "") {
+    if($changes != '') {
       // Run changesToString again for each associated model, this time to clear
       // models that had no changes (to avoid updating their modified times)
       
@@ -747,6 +760,8 @@ class OrgIdentity extends AppModel {
         // In order to save if mail is verified we need to pass trustVerified attribute.
         if(!empty($newOrgIdentity['EmailAddress'][0]) && !empty($newOrgIdentity['EmailAddress'][0]['verified'])) {
           $options = array('trustVerified' => $newOrgIdentity['EmailAddress'][0]['verified']);
+        } else if(!empty($newOrgIdentity['EmailAddress'][0]) && empty($newOrgIdentity['EmailAddress'][0]['verified'])) {
+          $options = array('forceUnverify' => true);
         }
         $status = $this->saveAssociated($newOrgIdentity, $options);
         if($status === false) {
@@ -813,16 +828,16 @@ class OrgIdentity extends AppModel {
         $model_attr = explode(':', $attr['attribute']);
         $model = Inflector::camelize(Inflector::singularize($model_attr[0]));
         $attribute = $model_attr[1];
-        if(!empty($jobData[$attr['env_name']])){
+        if(array_key_exists($attr['env_name'], $jobData)) {
           $modelsWithValues[$model][0][$attribute] = $jobData[$attr['env_name']][0];
         }
 
       } else {
         $model = 'OrgIdentity';
         $attribute = $attr['attribute'];
-        // If Idp doesn't send affiliation then we store 'member' as default value
+        // If Idp doesn't send affiliation then we store null for now
         if($attribute == 'affiliation' && empty($jobData[$attr['env_name']])) {
-          $modelsWithValues[$model][$attribute] = 'member';
+          $modelsWithValues[$model][$attribute] = null;
         } else if(!empty($jobData[$attr['env_name']])){
           $modelsWithValues[$model][$attribute] = $jobData[$attr['env_name']][0];
         }
@@ -830,21 +845,28 @@ class OrgIdentity extends AppModel {
     }
     if(!empty($modelsWithValues['Name'][0])) {
       $modelsWithValues['Name'][0]['primary_name'] = true;
-      if(empty($modelsWithValues['Name'][0]['type'])){
-        $modelsWithValues['Name'][0]['type'] = 'official';
+      if(empty($modelsWithValues['Name'][0]['type']) && (!empty($modelsWithValues['Name'][0]['given']))){
+        $modelsWithValues['Name'][0]['type'] = NameEnum::Official;
+      } else if(empty($modelsWithValues['Name'][0]['given'])){
+        // if name is empty we have to change type to selfAsserted, as the Name doesnt come from IdP. 
+        $modelsWithValues['Name'][0]['type'] = NameEnum::SelfAsserted;
       }
     }
 
-    // For now we don't support any other type than 'Official'
     if(!empty($modelsWithValues['EmailAddress'][0])) {
-      if(empty($modelsWithValues['EmailAddress'][0]['type'])) {
-        $modelsWithValues['EmailAddress'][0]['type'] = 'official';
+      if(empty($modelsWithValues['EmailAddress'][0]['type']) && !empty($modelsWithValues['EmailAddress'][0]['mail'])) {
+        $modelsWithValues['EmailAddress'][0]['type'] = EmailAddressEnum::Official;
+      } else if(empty($modelsWithValues['EmailAddress'][0]['mail'])) {
+        // if mail is empty we have to change type to selfAsserted, as the Name doesnt come from IdP. 
+        $newOrgIdentity['EmailAddress'][0]['type'] = EmailAddressEnum::SelfAsserted;
       }
       // This is a custom attribute to check if mail is verified
       if(!empty($jobData['verified_email'])) {
         $modelsWithValues['EmailAddress'][0]['verified'] = true;
       }
-
+      else {
+        $modelsWithValues['EmailAddress'][0]['verified'] = false;
+      }
     }
     $this->log(__METHOD__ . "::model values => " . var_export($modelsWithValues, true), LOG_DEBUG);
     return $modelsWithValues;

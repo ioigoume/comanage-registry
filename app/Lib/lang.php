@@ -460,7 +460,8 @@ original notification at
     EmailAddressEnum::Official => 'Official',
     EmailAddressEnum::Personal => 'Personal',
     EmailAddressEnum::Preferred => 'Preferred',
-    EmailAddressEnum::Recovery => 'Recovery'
+    EmailAddressEnum::Recovery => 'Recovery',
+    EmailAddressEnum::SelfAsserted => 'Self Asserted'
   ),
   
   'en.enrollment.authz' => array(
@@ -615,7 +616,8 @@ original notification at
                                  NameEnum::Author => 'Author',
                                  NameEnum::FKA => 'FKA',
                                  NameEnum::Official => 'Official',
-                                 NameEnum::Preferred => 'Preferred'),
+                                 NameEnum::Preferred => 'Preferred',
+                                 NameEnum::SelfAsserted => 'Self Asserted'),
   
   // Navigation links
   'en.nav.location' =>     array(LinkLocationEnum::topBar => 'Top Bar'),

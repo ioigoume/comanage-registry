@@ -281,7 +281,9 @@ class Cert extends AppModel {
     $current_certs = $this->getCertsByOrgIdentityIdentifier($identifier);
     $active_login_orgs = $this->getOrgIdentityByIdentifier($identifier);
     if(empty($active_login_orgs)) {
-      $failure_summary = _txt('er.notfound', array(_txt('ct.org_identities.1'), $identifier));
+      if(!is_null($failure_summary)){
+        $failure_summary.= _txt('er.notfound', array(_txt('ct.org_identities.1'), $identifier));
+      }
       $this->log(__METHOD__ . "::" . _txt('er.notfound', array(_txt('ct.org_identities.1'), $identifier)), LOG_DEBUG);
     }
     list($subject_dn_env, $issuer_dn_env) = $jobData == null ? $this->getEnvValues() : json_decode($jobData);
