@@ -135,6 +135,15 @@ Router::connect(
   )
 );
 
+Router::connect(
+  '/co_petitions/resend/:id',
+  array('controller' => 'co_petitions', 'action' => 'resend', '[method]' => 'POST'),
+  array(
+    'pass' => array('id'),
+    'id' => '[0-9]+'
+  )
+);
+
 Router::parseExtensions('json', 'xml');
 
 /**
