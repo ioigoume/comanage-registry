@@ -758,9 +758,9 @@ class OrgIdentity extends AppModel {
         }
         $options = array();
         // In order to save if mail is verified we need to pass trustVerified attribute.
-        if(!empty($newOrgIdentity['EmailAddress'][0]) && !empty($newOrgIdentity['EmailAddress'][0]['verified'])) {
+        if($source == 'jobScheduler' && !empty($newOrgIdentity['EmailAddress'][0]) && !empty($newOrgIdentity['EmailAddress'][0]['verified'])) {
           $options = array('trustVerified' => $newOrgIdentity['EmailAddress'][0]['verified']);
-        } else if(!empty($newOrgIdentity['EmailAddress'][0]) && empty($newOrgIdentity['EmailAddress'][0]['verified'])) {
+        } else if($source == 'jobScheduler' && !empty($newOrgIdentity['EmailAddress'][0]) && empty($newOrgIdentity['EmailAddress'][0]['verified'])) {
           $options = array('forceUnverify' => true);
         }
         $status = $this->saveAssociated($newOrgIdentity, $options);
