@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
 
 - Fix Resend Verification Mail functionality
+- Don't set mail to unverified when login to COmanage
 
 ## [3.4.4-rciam] - 2022-04-11
 
