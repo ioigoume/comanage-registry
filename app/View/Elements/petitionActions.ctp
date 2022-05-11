@@ -102,40 +102,41 @@ if(
   // "form" attribute eg <input type="text" form="approverForm" ...>
   // (browser support should be better by then), or by simply only allowing
   // approval/denial when viewing (not editing) the petition.
+  if($permissions['approve']) {
+    $args = array(
+      'type' => 'post',
+      'url' => array(
+        'controller' => 'co_petitions', 
+        'action' => 'approve',
+        $co_petitions[0]['CoPetition']['id']
+      )
+    );
 
-  $args = array(
-    'type' => 'post',
-    'url' => array(
-      'controller' => 'co_petitions', 
-      'action' => 'approve',
-      $co_petitions[0]['CoPetition']['id']
-    )
-  );
+    print $this->Form->create('CoPetition', $args);
 
-  print $this->Form->create('CoPetition', $args);
-
-  if($co_petitions[0]['CoPetition']['status'] == PetitionStatusEnum::PendingApproval) {
-    print $this->Form->submit(_txt('op.approve'),
+    if($co_petitions[0]['CoPetition']['status'] == PetitionStatusEnum::PendingApproval) {
+      print $this->Form->submit(_txt('op.approve'),
+                                array(
+                                  'class' => 'checkbutton approve-button',
+                                  'name'  => 'action')
+      );
+    }
+    print $this->Form->submit(_txt('op.deny'),
                               array(
-                                'class' => 'checkbutton approve-button',
+                                'class' => 'cancelbutton deny-button',
                                 'name'  => 'action')
     );
+
+    print $this->Form->textarea('approver_comment',
+                              array(
+                                'label' => _txt('fd.pt.approver_comment'),
+                                'placeholder' => _txt('en.required', null, RequiredEnum::Optional),
+                                'size' => 4000
+                            ));
+
+    print '<div class="field-desc">' . _txt('fd.pt.approver_comment.desc') . '</div>';
+    print $this->Form->end();
   }
-  print $this->Form->submit(_txt('op.deny'),
-                            array(
-                              'class' => 'cancelbutton deny-button',
-                              'name'  => 'action')
-  );
-
-  print $this->Form->textarea('approver_comment',
-                            array(
-                              'label' => _txt('fd.pt.approver_comment'),
-                              'placeholder' => _txt('en.required', null, RequiredEnum::Optional),
-                              'size' => 4000
-                          ));
-
-  print '<div class="field-desc">' . _txt('fd.pt.approver_comment.desc') . '</div>';
-  print $this->Form->end();
   if($status == PetitionStatusEnum::PendingConfirmation && $permissions['view']) {
     $displayNameWithId = (!empty($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']) ? generateCn($co_petitions[0]['EnrolleeCoPerson']['PrimaryName']) : _txt('fd.enrollee.new')) . ' (' . $co_petitions[0]['CoPetition']['status'] . ')';
     if($permissions['resend']) {
