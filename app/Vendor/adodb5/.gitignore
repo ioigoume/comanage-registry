@@ -8,3 +8,11 @@
 /nbproject/
 .idea/
 
+# Composer
+/vendor/
+/composer.lock
+
+# phpDocumentor
+phpdoc.xml
+docs/api
+docs/cache
