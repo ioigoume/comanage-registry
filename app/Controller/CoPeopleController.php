@@ -539,7 +539,8 @@ class CoPeopleController extends StandardController {
     
     if($this->request->is('restful')
        && (isset($this->request->query['given'])
-           || isset($this->request->query['family']))) {
+           || isset($this->request->query['family'])
+              || isset($this->request->query['mail']))) {
       $this->match();
     } else {
       parent::index();
@@ -887,6 +888,7 @@ class CoPeopleController extends StandardController {
   public function match() {
     $criteria['Name.given'] = "";
     $criteria['Name.family'] = "";
+    $criteria['EmailAddress.mail'] = "";
     
     if($this->request->is('restful')) {
       if(isset($this->request->query['given'])) {
@@ -894,6 +896,9 @@ class CoPeopleController extends StandardController {
       }
       if(isset($this->request->query['family'])) {
         $criteria['Name.family'] = $this->request->query['family'];
+      }
+      if(isset($this->request->query['mail'])) {
+        $criteria['EmailAddress.mail'] = $this->request->query['mail'];
       }
       
       // XXX We didn't validate CO ID exists here. (This is normally done by
@@ -908,6 +913,9 @@ class CoPeopleController extends StandardController {
       }
       if(isset($this->params['named']['family'])) {
         $criteria['Name.family'] = $this->params['named']['family'];
+      }
+      if(isset($this->params['named']['mail'])) {
+        $criteria['EmailAddress.mail'] = $this->params['named']['mail'];
       }
       
       $this->set('matches', $this->CoPerson->match($this->cur_co['Co']['id'], $criteria));

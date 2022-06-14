@@ -30,6 +30,8 @@ App::uses("MVPAController", "Controller");
 class NamesController extends MVPAController {
   // Class name, used by Cake
   public $name = "Names";
+
+  public $uses = array("Name");
   
   // Establish pagination parameters for HTML views
   public $paginate = array(
