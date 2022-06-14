@@ -50,10 +50,6 @@ class CoGroupMembersController extends StandardController {
   );
 
   public $view_contains = array(
-    'Co',
-    'EmailAddress',
-    'Identifier',
-    'Name',
     'CoGroup',
     'CoPerson' => 'PrimaryName'
   );
@@ -446,13 +442,13 @@ class CoGroupMembersController extends StandardController {
     
     // Add a new member to a group?
     // XXX probably need to check if group is open here and in delete
-    $p['add'] = !$readOnly && ($roles['cmadmin'] || $managed);
+    $p['add'] = !$readOnly && ($roles['cmadmin']  || $roles['coadmin'] || $managed);
     
     // Delete a member from a group?
-    $p['delete'] = !$readOnly && ($roles['cmadmin'] || $managed);
+    $p['delete'] = !$readOnly && ($roles['cmadmin']  || $roles['coadmin'] || $managed);
     
     // Edit members of a group?
-    $p['edit'] = !$readOnly && ($roles['cmadmin'] || $managed);
+    $p['edit'] = !$readOnly && ($roles['cmadmin']  || $roles['coadmin'] || $managed);
     
     // View a list of members of a group?
     // This is for REST
@@ -462,13 +458,13 @@ class CoGroupMembersController extends StandardController {
     $p['select'] = !$readOnly && ($roles['cmadmin'] || $managed);
     
     // Update accepts a CO Person's worth of potential group memberships and performs the appropriate updates
-    $p['update'] = !$readOnly && ($roles['cmadmin'] || $roles['comember']);
+    $p['update'] = !$readOnly && ($roles['cmadmin'] || $roles['coadmin'] || $roles['comember']);
     
     // Select from a list of potential members to add?
     $p['updateGroup'] = !$readOnly && ($roles['cmadmin'] || $managed);
     
     // View members of a group?
-    $p['view'] = ($roles['cmadmin'] || $managed || $member);
+    $p['view'] = ($roles['cmadmin']  || $roles['coadmin'] || $managed || $member);
 
     $p['search'] = !$readOnly && ($roles['cmadmin'] || $managed);
     
