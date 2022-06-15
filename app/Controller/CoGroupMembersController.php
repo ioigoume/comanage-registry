@@ -317,6 +317,8 @@ class CoGroupMembersController extends StandardController {
   public function generateHistory($action, $newdata, $olddata) {
     switch($action) {
       case 'add':
+        if(empty($olddata['CoGroup']['id']))
+          break;
         $this->CoGroupMember->CoPerson->HistoryRecord->record($olddata['CoGroupMember']['co_person_id'],
                                                               null,
                                                               null,
