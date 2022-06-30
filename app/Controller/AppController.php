@@ -1170,7 +1170,8 @@ class AppController extends Controller {
     
     // Pull the list of COUs and their names. Primarily intended for CO Service portal.
     $args = array();
-    $args['conditions']['Cou.co_id'] = $this->cur_co['Co']['id'];
+    $args['conditions'] = array();
+    $args['conditions']['Cou.co_id'] = $this->cur_co['Co']['id'] ?? -1;
     $args['fields'] = array('Cou.id', 'Cou.name');
     $args['contain'] = false;
     
