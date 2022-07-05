@@ -1072,7 +1072,14 @@ original notification at
     UrlEnum::Official => 'Official',
     UrlEnum::Personal => 'Personal',
   ),
-  
+
+  // Extended type, key must be en.model.attribute
+  'en.co_department.type' => array(
+    DepartmentEnum::VO                => 'VO',
+    DepartmentEnum::ResearchInstitute => 'Research Institute',
+    DepartmentEnum::Department        => 'Department',
+  ),
+
   'en.visibility' => array(
     VisibilityEnum::CoAdmin         => 'CO Admin',
     VisibilityEnum::CoGroupMember   => 'CO Group Member',
