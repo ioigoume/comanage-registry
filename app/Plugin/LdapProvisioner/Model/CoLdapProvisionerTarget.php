@@ -731,6 +731,25 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                   unset($attributes[$attr]);
                 }
                 break;
+              case 'businessCategory':
+                if(!empty($provisioningData['CoGroup']['cou_id'])) {
+                  $CoDepartment = ClassRegistry::init('CoDepartment');
+                  $args = array();
+                  $args['conditions']['CoDepartment.cou_id'] = $provisioningData['CoGroup']['cou_id'];
+                  $args['contain'] = false;
+                  $departments = $CoDepartment->find('all', $args);
+                  if(!empty($departments)) {
+                    foreach($departments as $department) {
+                      $attributes[$attr][] = $department['CoDepartment']['type'];
+                    }
+                  } else if($modify) {
+                    // departments are empty, also modify is true
+                    // so we have to delete them
+                    $attributes[$attr] = array();
+                  }
+                }
+                
+                break;
               // Attributes from models attached to CO Person Role
               case 'facsimileTelephoneNumber':
               case 'l':
@@ -1873,6 +1892,10 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
           'description' => array(
             'required'    => false,
             'multiple'    => false
+          ),
+          'businessCategory' => array(
+            'required'    => false,
+            'multiple'    => true
           )
         )
       ),

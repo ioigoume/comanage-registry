@@ -142,4 +142,88 @@ class CoDepartment extends AppModel {
     
     return $this->find('all', $args);
   }
+ 
+  /**
+   * manualProvisionCoDepartment
+   *
+   * @param  Integer $couId
+   * @return none
+   */
+
+  function manualProvisionCoDepartment($couId, $sAction = ProvisioningActionEnum::CoGroupUpdated){
+    $args = array();
+    $args['conditions']['CoGroup.cou_id'] = $couId;
+    $args['conditions']['CoGroup.deleted'] = false;
+    $args['contain'] = false;
+    $coGroups = $this->Cou->CoGroup->find('all', $args);
+    
+    // provision every group (admin, members:active etc.)
+    foreach($coGroups as $coGroup) {
+      if(!empty($coGroup['CoGroup']['id'])) {
+        $this->Cou->CoGroup->Behaviors->load('Provisioner');   
+        $this->Cou->CoGroup->manualProvision(null, null, $coGroup['CoGroup']['id'], $sAction);
+      }
+    }
+  }
+
+  /**
+   * provisionCoDepartments
+   *
+   * @return none
+   */
+
+  function provisionCoDepartments($sAction = ProvisioningActionEnum::CoGroupUpdated) {
+    if(empty($this->data['CoDepartment']['cou_id']) && empty($this->field('cou_id'))) {
+      return;
+    }
+    $couId = !empty($this->data['CoDepartment']['cou_id']) ? $this->data['CoDepartment']['cou_id'] : $this->field('cou_id');
+    $this->manualProvisionCoDepartment($couId, $sAction);
+    // Provision previous CoGroup in order to remove the Department Type
+    if(!empty($this->cachedData) && $this->cachedData['CoDepartment']['cou_id'] != $this->data['CoDepartment']['cou_id']) {
+      $this->manualProvisionCoDepartment($this->cachedData['CoDepartment']['cou_id'], $sAction);
+    }
+    unset($this->cachedData);
+  }
+
+
+  /**
+   * Actions to take before a save operation is executed.
+   *
+   * @since  COmanage Registry v3.1.0
+   */
+
+  public function beforeSave($options = array()) {
+    if(empty($this->data['CoDepartment']['id'])){
+      // probably new record so dont do anything
+      return;
+    }
+    $args = array();
+    $args['conditions']['CoDepartment.id'] = $this->data['CoDepartment']['id'];
+    $args['contain'] = false;
+    // save the previous data to a variable in order to provision the "previous" CoGroup if is different
+    $this->cachedData = $this->find('first', $args);
+     
+  }
+
+ /**
+   * afterSave
+   *
+   * @param  boolean true if a new record was created (rather than update)
+   * @param  array, the same passed into Model::save()
+   * @return none
+   */
+  
+  function afterSave($created, $options = Array()) {
+    $this->provisionCoDepartments();
+  }
+
+  /**
+   * afterDelete
+   *
+   * @return none
+   */
+  function afterDelete() {
+    $this->provisionCoDepartments();
+  }
+
 }

@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [] - xxx-xx-xx
 
+### Added
+
+- Provision CoDepartments to LDAP
+
 ### Changed
 
 - COU REST API will include the department type
