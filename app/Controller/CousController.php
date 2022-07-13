@@ -51,9 +51,10 @@ class CousController extends StandardController {
   );
   
   public $view_contains = array(
-    'ParentCou'
+    'ParentCou',
+    'CoDepartment'
   );
-  
+
   /**
    * Perform filtering of COU parent options for dropdown.
    * - postcondition: parent_options set
