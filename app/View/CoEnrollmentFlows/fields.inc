@@ -85,6 +85,12 @@
       } else {
         $("#CoEnrollmentFlowDuplicateMode").closest("li").hide('fade');
       }
+
+      if(confirm == '<?php print VerificationModeEnum::Verified; ?>') {
+        $(".skip-finalize").show('fade');
+      } else {
+        $(".skip-finalize").hide('fade');
+      }
     } else {
       $("#CoEnrollmentFlowInvitationValidity").closest("ul.field-children").hide('fade');
     }
@@ -559,6 +565,20 @@
               print _txt('en.enrollment.dupe', null, $co_enrollment_flows[0]['CoEnrollmentFlow']['duplicate_mode']);
             }
           ?>
+        </div>
+      </li>
+      <li>
+        <div class="field-name">
+          <div class="field-title">
+            <?php print _txt('fd.ef.skip.tofinalize'); ?>
+          </div>
+          <div class="field-desc"><?php print _txt('fd.ef.skip.tofinalize.desc'); ?></div>
+        </div>
+        <div class="field-info">
+          <?php print ($e
+            ? $this->Form->input('skip_to_finalize', array('onClick' => 'authn_update_gadgets()')) . ' ' .
+            $this->Form->label('skip_to_finalize', _txt('fd.ef.skip.tofinalize'))
+            : filter_var($co_enrollment_flows[0]['CoEnrollmentFlow']['skip_to_finalize'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
         </div>
       </li>
     </ul>

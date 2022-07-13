@@ -148,6 +148,9 @@ class CoEnrollmentFlow extends AppModel {
     'approval_required' => array(
       'rule' => array('boolean')
     ),
+    'skip_to_finalize' => array(
+      'rule' => array('boolean')
+    ),
     'approver_co_group_id' => array(
       'rule' => 'numeric',
       'required' => false,

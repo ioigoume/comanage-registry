@@ -2011,11 +2011,11 @@ class CoPetitionsController extends StandardController {
    * @param  Integer $id          CO Petition ID, if known
    * @param  String  $curPlugin   Current plugin name, or null
    * @param  String  $curPluginId Current plugin ID (for OIS plugins), or null
+   * @param  Boolean $isDone
    * @return Array URL in Cake array format
    */
   
-  protected function generateDoneRedirect($step, $id=null, $curPlugin=null, $curPluginId=null, $queryParam=null) {
-    $fn = "generateDoneRedirect";
+  protected function generateDoneRedirect($step, $id=null, $curPlugin=null, $curPluginId=null, $queryParam=null, $isDone=true) {
     $ret = array(
       'plugin'     => null,
       'controller' => 'co_petitions',
@@ -2037,22 +2037,20 @@ class CoPetitionsController extends StandardController {
     
     if($curPluginId) {
       $ret['piddone'] = $curPluginId;
-    } else {
+    } elseif($isDone) {
       $ret['done'] = ($curPlugin ? $curPlugin : 'core');
     }
   
     // RCIAM-57
-    if($queryParam){
-      if(is_array($queryParam) && isset($queryParam)){
-        foreach($queryParam as $key => $value){
-          $params[$key] = $value;
-        }
-        $ret['?'] = $params;
-      }else{
-        $this->log(get_class($this)."::{$fn} Query parameters are not in an array or null",LOG_DEBUG);
+    if(isset($queryParam) && is_array($queryParam)){
+      foreach($queryParam as $key => $value){
+        $params[$key] = $value;
       }
+      $ret['?'] = $params;
+    }else{
+      $this->log(__METHOD__ . ":: Query parameters are not in an array or null",LOG_DEBUG);
     }
-    
+
     return $ret;
   }
   
@@ -2577,17 +2575,59 @@ class CoPetitionsController extends StandardController {
         $this->CoPetition->id = $this->parseCoPetitionId();
         $this->CoPetition->CoEnrollmentFlow->id = $this->CoPetition->field('co_enrollment_flow_id');
         $email_verification_mode = $this->CoPetition->CoEnrollmentFlow->field('email_verification_mode');
+        $authorization_mode = $this->CoPetition->CoEnrollmentFlow->field('authz_level');
+        $skip_to_finalize = $this->CoPetition->CoEnrollmentFlow->field('skip_to_finalize');
+        // Calculate the CO Person ID
+        $co_person_id = $this->Session->read('Auth.User.co_person_id');
+        if(empty($co_person_id)) {
+          $co_person_id = $this->CoPetition->field('enrollee_co_person_id');
+        }
+
+        $verified_mode = false;
         if($email_verification_mode === VerificationModeEnum::Verified                                  // Enrollment requires email verification
-           && !empty(getenv('voPersonVerifiedEmail'))                                                   // voPersonVerifiedEmail exists in Session
+           && !empty(getenv('voPersonVerifiedEmail'))                                             // voPersonVerifiedEmail exists in Session
            && !empty($this->CoPetition->Co->CoSetting->getEmailVerifiedAttr($this->cur_co['Co']['id'])) // voPersonVerifiedEmail configured in CM
            && !empty($this->request->data['EnrolleeOrgIdentity'])                                       // Data from OrgIdentity exist
            && !empty($this->request->data['EnrolleeOrgIdentity']['EmailAddress'])) {                    // Email attribute has data
-            $co_person_id = $this->Session->read('Auth.User.co_person_id');
-              if(empty($co_person_id)) {
-                  $co_person_id = $this->CoPetition->field('enrollee_co_person_id');
-              }
+              $verified_mode = true;
               $this->CoPetition->verifyEmailAutoConfirm($this->parseCoPetitionId(), $co_person_id);
           } // RCIAM-245
+
+        // Skip to finalize only if the email is already verified.
+        if($skip_to_finalize
+           && $verified_mode
+           && $authorization_mode === EnrollmentAuthzEnum::AuthUser) {
+          // Update CoPersonRole Status to active
+          // During the initial setup the user will have only one CO Person Role
+          $args = array();
+          $args['conditions']['CoPersonRole.co_person_id'] = $co_person_id;
+          $args['contains'] = false;
+
+          $co_person_roles = $this->Co->CoPerson->CoPersonRole->find('first', $args);
+          if(!empty($co_person_roles)) {
+            // Update the Status to Active
+             $this->Co->CoPerson->CoPersonRole->id = $co_person_roles['CoPersonRole']['id'];
+             $this->Co->CoPerson->CoPersonRole->saveField('status', StatusEnum::Active, array('provision' => false,
+                                                                                             'trustStatus' => true));
+            // Update fields
+            $this->CoPetition->saveField('enrollee_token', $this->CoPetition->field('petitioner_token'));
+            $this->CoPetition->saveField('petitioner_co_person_id', $co_person_id);
+            // Target new
+            if( $this->request->query('targetnew') ) {
+              $target_new = $this->request->query('targetnew');
+              $this->CoPetition->saveField('target_new', $target_new);
+            }
+
+            // Petition approved
+            $this->CoPetition->saveField('status',  PetitionStatusEnum::Approved);
+            // Generate hint URL for where to go when the step is completed
+            // Finalize has to execute in order to generate the identifiers
+            $onFinish = $this->generateDoneRedirect('finalize', $this->parseCoPetitionId(),
+                                                    null, null, null,
+                                                    false);
+            $this->redirect($onFinish);
+          }
+        }
 
         // We could calculate and execute the next plugin or step directly,
         // but that would require some refactoring.

@@ -125,7 +125,7 @@
             <span class="field-info">
               <?php
               $attrs = array();
-              $attrs['value'] = (isset($co_departments) ? $co_departments[0]['CoDepartment']['type'] : "");
+              $attrs['value'] = (!empty($co_departments[0]['CoDepartment']['type']) ? $co_departments[0]['CoDepartment']['type'] : "");
               $attrs['empty'] = false;
 
               if($e) {
