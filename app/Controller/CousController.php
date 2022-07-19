@@ -240,7 +240,28 @@ class CousController extends StandardController {
   
   function isAuthorized() {
     $roles = $this->Role->calculateCMRoles();             // What was authenticated
-    
+    $this->set('vv_roles', $roles);
+    // Is this a record we can manage?
+    $managed = false;
+
+    if($roles["apiuser"]) {
+      $cou_list = $this->Session->read('Auth.User.cou_id_list');
+      if(!empty($cou_list)) {
+        // Fetch all COU names
+        $args = array();
+        $args['conditions'] = array();
+        if($this->Session->read('Auth.User.co_id') > 1) {
+          $args['conditions']['Cou.co_id'] = $this->Session->read('Auth.User.co_id');
+        }
+        $args['conditions']['Cou.id'] = explode(",", $cou_list);
+        $args['fields'] = array('Cou.id', 'Cou.name');
+        $args['contain'] = false;
+
+        $cou_nl = $this->Cou->find('list', $args);
+
+        $managed = in_array($this->request->query['name'], $cou_nl);
+      }
+    }
     // Construct the permission set for this user, which will also be passed to the view.
     $p = array();
     
@@ -254,12 +275,19 @@ class CousController extends StandardController {
     
     // Edit an existing COU?
     $p['edit'] = ($roles['cmadmin'] || $roles['coadmin']);
-    
+
     // View all existing COUs?
-    $p['index'] = ($roles['cmadmin'] || $roles['coadmin']);
-    
+    $p['index'] = $roles['cmadmin']
+                  || $roles['coadmin']
+                  || ($managed && $roles['couadmin'])
+                  || ($managed && $roles['apiuser']);
+
     // View an existing COU?
-    $p['view'] = ($roles['cmadmin'] || $roles['coadmin']);
+    $p['view'] = $roles['cmadmin']
+                 || $roles['coadmin']
+                 || ($managed && $roles['couadmin'])
+                 || ($managed && $roles['apiuser']);
+
 
     $this->set('permissions', $p);
     return $p[$this->action];

@@ -953,9 +953,15 @@ class StandardController extends AppController {
             return;
           }
         }
-        
+
+        // XXX Do not allow COU admins to trick the system and expose all the COUs of the CO
+        if (!empty($this->viewVars["vv_roles"]["apiuser"])
+            && $this->viewVars["vv_roles"]["apiuser"]
+            && !$this->Session->read('Auth.User.privileged')) {
+          $params['conditions']['Cou.id'] = explode(",", $this->Session->read('Auth.User.cou_id_list'));
+        }
         // We don't ever need associated models
-        $params['contain'] = false;
+        $params['contain'] = array('CoDepartment');
         
         $this->set($modelpl, $this->Api->convertRestResponse($model->find('all', $params)));
       }

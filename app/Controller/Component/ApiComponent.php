@@ -228,8 +228,8 @@ class ApiComponent extends Component {
 
       if ($this->reqModelName == 'Cou'
           && !empty($rr['Cou'])
-          && !empty($res[0]['CoDepartment'])) {
-        foreach ($res[0]['CoDepartment'] as $idx => $department) {
+          && !empty($r['CoDepartment'])) {
+        foreach ($r['CoDepartment'] as $idx => $department) {
           $rr['Cou']['Metadata'][] = array();
           foreach ($department as $key => $value) {
             if(in_array($key, array('type'))) {
