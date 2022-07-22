@@ -636,9 +636,17 @@ class CoInvitesController extends AppController {
         $introText = $this->CoInvite->CoPetition->CoEnrollmentFlow->field('introduction_text_invite',
                                         array('CoEnrollmentFlow.id' => $invite['CoPetition']['co_enrollment_flow_id']));
 
+        $invitationText = $this->CoInvite->CoPetition->CoEnrollmentFlow->field('invitation_text',
+                                                                          array('CoEnrollmentFlow.id' => $invite['CoPetition']['co_enrollment_flow_id']));
+
         if(!empty($introText)) {
           // Render the start view
           $this->set('vv_introduction_text_invite', $introText);
+        }
+
+        if(!empty($invitationText)) {
+          // Render the start view
+          $this->set('vv_invitation_text', $invitationText);
         }
       }
     }

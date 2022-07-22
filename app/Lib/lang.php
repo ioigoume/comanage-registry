@@ -1420,6 +1420,8 @@ original notification at
   'fd.ef.coef.desc' => 'If enabled, allow organizational identity attributes to be collected via forms during CO enrollment flows (these attributes will be less authoritative than those obtained via LDAP or SAML, however those options are not currently supported)',
   'fd.ef.concl' =>    'Conclusion',
   'fd.ef.concl.desc' => 'Optional text to display at the bottom of a Petition form, before the Submit button',
+  'fd.ef.inv.text' =>    'Invitation Text',
+  'fd.ef.inv.text.desc' => 'Optional text to display at the top of Invitation view, after the action buttons',
   'fd.ef.dmt' =>      'Denial Email Message Template',
   'fd.ef.dmt.desc' => 'Message template used for email sent as part of denial step (leave blank for no notification)',
   'fd.ef.dupe'     => 'Duplicate Enrollment Mode',

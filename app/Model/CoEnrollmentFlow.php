@@ -247,6 +247,11 @@ class CoEnrollmentFlow extends AppModel {
       'required' => false,
       'allowEmpty' => true
     ),
+    'invitation_text' => array(
+      'rule' => 'notBlank',
+      'required' => false,
+      'allowEmpty' => true
+    ),
     't_and_c_mode' => array(
       'rule' => array('inList',
                       array(TAndCEnrollmentModeEnum::ExplicitConsent,

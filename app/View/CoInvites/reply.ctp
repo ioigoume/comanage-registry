@@ -35,8 +35,13 @@
 
 <div class="invitation">
   <span class="invitation-text">
-    <?php print _txt(($verifyEmail ? 'fd.ev.for' : 'fd.inv.for'),
-      array(filter_var(generateCn($invitee['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS))); ?>
+    <?php
+      if (!empty($vv_invitation_text) && !$verifyEmail) {
+        print $vv_invitation_text;
+      } else {
+        print _txt(($verifyEmail ? 'fd.ev.for' : 'fd.inv.for'), array(filter_var(generateCn($invitee['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS)));
+      }
+      ?>
   </span>
 
 <?php

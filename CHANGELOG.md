@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Provision CoDepartments to LDAP
 - Skip Enrollment to Finalize immediately after CO Person is created
+- Invitation Text on invitation view
 
 ### Changed
 

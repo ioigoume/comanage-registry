@@ -567,7 +567,7 @@
           ?>
         </div>
       </li>
-      <li>
+      <li class="skip-finalize">
         <div class="field-name">
           <div class="field-title">
             <?php print _txt('fd.ef.skip.tofinalize'); ?>
@@ -830,6 +830,19 @@
       <?php print ($e
                    ? $this->Form->textarea('conclusion_text')
                    : filter_var($co_enrollment_flows[0]['CoEnrollmentFlow']['conclusion_text'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+    </div>
+  </li>
+  <li class="field-stack">
+    <div class="field-name">
+      <div class="field-title">
+        <?php print ($e ? $this->Form->label('invitation_text', _txt('fd.ef.inv.text')) : _txt('fd.ef.inv.text')); ?>
+      </div>
+      <div class="field-desc"><?php print _txt('fd.ef.inv.text.desc'); ?></div>
+    </div>
+    <div class="field-info">
+      <?php print ($e
+        ? $this->Form->textarea('invitation_text')
+        : filter_var($co_enrollment_flows[0]['CoEnrollmentFlow']['invitation_text'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
     </div>
   </li>
   <li>
