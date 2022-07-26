@@ -229,6 +229,38 @@ class CousController extends StandardController {
     return true;
   }
 
+
+  /**
+   * Obtain all Standard Objects (of the model's type).
+   * - postcondition: $<object>s set on success (REST or HTML), using pagination (HTML only)
+   * - postcondition: HTTP status returned (REST)
+   * - postcondition: Session flash message updated (HTML) on suitable error
+   *
+   * @since  COmanage Registry v3.1.0
+   */
+
+  public function index() {
+    // override the parent flow ony for the case of the department search
+    if($this->request->is('restful')) {
+      if(empty($this->request->query['dept'])) {
+        return parent::index();
+      }
+
+      $args = array();
+      $args['joins'][0]['table'] = 'co_departments';
+      $args['joins'][0]['alias'] = 'CoDepartment';
+      $args['joins'][0]['type'] = 'INNER';
+      $args['joins'][0]['conditions'][0] = "Cou.id=CoDepartment.cou_id";
+      $args['conditions']['Cou.co_id'] = $this->request->query['coid'];
+      $args['conditions']['CoDepartment.type'] = $this->request->query['dept'];
+      $args['contain'] = false;
+
+      $cou_list = $this->Cou->find('all', $args);
+
+      $this->set('cous', $this->Api->convertRestResponse($cou_list));
+    }
+  }
+
   /**
    * Authorization for this Controller, called by Auth component
    * - precondition: Session.Auth holds data used for authz decisions
@@ -280,7 +312,7 @@ class CousController extends StandardController {
     $p['index'] = $roles['cmadmin']
                   || $roles['coadmin']
                   || ($managed && $roles['couadmin'])
-                  || ($managed && $roles['apiuser']);
+                  || $roles['apiuser'];
 
     // View an existing COU?
     $p['view'] = $roles['cmadmin']

@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Changed
 
 - COU REST API will include the department type
+- COU REST API query using the department type
 
 ## [3.4.6-rciam] - 2022-05-17
 
