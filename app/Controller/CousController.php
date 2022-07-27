@@ -253,6 +253,12 @@ class CousController extends StandardController {
       $args['joins'][0]['conditions'][0] = "Cou.id=CoDepartment.cou_id";
       $args['conditions']['Cou.co_id'] = $this->request->query['coid'];
       $args['conditions']['CoDepartment.type'] = $this->request->query['dept'];
+      // XXX Do not allow COU admins to trick the system and expose all the COUs of the CO
+      if (!empty($this->viewVars["vv_roles"]["apiuser"])
+        && $this->viewVars["vv_roles"]["apiuser"]
+        && !$this->Session->read('Auth.User.privileged')) {
+        $args['conditions']['Cou.id'] = explode(",", $this->Session->read('Auth.User.cou_id_list'));
+      }
       $args['contain'] = false;
 
       $cou_list = $this->Cou->find('all', $args);
