@@ -264,6 +264,8 @@ class CousController extends StandardController {
       $cou_list = $this->Cou->find('all', $args);
 
       $this->set('cous', $this->Api->convertRestResponse($cou_list));
+    } else {
+      return parent::index();
     }
   }
 
