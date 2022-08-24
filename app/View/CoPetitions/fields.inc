@@ -146,7 +146,9 @@
                     print _txt('en.status.pt', null, $co_petitions[0]['CoPetition']['status']);
                     print '</span>';
                     $params = array('status' => $co_petitions[0]['CoPetition']['status']);
-                    print $this->element("petitionActions", $params);
+                    if(empty($co_petitions[0]['CoPetition']['deleted'])) {
+                      print $this->element("petitionActions", $params);
+                    }
                   ?>
                 </div>
               </li>
