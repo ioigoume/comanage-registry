@@ -137,20 +137,6 @@
   </li>
   <li>
     <div class="field-name">
-      <div class="field-title"><?php print _txt('pl.emailaddresswidget.fd.provision.dis'); ?></div>
-      <div class="field-desc"><?php print _txt('pl.emailaddresswidget.fd.provision.dis.desc'); ?></div>
-    </div>
-    <div class="field-info checkbox">
-      <?php print ($e
-        ? $this->Form->input('disable_provisioning')
-        : (isset($vv_config['CoEmailAddressWidget']['disable_provisioning'])
-        && $vv_config['CoEmailAddressWidget']['disable_provisioning']
-          ? _txt('fd.yes') : _txt('fd.no')));
-      print ' ' . $this->Form->label('disable_provisioning', _txt('pl.emailaddresswidget.fd.provision.dis'));
-      ?>
-  </li>
-  <li>
-    <div class="field-name">
       <div class="field-title">
         <?php print ($e ? $this->Form->label('verification_validity', _txt('pl.emailaddresswidget.fd.verification.validity')) :_txt('pl.emailaddresswidget.fd.verification.validity')); ?>
       </div>

@@ -32,7 +32,6 @@
     </field>
     <field name="default_type" type="C" size="128" />
     <field name="type_hidden" type="L" />
-    <field name="disable_provisioning" type="L" />
     <field name="verification_validity" type="I" />
     <field name="co_message_template_id" type="I">
       <constraint>REFERENCES cm_co_message_templates(id)</constraint>

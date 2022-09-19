@@ -53,11 +53,6 @@ class EmailAddressWidgetVerification extends AppModel {
       'rule' => '/^[a-zA-Z0-9\-]+$/',
       'required' => true
     ),
-    'disable_provisioning' => array(
-      'rule' => 'boolean',
-      'required' => false,
-      'allowEmpty' => true
-    ),
     'co_email_address_widget_id' => array(
       'rule' => 'numeric',
       'required' => true,
