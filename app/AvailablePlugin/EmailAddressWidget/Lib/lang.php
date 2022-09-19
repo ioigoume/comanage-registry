@@ -66,8 +66,8 @@ $cm_email_address_widget_texts['en_US'] = array(
   'pl.emailaddresswidget.fd.type.hide.desc' => 'Don\'t display the email type field in the Add Email form.',
   'pl.emailaddresswidget.fd.token'   => 'Verification Token',
   'pl.emailaddresswidget.fd.token.msg'   => 'Please check your email at the address you just submitted. Enter the email verification token in the field below and click \"Verify\" to finish adding your new email address.',
-  'pl.emailaddresswidget.fd.verification.validity' => 'Verfication Validity (Minutes)',
-  'pl.emailaddresswidget.fd.verification.validity.desc' => 'When verifing an email address, the length of time (in minutes) the verification code is valid for (default is 10 minutes)',
+  'pl.emailaddresswidget.fd.verification.validity' => 'Verification Validity (Minutes)',
+  'pl.emailaddresswidget.fd.verification.validity.desc' => 'When verifying an email address, the length of time (in minutes) the verification code is valid for (default is 10 minutes)',
 
   //  Modal
   'pl.emailaddresswidget.modal.body.add.success' => 'The email address was added.',

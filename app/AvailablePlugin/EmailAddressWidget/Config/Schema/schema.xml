@@ -70,7 +70,7 @@
       <col>co_email_address_widget_id</col>
     </index>
     <index name="email_address_widget_verifications_i2">
-      <col>co_person_id</col>
+      <col>token</col>
     </index>
   </table>
 </schema>
