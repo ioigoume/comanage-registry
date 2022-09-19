@@ -103,7 +103,7 @@ class EmailAddressWidgetVerification extends AppModel {
 
     try {
       $EmailAddress = ClassRegistry::init('EmailAddress');
-      if(!$EmailAddress->save($emailAttrs, array("provision" => !filter_var($this->rec["CoEmailAddressWidget"]["disable_provisioning"], FILTER_VALIDATE_BOOLEAN),
+      if(!$EmailAddress->save($emailAttrs, array("provision" => true,
                                                  "trustVerified" => true))) {
         return "nosave";
       }

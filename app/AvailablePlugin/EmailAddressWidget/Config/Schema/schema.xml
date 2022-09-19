@@ -46,9 +46,6 @@
       <col>co_dashboard_widget_id</col>
       <unique />
     </index>
-    <index name="co_email_address_widgets_i2">
-      <col>co_message_template_id</col>
-    </index>
   </table>
 
 
