@@ -9,6 +9,8 @@ class LdapSyncEntitlements {
   public  $nested_cous_paths;
   public  $members_entitlements;
   public  $coId;
+  public  $entitlements_to_remove;
+  public  $voRolesInter = array();
   
   /**
    * __construct
@@ -159,7 +161,7 @@ class LdapSyncEntitlements {
      * @todo Remove old style entitlements
      * @todo Remove $group_name variable
      */
-    private function couEntitlementAssemble($personRoles, $vo_name, $group_name = "", $cou_id = null)
+    private function couEntitlementAssemble($personRoles, $vo_name, $group_name = "", $cou_id = null, $cou_tree_structure = array())
     {
       foreach($personRoles as $key => $role) {
         // We need this to filter the cou_id or any other irrelevant information
@@ -168,7 +170,7 @@ class LdapSyncEntitlements {
           continue;
         }
         if(!empty($role) && is_array($role) && count($role) > 0) {
-          $this->couEntitlementAssemble($role, $vo_name, $key, $personRoles['cou_id']);
+          $this->couEntitlementAssemble($role, $vo_name, $key, $personRoles['cou_id'], $cou_tree_structure);
           continue;
         }
         $group = !empty($group_name) ? ":" . $group_name : "";
@@ -188,6 +190,19 @@ class LdapSyncEntitlements {
           }
         }
         $this->state['Attributes']['eduPersonEntitlement'][] = $entitlement;
+        
+        $voRolesDef = explode(',', $this->config['vo_roles']);
+        if(!empty($personRoles['cou_id'])
+        && ( !in_array($role, $voRolesDef) || in_array($role, $this->voRolesInter) )
+        && !empty($cou_tree_structure[ $personRoles['cou_id'] ])) {
+        $this->entitlements_to_remove[] = $entitlement;
+        $this->state['Attributes']['eduPersonEntitlement'][] =
+          $this->config['urn_namespace']                                      // URN namespace
+          . ":group:"                                               // group literal
+          . $cou_tree_structure[ $personRoles['cou_id'] ]['path']   // Nested VO
+          . $group . ":role=" . $role                               // role
+          . "#" . $this->config['urn_authority'];                              // AA FQDN
+      }
         // TODO: remove in the near future
         if(!empty($this->config['urn_legacy']) && $this->config['urn_legacy']) {
            /* $this->state['Attributes']['eduPersonEntitlement'][] =
@@ -204,6 +219,14 @@ class LdapSyncEntitlements {
                   
 
           } // Deprecated syntax
+      }
+       // XXX Remove single level entitlements marked to be removed
+       foreach($this->entitlements_to_remove as $ent) {
+        foreach($this->state['Attributes']['eduPersonEntitlement'] as $idx => $entitlement) {
+          if ($ent == $entitlement) {
+            unset($this->state['Attributes']['eduPersonEntitlement'][$idx]);
+          }
+        }
       }
     }
 
@@ -466,6 +489,9 @@ class LdapSyncEntitlements {
     $this->members_entitlements = [];
     $voRoles = explode(',', $this->config['vo_roles']);
     $voWhitelist = explode(',', $this->config['vo_whitelist']);
+    // Temp list of entitlements to remove
+    $this->entitlements_to_remove = array();
+
     // Iterate over the COUs and construct the entitlements
     foreach($cou_memberships as $idx => $cou) {
         if(empty($cou['group_name'])) {
@@ -525,6 +551,9 @@ class LdapSyncEntitlements {
     );
     // Lowercase all roles
     $vo_roles = array_map('strtolower', $vo_roles);
+    // Find the intersection of default and VO roles
+    $this->voRolesInter = array_intersect($vo_roles, $voRoles);
+
     // Merge the default roles with the ones constructed from the COUs
     $vo_roles = array_unique(array_merge($vo_roles, $voRoles));
     // Get the admins group if exists
@@ -553,7 +582,7 @@ class LdapSyncEntitlements {
 
     //CakeLog::write('debug', __METHOD__ . "::retrieveCOPersonData voRoles[{$voName}] => " . print_r($vo_roles, true), LOG_DEBUG);
 
-    $this->couEntitlementAssemble($vo_roles, $voName, "");
+    $this->couEntitlementAssemble($vo_roles, $voName, "", null, $this->nested_cous_path);
     // XXX Remove the ones already done
     unset($cou_memberships[$idx]);
     }
