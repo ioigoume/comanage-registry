@@ -582,7 +582,7 @@ class LdapSyncEntitlements {
 
     //CakeLog::write('debug', __METHOD__ . "::retrieveCOPersonData voRoles[{$voName}] => " . print_r($vo_roles, true), LOG_DEBUG);
 
-    $this->couEntitlementAssemble($vo_roles, $voName, "", null, $this->nested_cous_path);
+    $this->couEntitlementAssemble($vo_roles, $voName, "", null, $this->nested_cous_paths);
     // XXX Remove the ones already done
     unset($cou_memberships[$idx]);
     }
