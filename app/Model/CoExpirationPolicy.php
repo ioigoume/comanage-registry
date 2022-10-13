@@ -408,9 +408,6 @@ class CoExpirationPolicy extends AppModel {
                 $eligible_identical_inter = array_intersect($roles_to_expire[$role['CoPersonRole']['co_person_id']], $group);
                 $identical_remaining = array_diff($group, $eligible_identical_inter);
                 $identical_remaining_cnt = count($identical_remaining);
-                if ($identical_remaining_cnt > 0) {
-                  continue;
-                }
               }
             }
 
@@ -552,6 +549,11 @@ class CoExpirationPolicy extends AppModel {
               }
             }
 
+            // Dont inform anyone if there is another membership active
+            if ($identical_remaining_cnt > 0) {
+              continue;
+            }
+            
             // We have a bunch of substitutions to support, so process the template
             // here. In addition, we'll also support the standard substitutions (though ACTOR_NAME
             // probably doesn't make much sense) when processTemplate is called a second
