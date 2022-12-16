@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [3.4.x-rciam] - 2022-12-xx
+## [3.4.10-rciam] - 2022-12-16
 
 ### Fixed
 
