@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [3.4.x-rciam] - 2022-12-xx
+
+### Fixed
+
+- Removed query loops improving execution time
+
 ## [3.4.9-rciam] - 2022-10-17
 
 ### Fixed
