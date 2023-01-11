@@ -303,7 +303,7 @@ class UsersController extends AppController {
         $this->Session->write('Auth.User.lastlogin', $lastlogins);
 
         // Record the login
-        $this->AuthenticationEvent->record($u, AuthenticationEventEnum::RegistryLogin, $_SERVER['REMOTE_ADDR']);
+        $this->AuthenticationEvent->record($u, AuthenticationEventEnum::RegistryLogin, get_ip_address_of_visitor());
 
         // Update Org Identities associated with an Enrollment Source, if configured.
         // Note we're performing CO specific work here, even though we're not in a CO context yet.
