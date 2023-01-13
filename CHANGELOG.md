@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [3.4.11-rciam] - 2022-01-13
+
+### Changed
+
+- Increase org attribute limit from 128 to 256 characters
+
+### Fixed
+
+- Recording of remote IP address for registry authN events
+
 ## [3.4.10-rciam] - 2022-12-16
 
 ### Fixed
