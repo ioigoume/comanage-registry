@@ -839,6 +839,16 @@ class CoPersonRolesController extends StandardController {
       );
     }
 
+    // XXX convertRestResponse will only care about the actual model and will
+    //     remove all related data. I do not want that since i might need
+    //     additional metadata. As a result we will copy the extra data inside
+    //     the basic model
+    foreach ($records as $idx => $rec) {
+      if(!empty($rec['CoPerson'])) {
+        $records[$idx]['CoPersonRole']['CoPerson'] = $rec['CoPerson'];
+      }
+    }
+
 
     $this->set('co_person_roles', $this->Api->convertRestResponse($records));
     $this->Api->restResultHeader(200, "OK");
