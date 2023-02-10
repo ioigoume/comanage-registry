@@ -39,7 +39,7 @@ if(isset($$modelpl)) {
       "Id" => $m[$req]['Id']);
 
     foreach(array_keys($m[$req]) as $k) {
-      if($m[$req][$k] !== null) {
+      if($m[$req][$k] !== null && !is_array($m[$req][$k])) {
         // Some attributes are treated specially
 
         if($req == 'CoOrgIdentityLink') {
@@ -94,6 +94,31 @@ if(isset($$modelpl)) {
               $a['ExtendedAttributes'][$ea] = $m[$ak][$ea];
 
           break;
+        }
+      }
+
+      if(!empty($m[$req]["CoPerson"])) {
+        foreach ($m[$req]['CoPerson'] as $key => $value) {
+          // We are only interested in the linked Models
+          // The value is my Model name
+          if(is_array($value)) {
+            $a['Person'][$key] = array();
+            foreach ($value as $idx => $data) {
+              if($key == 'Identifier') {
+                $a['Person'][$key][$idx]['type'] = $data['type'];
+                $a['Person'][$key][$idx]['identifier'] = $data['identifier'];
+              } elseif ($key == 'EmailAddress') {
+                $a['Person'][$key][$idx]['type'] = $data['type'];
+                $a['Person'][$key][$idx]['mail'] = $data['mail'];
+                $a['Person'][$key][$idx]['verified'] = $data['verified'];
+              } elseif ($key == 'Name') {
+                $a['Person'][$key][$idx]['type'] = $data['type'];
+                $a['Person'][$key][$idx]['given'] = $data['given'];
+                $a['Person'][$key][$idx]['family'] = $data['family'];
+                $a['Person'][$key][$idx]['middle'] = $data['middle'];
+              }
+            }
+          }
         }
       }
     }

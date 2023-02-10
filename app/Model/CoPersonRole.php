@@ -503,7 +503,28 @@ class CoPersonRole extends AppModel {
     $args['conditions']['Cou.name'] = $cou_name;
     $args['conditions']['Cou.co_id'] = $coid;
     $args['conditions'][] = 'CoPersonRole.deleted IS NOT TRUE';
-    $args['contain'] = false;
+    $args['contain'] = array(
+      'CoPerson' => array(
+        'Identifier' => array(
+          'conditions' => array(
+            'Identifier.deleted != true',
+            'Identifier.identifier_id is NULL'
+          )
+        ),
+        'EmailAddress' => array(
+          'conditions' => array(
+            'EmailAddress.deleted != true',
+            'EmailAddress.email_address_id is NULL'
+          )
+        ),
+        'Name' => array(
+          'conditions' => array(
+            'Name.deleted != true',
+            'Name.name_id is NULL'
+          )
+        ),
+      ),
+    );
 
     return $this->find('all', $args);
   }
