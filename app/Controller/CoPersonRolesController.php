@@ -601,7 +601,8 @@ class CoPersonRolesController extends StandardController {
     $p['add'] = ($roles['cmadmin'] || $roles['coadmin'] || $managed);
     
     // Determine which COUs a person can manage.
-    if($roles['cmadmin'] || $roles['coadmin']) {
+    if(!$this->request->is('restful')
+       && ($roles['cmadmin'] || $roles['coadmin'])) {
       // Note that here we get id => name while in CoPeopleController we just
       // get a list of names. This is to generate the pop-up on the edit form.
       $cous = $this->CoPersonRole->Cou->find('threaded',array('conditions' => array("Cou.co_id" => $this->cur_co['Co']['id'])));
