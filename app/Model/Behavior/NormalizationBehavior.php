@@ -35,7 +35,7 @@ class NormalizationBehavior extends ModelBehavior {
    * @throws RuntimeException
    */
   
-  public function beforeSave(Model $model, $options = array()) {
+  public function beforeValidate(Model $model, $options = array()) {
     $model->data = $this->normalize($model, $model->data);
     
     return true;
