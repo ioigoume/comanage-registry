@@ -3,10 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [3.4.xx-rciam] - 2022-02-xx
+## [3.4.13-rciam] - 2022-03-01
 
 ### Fixed
-
+- REST API performance issues by skipping fetching of COU list when not needed
 - Normalizations should run at beforeValidate callback
 
 ## [3.4.12-rciam] - 2022-02-10
