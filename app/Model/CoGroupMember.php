@@ -170,7 +170,12 @@ class CoGroupMember extends AppModel {
     // Do this before the strtotime/time calls below, both of which use UTC.
 
     if($this->tz) {
+      try {
       $localTZ = new DateTimeZone($this->tz);
+      } catch (Exception $e) {
+        $localTZ = new DateTimeZone(date_default_timezone_get());
+        $this->log(__METHOD__ . ":timezone:" . $e->getMessage(), LOG_ERROR);
+      }
 
       if(!empty($this->data['CoGroupMember']['valid_from'])) {
         // This returns a DateTime object adjusting for localTZ
