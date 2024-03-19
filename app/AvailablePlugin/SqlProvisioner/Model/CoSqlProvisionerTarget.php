@@ -61,7 +61,31 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
       )
     )
   );
-  
+
+  // The models we currently synchronize, not including CO Person, in the order
+  // we want to process them. Note when adding a model here, it may need to be
+  // added to the contains clause in syncPerson.
+  public $orgIdentityModels = array(
+    array(
+      'table'  => 'names',
+      'name'   => 'SpName',
+      'source' => 'Name',
+      'parent' => 'OrgIdentity'
+    ),
+    array(
+      'table'  => 'identifiers',
+      'name'   => 'SpIdentifier',
+      'source' => 'Identifier',
+      'parent' => 'OrgIdentity'
+    ),
+    array(
+      'table'  => 'email_addresses',
+      'name'   => 'SpEmailAddress',
+      'source' => 'EmailAddress',
+      'parent' => 'OrgIdentity'
+    )
+  );
+
   // The models we currently synchronize, not including CO Person, in the order
   // we want to process them. Note when adding a model here, it may need to be
   // added to the contains clause in syncPerson.
@@ -142,6 +166,13 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
       'name'   => 'SpCoPerson',
       'source' => 'CoPerson',
       'source_table' => 'co_people',
+      'parent' => 'Co'
+    ),
+    'OrgIdentity' => array(
+      'table'  => 'org_identities',
+      'name'   => 'SpOrgIdentity',
+      'source' => 'OrgIdentity',
+      'source_table' => 'org_identities',
       'parent' => 'Co'
     )
   );
@@ -340,14 +371,39 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     
     $SpCoGroup->delete($provisioningData['CoGroup']['id'], false);
   }
-  
+
   /**
    * Remove a person from the target database, following a delete person operation.
    *
    * @since  COmanage Registry v3.3.0
    * @param  Array   $provisioningData Array of provisioning data
    */
-  
+
+  protected function deleteOrgIdentity($provisioningData) {
+    // Allow the syncOrgIdentity to clear the associated data
+    $this->syncOrgIdentity($provisioningData);
+
+    // Build a mostly empty array regardless of what was passed to us,
+    // in case we get related data or other noise. We want syncPerson to
+    // see no related models and so delete them all.
+
+    // Then delete the CO Person record itself.
+    $SpOrgIdentity = new Model(array(
+                              'table'  => $this->parentModels['OrgIdentity']['table'],
+                              'name'   => $this->parentModels['OrgIdentity']['name'],
+                              'ds'     => 'targetdb'
+                            ));
+
+//    $SpOrgIdentity->delete($provisioningData['CoPerson']['id'], false);
+  }
+
+  /**
+   * Remove a person from the target database, following a delete person operation.
+   *
+   * @since  COmanage Registry v3.3.0
+   * @param  Array   $provisioningData Array of provisioning data
+   */
+
   protected function deletePerson($provisioningData) {
     // Build a mostly empty array regardless of what was passed to us,
     // in case we get related data or other noise. We want syncPerson to
@@ -388,9 +444,11 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     // First determine what to do
     $deleteGroup = false;
     $deletePerson = false;
+    $deleteOrgIdentity = false;
     $syncGroup = false;
     $syncPerson = false;
-    
+    $syncOrgIdentity = false;
+
     switch($op) {
       case ProvisioningActionEnum::CoGroupAdded:
       case ProvisioningActionEnum::CoGroupUpdated:
@@ -409,9 +467,11 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
       case ProvisioningActionEnum::CoPersonUnexpired:
       case ProvisioningActionEnum::CoPersonUpdated:
         $syncPerson = true;
+        $syncOrgIdentity = true;
         break;
       case ProvisioningActionEnum::CoPersonDeleted:
         $deletePerson = true;
+        $deleteOrgIdentity = true;
         break;
       default:
         // Ignore all other actions. Note group membership changes
@@ -421,12 +481,10 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     }
     
     // Just let any exceptions bubble up the stack
-    $prefix = (!empty($this->data['CoSqlProvisionerTarget']['table_prefix'])
-                ? $this->data['CoSqlProvisionerTarget']['table_prefix']
-                : "sp_");
+    $prefix = $coProvisioningTargetData['CoSqlProvisionerTarget']['table_prefix'] ?? 'sp_';
     
     $this->CoProvisioningTarget->Co->Server->SqlServer->connect($coProvisioningTargetData['CoSqlProvisionerTarget']['server_id'],
-                                                                "targetdb",
+                                                                'targetdb',
                                                                 $prefix);
     
     // Start a transaction
@@ -434,13 +492,19 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     $dbc->begin();
     
     try {
+      if($syncOrgIdentity) {
+        $this->syncOrgIdentity($provisioningData);
+      }
       if($syncPerson) {
         $this->syncPerson($provisioningData);
-      } elseif($deletePerson) {
+      }
+      if($deletePerson) {
         $this->deletePerson($provisioningData);
-      } elseif($syncGroup) {
+      }
+      if($syncGroup) {
         $this->syncGroup($provisioningData);
-      } elseif($deleteGroup) {
+      }
+      if($deleteGroup) {
         $this->deleteGroup($provisioningData);
       }
       
@@ -588,7 +652,106 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     // We only save the group metadata, we do not update memberships.
     // That will be handled by the person update.
   }
-  
+
+
+  /*
+   * Sync the OrgIdentities and associated models to the target database
+   *
+   * @param   Array  $provisioningData  Array of provisioning data
+   *
+   * @throws Exception
+   * @since  COmanage Registry v4.4.0
+   */
+
+  protected function syncOrgIdentity($provisioningData) {
+
+    // Before we do anything, pull the OrgIdentity set for use in populating
+    // org_identity_source_id references. Note the provisioning data does have
+    // limited OrgIdentity data, but we'll need the full set of associated
+    // models
+
+    $orgIds        = Hash::extract($provisioningData, 'CoOrgIdentityLink.{n}.org_identity_id');
+
+    if (empty($orgIds)) {
+      return;
+    }
+
+    $args                                 = array();
+    $args['conditions']['OrgIdentity.id'] = $orgIds;
+    $args['contain']                      = array(
+      'Address',
+      'AdHocAttribute',
+      'EmailAddress',
+      'Identifier',
+      'Name',
+      'OrgIdentitySourceRecord',
+      'TelephoneNumber',
+      'Url'
+    );
+
+    $orgIdentities = $this->CoProvisioningTarget->Co->OrgIdentity->find('all', $args);
+
+    if(!empty($orgIdentities)) {
+      $SpOrgIdentity = new Model(array(
+                               'table'  => $this->parentModels['OrgIdentity']['table'],
+                               'name'   => $this->parentModels['OrgIdentity']['name'],
+                               'ds'     => 'targetdb'
+                             ));
+
+      // Extract all OrgIdentities and save
+      $orgIdentitiesObj = Hash::extract($orgIdentities, '{n}.OrgIdentity');
+      foreach ($orgIdentitiesObj as $org) {
+        $SpOrgIdentity->clear();
+
+        // Since we're copying the source table's id column, we don't have to
+        // check for an existing record. Cake will effectively upsert for us.
+
+        $orgData = array(
+          $this->parentModels['OrgIdentity']['name'] => $org
+        );
+
+        $SpOrgIdentity->save($orgData, false);
+      }
+    }
+
+    foreach($this->orgIdentityModels as $m) {
+      $Model = new Model(array(
+                           'table' => $m['table'],
+                           'name'  => $m['name'],
+                           'ds'    => 'targetdb'
+                         ));
+
+      if(!empty($orgIdentities)) {
+
+        // Extract the model data from all the orgidentities
+        $modelData = Hash::extract($orgIdentities, '{n}.' . $m['source'] . '.{n}');
+        foreach($modelData as $d) {
+          $Model->clear();
+
+          // Since we're copying the source table's id column, we don't have to
+          // check for an existing record. Cake will effectively upsert for us.
+
+          $data = array(
+            $m['name'] => $d
+          );
+
+          // No need to validate anything, though we also don't have any validation rules
+          $Model->save($data, false);
+        }
+
+        // Delete the ones that are not in the dataset anymore
+        $org_identity_ids = Hash::extract($orgIdentities, '{n}.OrgIdentity.id');
+        $Model->deleteAll(
+          array('co_person_id IS NULL',
+                'NOT' => array(
+                  'org_identity_id' => $org_identity_ids),
+                ),
+          false,
+          false);
+      }
+    }
+  }
+
   /**
    * Sync a person to the target database, following a save person operation.
    *
@@ -730,7 +893,21 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
                 }
               }
             }
-            
+
+            // XXX If we try to sync CoGroupMembers without syncing the groups first we will fail to complete the process
+            //     This can occur if we manually sync from CoPerson Canvas, where only CoPerson Sync will fire.
+            if($Model->alias == 'SpCoGroupMember') {
+              $SpCoGroup =  new Model(array(
+                                        'table' => $this->parentModels['CoGroup']['table'],
+                                        'name'  => $this->parentModels['CoGroup']['name'],
+                                        'ds'    => 'targetdb'
+                                      ));
+              $SpCoGroup->id = $data['SpCoGroupMember']['co_group_id'];
+              if($SpCoGroup->field('name') === false) {
+                $this->log(__METHOD__ . "::CO Group with id:{$data['SpCoGroupMember']['co_group_id']} not found");
+                continue;
+              }
+            }
             // No need to validate anything, though we also don't have any validation rules
             $Model->save($data, false);
           }
