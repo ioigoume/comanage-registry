@@ -74,13 +74,35 @@
     <field name="created" type="T" />
     <field name="modified" type="T" />
   </table>
-  
+
+  <table name="org_identities">
+    <field name="id" type="I">
+      <key />
+    </field>
+    <field name="status" type="C" size="2" />
+    <field name="date_of_birth" type="D" />
+    <field name="affiliation" type="C" size="32" />
+    <field name="title" type="C" size="128" />
+    <field name="o" type="C" size="128" />
+    <field name="ou" type="C" size="128" />
+    <field name="manager_identifier" type="C" size="512" />
+    <field name="sponsor_identifier" type="C" size="512" />
+    <field name="timezone" type="C" size="80" />
+    <field name="valid_from" type="T" />
+    <field name="valid_through" type="T" />
+    <field name="created" type="T" />
+    <field name="modified" type="T" />
+  </table>
+
   <table name="names">
     <field name="id" type="I">
       <key />
     </field>
     <field name="co_person_id" type="I">
       <constraint>REFERENCES co_people(id)</constraint>
+    </field>
+    <field name="org_identity_id" type="I">
+      <constraint>REFERENCES org_identities(id)</constraint>
     </field>
     <field name="honorific" type="C" size="32" />
     <field name="given" type="C" size="128" />
@@ -99,6 +121,9 @@
     <index name="names_i1">
       <col>co_person_id</col>
     </index>
+    <index name="names_i2">
+      <col>org_identity_id</col>
+    </index>
   </table>
   
   <table name="identifiers">
@@ -107,6 +132,9 @@
     </field>
     <field name="co_person_id" type="I">
       <constraint>REFERENCES co_people(id)</constraint>
+    </field>
+    <field name="org_identity_id" type="I">
+      <constraint>REFERENCES org_identities(id)</constraint>
     </field>
     <field name="identifier" type="C" size="256" />
     <field name="type" type="C" size="32" />
@@ -121,6 +149,9 @@
     <index name="identifiers_i1">
       <col>co_person_id</col>
     </index>
+    <index name="identifiers_i2">
+      <col>org_identity_id</col>
+    </index>
   </table>
   
   <table name="email_addresses">
@@ -129,6 +160,9 @@
     </field>
     <field name="co_person_id" type="I">
       <constraint>REFERENCES co_people(id)</constraint>
+    </field>
+    <field name="org_identity_id" type="I">
+      <constraint>REFERENCES org_identities(id)</constraint>
     </field>
     <field name="mail" type="C" size="256" />
     <field name="description" type="C" size="128" />
@@ -142,6 +176,9 @@
 
     <index name="email_addresses_i1">
       <col>co_person_id</col>
+    </index>
+    <index name="email_addresses_i2">
+      <col>org_identity_id</col>
     </index>
   </table>
   
