@@ -380,30 +380,35 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
    */
 
   protected function deleteOrgIdentity($provisioningData) {
+    // XXX What about unlinking? Unlinking is the only thing we care about
+    //     we do not care about the orgIdenity delete since we first unlink and then we delete
+
     // Allow the syncOrgIdentity to clear the associated data
     $this->syncOrgIdentity($provisioningData);
 
-    // Build a mostly empty array regardless of what was passed to us,
-    // in case we get related data or other noise. We want syncPerson to
-    // see no related models and so delete them all.
-
-    // Then delete the CO Person record itself.
+    // Then delete the OrgIdentity record itself.
     $SpOrgIdentity = new Model(array(
                               'table'  => $this->parentModels['OrgIdentity']['table'],
                               'name'   => $this->parentModels['OrgIdentity']['name'],
                               'ds'     => 'targetdb'
                             ));
 
-//    $SpOrgIdentity->delete($provisioningData['CoPerson']['id'], false);
+    // Since we have the OrgIdentities tha remain we will delete everything but the ones in the list
+    $orgIds        = Hash::extract($provisioningData, 'CoOrgIdentityLink.{n}.org_identity_id');
+    $SpOrgIdentity->deleteAll(array(
+                        'NOT' => array(
+                          'id' => $orgIds
+                        ),
+                      ), false);
   }
-
+  
   /**
    * Remove a person from the target database, following a delete person operation.
    *
    * @since  COmanage Registry v3.3.0
    * @param  Array   $provisioningData Array of provisioning data
    */
-
+  
   protected function deletePerson($provisioningData) {
     // Build a mostly empty array regardless of what was passed to us,
     // in case we get related data or other noise. We want syncPerson to
@@ -473,6 +478,9 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
         $deletePerson = true;
         $deleteOrgIdentity = true;
         break;
+      case ProvisioningActionEnum::CoOrgIdentityLinkDeleted:
+        $deleteOrgIdentity = true;
+        break;
       default:
         // Ignore all other actions. Note group membership changes
         // are typically handled as CoPersonUpdated events.
@@ -506,6 +514,9 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
       }
       if($deleteGroup) {
         $this->deleteGroup($provisioningData);
+      }
+      if($deleteOrgIdentity) {
+        $this->deleteOrgIdentity($provisioningData);
       }
       
       $dbc->commit();
@@ -664,17 +675,17 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
    */
 
   protected function syncOrgIdentity($provisioningData) {
+    if(empty($provisioningData['CoPerson'])) {
+      return;
+    }
 
-    // Before we do anything, pull the OrgIdentity set for use in populating
-    // org_identity_source_id references. Note the provisioning data does have
+    $coPersonId = $provisioningData['CoPerson']['id'];
+
+    // Note the provisioning data does have
     // limited OrgIdentity data, but we'll need the full set of associated
     // models
 
     $orgIds        = Hash::extract($provisioningData, 'CoOrgIdentityLink.{n}.org_identity_id');
-
-    if (empty($orgIds)) {
-      return;
-    }
 
     $args                                 = array();
     $args['conditions']['OrgIdentity.id'] = $orgIds;
@@ -689,7 +700,9 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
       'Url'
     );
 
-    $orgIdentities = $this->CoProvisioningTarget->Co->OrgIdentity->find('all', $args);
+    $orgIdentities = !empty($orgIds)
+                     ? $this->CoProvisioningTarget->Co->OrgIdentity->find('all', $args)
+                     : null;
 
     if(!empty($orgIdentities)) {
       $SpOrgIdentity = new Model(array(
@@ -731,6 +744,8 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
           // Since we're copying the source table's id column, we don't have to
           // check for an existing record. Cake will effectively upsert for us.
 
+          $d['linked_co_person_id'] = $coPersonId;
+
           $data = array(
             $m['name'] => $d
           );
@@ -741,17 +756,18 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
 
         // Delete the ones that are not in the dataset anymore
         $org_identity_ids = Hash::extract($orgIdentities, '{n}.OrgIdentity.id');
-        $Model->deleteAll(
-          array('co_person_id IS NULL',
-                'NOT' => array(
-                  'org_identity_id' => $org_identity_ids),
-                ),
-          false,
-          false);
+
+        $Model->deleteAll(array(
+                            'co_person_id IS NULL',
+                            'NOT' => array(
+                              'org_identity_id' => $org_identity_ids
+                            ),
+                          ), false);
+
       }
     }
   }
-
+  
   /**
    * Sync a person to the target database, following a save person operation.
    *
