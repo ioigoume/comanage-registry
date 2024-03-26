@@ -90,6 +90,11 @@ class ProvisionerBehavior extends ModelBehavior {
 
         return $this->determineProvisioning($model, false, ProvisioningActionEnum::CoServiceDeleted);
       }
+      if($model->name == 'CoOrgIdentityLink') {
+        $model->data = $model->cacheData;
+
+        return $this->determineProvisioning($model, false, ProvisioningActionEnum::CoOrgIdentityLinkDeleted);
+      }
       
       if($model->name == 'CoGroupMember') {
         // For CoGroupMember, we need to restore the model data to have access to
