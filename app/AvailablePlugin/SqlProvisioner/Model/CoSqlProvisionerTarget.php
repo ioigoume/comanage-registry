@@ -463,6 +463,7 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
       case ProvisioningActionEnum::CoGroupDeleted:
         $deleteGroup = true;
         break;
+      case ProvisioningActionEnum::CoOrgIdentityLinkAdded:
       case ProvisioningActionEnum::CoPersonAdded:
       case ProvisioningActionEnum::CoPersonEnteredGracePeriod:
       case ProvisioningActionEnum::CoPersonExpired:
