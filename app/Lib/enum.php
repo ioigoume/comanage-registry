@@ -712,6 +712,8 @@ class ProvisioningActionEnum
   const CoGroupDeleted                  = 'GD';
   const CoGroupReprovisionRequested     = 'GR';
   const CoGroupUpdated                  = 'GU';
+  const CoOrgIdentityLinkAdded          = 'OA';
+  const CoOrgIdentityLinkDeleted        = 'OD';
   const CoPersonAdded                   = 'PA';
   const CoPersonDeleted                 = 'PD';
   const CoPersonEnteredGracePeriod      = 'PG';
