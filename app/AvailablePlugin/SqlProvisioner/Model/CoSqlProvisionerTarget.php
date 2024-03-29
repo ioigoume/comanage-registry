@@ -510,14 +510,14 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
       if($syncOrgIdentity) {
         $this->syncOrgIdentity($provisioningData);
       }
-      if($deletePerson) {
-        $this->deletePerson($provisioningData);
-      }
       if($deleteGroup) {
         $this->deleteGroup($provisioningData);
       }
       if($deleteOrgIdentity) {
         $this->deleteOrgIdentity($provisioningData);
+      }
+      if($deletePerson) {
+        $this->deletePerson($provisioningData);
       }
       
       $dbc->commit();
