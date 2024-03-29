@@ -501,17 +501,17 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     $dbc->begin();
     
     try {
-      if($syncOrgIdentity) {
-        $this->syncOrgIdentity($provisioningData);
-      }
       if($syncPerson) {
         $this->syncPerson($provisioningData);
       }
-      if($deletePerson) {
-        $this->deletePerson($provisioningData);
-      }
       if($syncGroup) {
         $this->syncGroup($provisioningData);
+      }
+      if($syncOrgIdentity) {
+        $this->syncOrgIdentity($provisioningData);
+      }
+      if($deletePerson) {
+        $this->deletePerson($provisioningData);
       }
       if($deleteGroup) {
         $this->deleteGroup($provisioningData);
@@ -591,12 +591,14 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
    * which doesn't have an CO Provisioning Target context, but also used for
    * manual resync.
    *
+   * @param  int     $coId                        CO ID to sync reference data for
+   * @param  boolean $syncGroups                  Also sync Group reference data
+   * @param  int     $CoSqlProvisionerTargetId  CoSqlProvisionerTarget ID to sync reference data for
+   *
    * @since  COmanage Registry v3.3.0
-   * @param  int     $coId       CO ID to sync reference data for
-   * @param  boolean $syncGroups Also sync Group reference data
    */
   
-  public function syncAllReferenceData($coId, $syncGroups=false) {
+  public function syncAllReferenceData($coId, $syncGroups=false, $CoSqlProvisionerTargetId=null) {
     // Pull all SqlProvisioner configurations for the CO
     
     $args = array();
@@ -605,23 +607,24 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     $args['joins'][0]['type'] = 'INNER';
     $args['joins'][0]['conditions'][0] = 'CoSqlProvisionerTarget.co_provisioning_target_id=CoProvisioningTarget.id';
     $args['conditions']['CoProvisioningTarget.co_id'] = $coId;
+    if($CoSqlProvisionerTargetId !== null) {
+      $args['conditions']['CoSqlProvisionerTarget.id'] = $CoSqlProvisionerTargetId;
+    }
     $args['contain'] = false;
     
     $targets = $this->find('all', $args);
     
-    // Loop through each configuration, instantiating a DataSource, then
-    // performing the sync
-
-    $prefix = (!empty($this->data['CoSqlProvisionerTarget']['table_prefix'])
-            ? $this->data['CoSqlProvisionerTarget']['table_prefix']
-            : "sp_");
-    
     if(!empty($targets)) {
       foreach($targets as $t) {
+        // Loop through each configuration, instantiating a DataSource, then
+        // performing the sync
+
+        $prefix = $t['CoSqlProvisionerTarget']['table_prefix'] ?? 'sp_';
+
         // We need a unique data source label for each target
         $sourceLabel = 'targetdb' . $t['CoSqlProvisionerTarget']['server_id'];
         
-        // Just let any exceptions bubble up the stack
+        // Let any exceptions bubble up the stack
         $this->CoProvisioningTarget->Co->Server->SqlServer->connect($t['CoSqlProvisionerTarget']['server_id'], 
                                                                     $sourceLabel,
                                                                     $prefix);
@@ -718,6 +721,7 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
 
         // Since we're copying the source table's id column, we don't have to
         // check for an existing record. Cake will effectively upsert for us.
+        $org['co_person_id'] = $coPersonId;
 
         $orgData = array(
           $this->parentModels['OrgIdentity']['name'] => $org
@@ -744,7 +748,6 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
           // Since we're copying the source table's id column, we don't have to
           // check for an existing record. Cake will effectively upsert for us.
 
-          $d['linked_co_person_id'] = $coPersonId;
 
           $data = array(
             $m['name'] => $d

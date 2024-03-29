@@ -79,6 +79,9 @@
     <field name="id" type="I">
       <key />
     </field>
+    <field name="co_person_id" type="I">
+      <constraint>REFERENCES co_people(id)</constraint>
+    </field>
     <field name="status" type="C" size="2" />
     <field name="date_of_birth" type="D" />
     <field name="affiliation" type="C" size="32" />
@@ -92,6 +95,9 @@
     <field name="valid_through" type="T" />
     <field name="created" type="T" />
     <field name="modified" type="T" />
+    <index name="org_identities_i1">
+      <col>co_person_id</col>
+    </index>
   </table>
 
   <table name="names">
@@ -103,9 +109,6 @@
     </field>
     <field name="org_identity_id" type="I">
       <constraint>REFERENCES org_identities(id)</constraint>
-    </field>
-    <field name="linked_co_person_id" type="I">
-      <constraint>REFERENCES co_people(id)</constraint>
     </field>
     <field name="honorific" type="C" size="32" />
     <field name="given" type="C" size="128" />
@@ -139,9 +142,6 @@
     <field name="org_identity_id" type="I">
       <constraint>REFERENCES org_identities(id)</constraint>
     </field>
-    <field name="linked_co_person_id" type="I">
-      <constraint>REFERENCES co_people(id)</constraint>
-    </field>
     <field name="identifier" type="C" size="256" />
     <field name="type" type="C" size="32" />
     <field name="login" type="L" />
@@ -169,9 +169,6 @@
     </field>
     <field name="org_identity_id" type="I">
       <constraint>REFERENCES org_identities(id)</constraint>
-    </field>
-    <field name="linked_co_person_id" type="I">
-      <constraint>REFERENCES co_people(id)</constraint>
     </field>
     <field name="mail" type="C" size="256" />
     <field name="description" type="C" size="128" />
