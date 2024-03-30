@@ -61,7 +61,31 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
       )
     )
   );
-  
+
+  // The models we currently synchronize, not including CO Person, in the order
+  // we want to process them. Note when adding a model here, it may need to be
+  // added to the contains clause in syncPerson.
+  public $orgIdentityModels = array(
+    array(
+      'table'  => 'names',
+      'name'   => 'SpName',
+      'source' => 'Name',
+      'parent' => 'OrgIdentity'
+    ),
+    array(
+      'table'  => 'identifiers',
+      'name'   => 'SpIdentifier',
+      'source' => 'Identifier',
+      'parent' => 'OrgIdentity'
+    ),
+    array(
+      'table'  => 'email_addresses',
+      'name'   => 'SpEmailAddress',
+      'source' => 'EmailAddress',
+      'parent' => 'OrgIdentity'
+    )
+  );
+
   // The models we currently synchronize, not including CO Person, in the order
   // we want to process them. Note when adding a model here, it may need to be
   // added to the contains clause in syncPerson.
@@ -142,6 +166,13 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
       'name'   => 'SpCoPerson',
       'source' => 'CoPerson',
       'source_table' => 'co_people',
+      'parent' => 'Co'
+    ),
+    'OrgIdentity' => array(
+      'table'  => 'org_identities',
+      'name'   => 'SpOrgIdentity',
+      'source' => 'OrgIdentity',
+      'source_table' => 'org_identities',
       'parent' => 'Co'
     )
   );
@@ -340,6 +371,36 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     
     $SpCoGroup->delete($provisioningData['CoGroup']['id'], false);
   }
+
+  /**
+   * Remove a person from the target database, following a delete person operation.
+   *
+   * @since  COmanage Registry v3.3.0
+   * @param  Array   $provisioningData Array of provisioning data
+   */
+
+  protected function deleteOrgIdentity($provisioningData) {
+    // XXX What about unlinking? Unlinking is the only thing we care about
+    //     we do not care about the orgIdenity delete since we first unlink and then we delete
+
+    // Allow the syncOrgIdentity to clear the associated data
+    $this->syncOrgIdentity($provisioningData);
+
+    // Then delete the OrgIdentity record itself.
+    $SpOrgIdentity = new Model(array(
+                              'table'  => $this->parentModels['OrgIdentity']['table'],
+                              'name'   => $this->parentModels['OrgIdentity']['name'],
+                              'ds'     => 'targetdb'
+                            ));
+
+    // Since we have the OrgIdentities tha remain we will delete everything but the ones in the list
+    $orgIds        = Hash::extract($provisioningData, 'CoOrgIdentityLink.{n}.org_identity_id');
+    $SpOrgIdentity->deleteAll(array(
+                        'NOT' => array(
+                          'id' => $orgIds
+                        ),
+                      ), false);
+  }
   
   /**
    * Remove a person from the target database, following a delete person operation.
@@ -388,9 +449,11 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     // First determine what to do
     $deleteGroup = false;
     $deletePerson = false;
+    $deleteOrgIdentity = false;
     $syncGroup = false;
     $syncPerson = false;
-    
+    $syncOrgIdentity = false;
+
     switch($op) {
       case ProvisioningActionEnum::CoGroupAdded:
       case ProvisioningActionEnum::CoGroupUpdated:
@@ -400,6 +463,7 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
       case ProvisioningActionEnum::CoGroupDeleted:
         $deleteGroup = true;
         break;
+      case ProvisioningActionEnum::CoOrgIdentityLinkAdded:
       case ProvisioningActionEnum::CoPersonAdded:
       case ProvisioningActionEnum::CoPersonEnteredGracePeriod:
       case ProvisioningActionEnum::CoPersonExpired:
@@ -409,9 +473,14 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
       case ProvisioningActionEnum::CoPersonUnexpired:
       case ProvisioningActionEnum::CoPersonUpdated:
         $syncPerson = true;
+        $syncOrgIdentity = true;
         break;
       case ProvisioningActionEnum::CoPersonDeleted:
         $deletePerson = true;
+        $deleteOrgIdentity = true;
+        break;
+      case ProvisioningActionEnum::CoOrgIdentityLinkDeleted:
+        $deleteOrgIdentity = true;
         break;
       default:
         // Ignore all other actions. Note group membership changes
@@ -421,12 +490,10 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     }
     
     // Just let any exceptions bubble up the stack
-    $prefix = (!empty($this->data['CoSqlProvisionerTarget']['table_prefix'])
-                ? $this->data['CoSqlProvisionerTarget']['table_prefix']
-                : "sp_");
+    $prefix = $coProvisioningTargetData['CoSqlProvisionerTarget']['table_prefix'] ?? 'sp_';
     
     $this->CoProvisioningTarget->Co->Server->SqlServer->connect($coProvisioningTargetData['CoSqlProvisionerTarget']['server_id'],
-                                                                "targetdb",
+                                                                'targetdb',
                                                                 $prefix);
     
     // Start a transaction
@@ -436,12 +503,21 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     try {
       if($syncPerson) {
         $this->syncPerson($provisioningData);
-      } elseif($deletePerson) {
-        $this->deletePerson($provisioningData);
-      } elseif($syncGroup) {
+      }
+      if($syncGroup) {
         $this->syncGroup($provisioningData);
-      } elseif($deleteGroup) {
+      }
+      if($syncOrgIdentity) {
+        $this->syncOrgIdentity($provisioningData);
+      }
+      if($deleteGroup) {
         $this->deleteGroup($provisioningData);
+      }
+      if($deleteOrgIdentity) {
+        $this->deleteOrgIdentity($provisioningData);
+      }
+      if($deletePerson) {
+        $this->deletePerson($provisioningData);
       }
       
       $dbc->commit();
@@ -515,12 +591,14 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
    * which doesn't have an CO Provisioning Target context, but also used for
    * manual resync.
    *
+   * @param  int     $coId                        CO ID to sync reference data for
+   * @param  boolean $syncGroups                  Also sync Group reference data
+   * @param  int     $CoSqlProvisionerTargetId  CoSqlProvisionerTarget ID to sync reference data for
+   *
    * @since  COmanage Registry v3.3.0
-   * @param  int     $coId       CO ID to sync reference data for
-   * @param  boolean $syncGroups Also sync Group reference data
    */
   
-  public function syncAllReferenceData($coId, $syncGroups=false) {
+  public function syncAllReferenceData($coId, $syncGroups=false, $CoSqlProvisionerTargetId=null) {
     // Pull all SqlProvisioner configurations for the CO
     
     $args = array();
@@ -529,23 +607,24 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     $args['joins'][0]['type'] = 'INNER';
     $args['joins'][0]['conditions'][0] = 'CoSqlProvisionerTarget.co_provisioning_target_id=CoProvisioningTarget.id';
     $args['conditions']['CoProvisioningTarget.co_id'] = $coId;
+    if($CoSqlProvisionerTargetId !== null) {
+      $args['conditions']['CoSqlProvisionerTarget.id'] = $CoSqlProvisionerTargetId;
+    }
     $args['contain'] = false;
     
     $targets = $this->find('all', $args);
     
-    // Loop through each configuration, instantiating a DataSource, then
-    // performing the sync
-
-    $prefix = (!empty($this->data['CoSqlProvisionerTarget']['table_prefix'])
-            ? $this->data['CoSqlProvisionerTarget']['table_prefix']
-            : "sp_");
-    
     if(!empty($targets)) {
       foreach($targets as $t) {
+        // Loop through each configuration, instantiating a DataSource, then
+        // performing the sync
+
+        $prefix = $t['CoSqlProvisionerTarget']['table_prefix'] ?? 'sp_';
+
         // We need a unique data source label for each target
         $sourceLabel = 'targetdb' . $t['CoSqlProvisionerTarget']['server_id'];
         
-        // Just let any exceptions bubble up the stack
+        // Let any exceptions bubble up the stack
         $this->CoProvisioningTarget->Co->Server->SqlServer->connect($t['CoSqlProvisionerTarget']['server_id'], 
                                                                     $sourceLabel,
                                                                     $prefix);
@@ -586,6 +665,110 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
     
     // We only save the group metadata, we do not update memberships.
     // That will be handled by the person update.
+  }
+
+
+  /*
+   * Sync the OrgIdentities and associated models to the target database
+   *
+   * @param   Array  $provisioningData  Array of provisioning data
+   *
+   * @throws Exception
+   * @since  COmanage Registry v4.4.0
+   */
+
+  protected function syncOrgIdentity($provisioningData) {
+    if(empty($provisioningData['CoPerson'])) {
+      return;
+    }
+
+    $coPersonId = $provisioningData['CoPerson']['id'];
+
+    // Note the provisioning data does have
+    // limited OrgIdentity data, but we'll need the full set of associated
+    // models
+
+    $orgIds        = Hash::extract($provisioningData, 'CoOrgIdentityLink.{n}.org_identity_id');
+
+    $args                                 = array();
+    $args['conditions']['OrgIdentity.id'] = $orgIds;
+    $args['contain']                      = array(
+      'Address',
+      'AdHocAttribute',
+      'EmailAddress',
+      'Identifier',
+      'Name',
+      'OrgIdentitySourceRecord',
+      'TelephoneNumber',
+      'Url'
+    );
+
+    $orgIdentities = !empty($orgIds)
+                     ? $this->CoProvisioningTarget->Co->OrgIdentity->find('all', $args)
+                     : null;
+
+    if(!empty($orgIdentities)) {
+      $SpOrgIdentity = new Model(array(
+                               'table'  => $this->parentModels['OrgIdentity']['table'],
+                               'name'   => $this->parentModels['OrgIdentity']['name'],
+                               'ds'     => 'targetdb'
+                             ));
+
+      // Extract all OrgIdentities and save
+      $orgIdentitiesObj = Hash::extract($orgIdentities, '{n}.OrgIdentity');
+      foreach ($orgIdentitiesObj as $org) {
+        $SpOrgIdentity->clear();
+
+        // Since we're copying the source table's id column, we don't have to
+        // check for an existing record. Cake will effectively upsert for us.
+        $org['co_person_id'] = $coPersonId;
+
+        $orgData = array(
+          $this->parentModels['OrgIdentity']['name'] => $org
+        );
+
+        $SpOrgIdentity->save($orgData, false);
+      }
+    }
+
+    foreach($this->orgIdentityModels as $m) {
+      $Model = new Model(array(
+                           'table' => $m['table'],
+                           'name'  => $m['name'],
+                           'ds'    => 'targetdb'
+                         ));
+
+      if(!empty($orgIdentities)) {
+
+        // Extract the model data from all the orgidentities
+        $modelData = Hash::extract($orgIdentities, '{n}.' . $m['source'] . '.{n}');
+        foreach($modelData as $d) {
+          $Model->clear();
+
+          // Since we're copying the source table's id column, we don't have to
+          // check for an existing record. Cake will effectively upsert for us.
+
+
+          $data = array(
+            $m['name'] => $d
+          );
+
+          // No need to validate anything, though we also don't have any validation rules
+          $Model->save($data, false);
+        }
+
+        // Delete the ones that are not in the dataset anymore
+        $org_identity_ids = Hash::extract($orgIdentities, '{n}.OrgIdentity.id');
+
+        $Model->deleteAll(array(
+                            'co_person_id IS NULL',
+                            'NOT' => array(
+                              'org_identity_id' => $org_identity_ids
+                            ),
+                          ), false);
+
+      }
+    }
   }
   
   /**
@@ -729,7 +912,21 @@ class CoSqlProvisionerTarget extends CoProvisionerPluginTarget {
                 }
               }
             }
-            
+
+            // XXX If we try to sync CoGroupMembers without syncing the groups first we will fail to complete the process
+            //     This can occur if we manually sync from CoPerson Canvas, where only CoPerson Sync will fire.
+            if($Model->alias == 'SpCoGroupMember') {
+              $SpCoGroup =  new Model(array(
+                                        'table' => $this->parentModels['CoGroup']['table'],
+                                        'name'  => $this->parentModels['CoGroup']['name'],
+                                        'ds'    => 'targetdb'
+                                      ));
+              $SpCoGroup->id = $data['SpCoGroupMember']['co_group_id'];
+              if($SpCoGroup->field('name') === false) {
+                $this->log(__METHOD__ . "::CO Group with id:{$data['SpCoGroupMember']['co_group_id']} not found");
+                continue;
+              }
+            }
             // No need to validate anything, though we also don't have any validation rules
             $Model->save($data, false);
           }
