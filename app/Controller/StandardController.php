@@ -63,7 +63,8 @@ class StandardController extends AppController {
       // Validate
       
       try {
-        $this->Api->checkRestPost($this->cur_co['Co']['id']);
+        // CO add will result in an offset error since the current CO is null.
+        $this->Api->checkRestPost($this->cur_co['Co']['id'] ?? null);
         $data[$req] = $this->Api->getData();
         
         if($this->request->is('restful') && !empty($data[$req]['extended_attributes'])) {
@@ -167,19 +168,33 @@ class StandardController extends AppController {
       }
     } else {
       if($this->request->is('restful')) {
-        $fs = $model->invalidFields();
-        
-        if(!empty($fs)) {
-          $this->Api->restResultHeader(400, "Invalid Fields");
+        if(
+          isset($e)
+          && $e instanceof \PDOException
+          && (int)$e->getCode() === 23503
+        ) {
+          $this->Api->restResultHeader(
+            HttpStatusCodesEnum::HTTP_FORBIDDEN,
+            "You don't have permission to access this resource."
+          );
+        } else if(
+          is_object($model)
+          && method_exists($model, 'invalidFields')
+          && !empty($model->invalidFields())
+          && is_array($model->invalidFields())
+        ) {
+          $fs = $model->invalidFields();
+          $this->Api->restResultHeader(400, 'Invalid Fields');
           $this->set('invalid_fields', $fs);
-        } elseif ($e
-                  && isset(_txt('en.http.status.codes')[$e->getCode()]) )  {
-            $this->Api->restResultHeader($e->getCode(), _txt('en.http.status.codes')[$e->getCode()]);
-            if(!empty($e->getMessage())) {
-              $this->set('vv_error', $e->getMessage());
-            }
+        } else if(
+          isset($e, _txt('en.http.status.codes')[$e->getCode()])
+        ) {
+          $this->Api->restResultHeader($e->getCode(), _txt('en.http.status.codes')[$e->getCode()]);
+          if (!empty($e->getMessage())) {
+            $this->set('vv_error', $e->getMessage());
+          }
         } else {
-          $this->Api->restResultHeader(500, "Other Error");
+          $this->Api->restResultHeader(500, 'Other Error');
         }
       } else {
         if(!empty($model->validationErrors)) {
@@ -232,7 +247,8 @@ class StandardController extends AppController {
       $this->set('vv_servers', $this->Server->find('list', $args));
     }
 
-    if(!$this->request->is('restful')) {
+    if(!$this->request->is('restful')
+       && !$this->request->is('ajax')){
       // Include Search Block
       $this->set('vv_search_fields', $this->searchConfig($this->action));
       // Include alphabet Search bar
@@ -514,8 +530,13 @@ class StandardController extends AppController {
       
       $args['conditions'][$req.'.id'] = $id;
       $args['contain'] = $this->edit_contains;
-      
-      $curdata = $model->find('first', $args);
+
+      try {
+        // We need a try-catch here since Changelog can throw exceptions
+        $curdata = $model->find('first', $args);
+      } catch (Exception $e) {
+        $curdata = array();
+      }
     } else {
       // Old style
       
@@ -547,7 +568,7 @@ class StandardController extends AppController {
       // Validate
       
       try {
-        $this->Api->checkRestPost($this->cur_co['Co']['id']);
+        $this->Api->checkRestPost($this->cur_co['Co']['id'] ?? null);
         $data[$req] = $this->Api->getData();
         
         if($this->request->is('restful') && !empty($data[$req]['extended_attributes'])) {
@@ -727,13 +748,33 @@ class StandardController extends AppController {
       }
     } else {
       if($this->request->is('restful')) {
-        $fs = $model->invalidFields();
-        
-        if(!empty($fs)) {
-          $this->Api->restResultHeader(400, "Invalid Fields");
+        if(
+          isset($e)
+          && $e instanceof \PDOException
+          && (int)$e->getCode() === 23503
+        ) {
+          $this->Api->restResultHeader(
+            HttpStatusCodesEnum::HTTP_FORBIDDEN,
+            "You don't have permission to access this resource."
+          );
+        } else if(
+          is_object($model)
+          && method_exists($model, 'invalidFields')
+          && !empty($model->invalidFields())
+          && is_array($model->invalidFields())
+        ) {
+          $fs = $model->invalidFields();
+          $this->Api->restResultHeader(400, 'Invalid Fields');
           $this->set('invalid_fields', $fs);
+        } else if(
+          isset($e, _txt('en.http.status.codes')[$e->getCode()])
+        ) {
+          $this->Api->restResultHeader($e->getCode(), _txt('en.http.status.codes')[$e->getCode()]);
+          if (!empty($e->getMessage())) {
+            $this->set('vv_error', $e->getMessage());
+          }
         } else {
-          $this->Api->restResultHeader(500, "Other Error");
+          $this->Api->restResultHeader(500, 'Other Error');
         }
       } else {
         if(!empty($model->validationErrors)) {
@@ -839,7 +880,7 @@ class StandardController extends AppController {
       if(!empty($this->request->query['search_identifier'])) {
         // XXX temporary implementation -- need more general approach (CO-1053)
         $args = array();
-        $args['conditions']['Identifier.identifier'] = $this->request->query['search_identifier'];
+        $args['conditions']['LOWER(Identifier.identifier) LIKE'] = '%' . strtolower($this->request->query['search_identifier']) . '%';
 
         $orgPooled = $this->CmpEnrollmentConfiguration->orgIdentitiesPooled();
         if(!empty($this->params['url']['coid']) && !$orgPooled) {
@@ -1432,15 +1473,19 @@ class StandardController extends AppController {
   function search() {
     // Construct the URL based on the action mode we're in (select, relink, index, link)
     $action = key($this->data['RedirectAction']);
-
+    
+    $url['controller'] = $this->request->params['controller'];
     $url['action'] = $action;
-    foreach($this->data[$action] as $key => $value) {
-      // pass parameters
-      if(is_int($key) && isset($value['pass'])) {
-        array_push($url, filter_var($value['pass'], FILTER_SANITIZE_SPECIAL_CHARS));
-      } else {
-        foreach ($value as $knamed => $vnamed) {
-          $url[$knamed] = filter_var($vnamed, FILTER_SANITIZE_SPECIAL_CHARS);
+    
+    if(isset($this->data[$action])) {
+      foreach($this->data[$action] as $key => $value) {
+        // pass parameters
+        if(is_int($key) && isset($value['pass'])) {
+          array_push($url, filter_var($value['pass'], FILTER_SANITIZE_SPECIAL_CHARS));
+        } else {
+          foreach($value as $knamed => $vnamed) {
+            $url[$knamed] = filter_var($vnamed, FILTER_SANITIZE_SPECIAL_CHARS);
+          }
         }
       }
     }

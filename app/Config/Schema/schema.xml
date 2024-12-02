@@ -44,7 +44,37 @@
       <unique />
     </index>
   </table>
-  
+
+  <table name="configuration_labels">
+    <field name="id" type="I">
+      <key />
+      <autoincrement />
+    </field>
+    <field name="co_id" type="I">
+      <constraint>REFERENCES cm_cos(id)</constraint>
+    </field>
+    <field name="label" type="C" size="64" />
+    <field name="color" type="C" size="9" />
+    <field name="created" type="T" />
+    <field name="modified" type="T" />
+    <field name="configuration_label_id" type="I">
+      <constraint>REFERENCES cm_configuration_labels(id)</constraint>
+    </field>
+    <field name="revision" type="I" />
+    <field name="deleted" type="L" />
+    <field name="actor_identifier" type="C" size="256" />
+
+    <index name="configuration_labels_i1">
+      <col>label</col>
+    </index>
+    <index name="configuration_labels_i2">
+      <col>color</col>
+    </index>
+    <index name="configuration_labels_i3">
+      <col>co_id</col>
+    </index>
+  </table>
+
   <table name="locks">
     <field name="id" type="I">
       <key />
@@ -76,6 +106,7 @@
     </field>
     <field name="name" type="C" size="128" />
     <field name="description" type="C" size="128" />
+    <field name="configuration_labels" type="C" size="1024" />
     <field name="parent_id" type="I">
       <constraint>REFERENCES cm_cous(id)</constraint>
     </field>
@@ -202,6 +233,36 @@
     </index>
   </table>
   
+  <table name="organization_sources">
+    <field name="id" type="I">
+      <key />
+      <autoincrement />
+    </field>
+    <field name="co_id" type="I">
+      <constraint>REFERENCES cm_cos(id)</constraint>
+    </field>
+    <field name="description" type="C" size="256" />
+    <field name="plugin" type="C" size="32" />
+    <field name="status" type="C" size="2" />
+    <field name="sync_mode" type="C" size="2" />
+    <field name="created" type="T" />
+    <field name="modified" type="T" />
+    <field name="organization_source_id" type="I">
+      <constraint>REFERENCES cm_organization_sources(id)</constraint>
+    </field>
+    <field name="revision" type="I" />
+    <field name="deleted" type="L" />
+    <field name="actor_identifier" type="C" size="256" />
+    
+    <index name="organization_sources_i1">
+      <col>co_id</col>
+    </index>
+     
+    <index name="organization_sources_i2">
+      <col>organization_source_id</col>
+    </index>
+  </table>
+  
   <table name="organizations">
     <field name="id" type="I">
       <key />
@@ -214,6 +275,8 @@
     <field name="name" type="C" size="128" />
     <field name="description" type="C" size="128" />
     <field name="type" type="C" size="32" />
+    <field name="saml_scope" type="C" size="256" />
+    <field name="logo_url" type="C" size="256" />
     <field name="created" type="T" />
     <field name="modified" type="T" />
     <field name="organization_id" type="I">
@@ -225,6 +288,47 @@
     
     <index name="organizations_i1">
       <col>co_id</col>
+    </index>
+  </table>
+
+  <table name="organization_source_records">
+    <field name="id" type="I">
+      <key />
+      <autoincrement />
+    </field>
+    <field name="organization_source_id" type="I">
+      <constraint>REFERENCES cm_organization_sources(id)</constraint>
+    </field>
+    <field name="source_key" type="C" size="1024" />
+    <field name="source_record" type="XL" />
+    <field name="last_update" type="T" />
+    <field name="organization_id" type="I">
+      <constraint>REFERENCES cm_organizations(id)</constraint>
+    </field>
+    <field name="created" type="T" />
+    <field name="modified" type="T" />
+    <field name="organization_source_record_id" type="I">
+      <constraint>REFERENCES cm_organization_source_records(id)</constraint>
+    </field>
+    <field name="revision" type="I" />
+    <field name="deleted" type="L" />
+    <field name="actor_identifier" type="C" size="256" />
+    
+    <index name="organization_source_records_i1">
+      <col>organization_source_id</col>
+      <col>source_key</col>
+    </index>
+    
+    <index name="organization_source_records_i2">
+      <col>organization_id</col>
+    </index>
+    
+    <index name="organization_source_records_i3">
+      <col>organization_source_id</col>
+    </index>
+    
+    <index name="organization_source_records_i4">
+      <col>organization_source_record_id</col>
     </index>
   </table>
   
@@ -768,6 +872,8 @@
     <field name="type" type="C" size="32" />
     <field name="name" type="C" size="128" />
     <field name="description" type="C" size="128" />
+    <field name="saml_scope" type="C" size="256" />
+    <field name="logo_url" type="C" size="256" />
     <field name="introduction" type="X" size="4000" />
     <field name="leadership_co_group_id" type="I">
       <constraint>REFERENCES cm_co_groups(id)</constraint>
@@ -930,7 +1036,7 @@
       <notnull />
       <constraint>REFERENCES cm_co_jobs(id)</constraint>
     </field>
-    <field name="record_key" type="C" size="64" />
+    <field name="record_key" type="C" size="256" />
     <field name="co_person_id" type="I">
       <constraint>REFERENCES cm_co_people(id)</constraint>
     </field>
@@ -1091,6 +1197,8 @@
     <field name="approver_co_group_id" type="I">
       <constraint>REFERENCES cm_co_groups(id)</constraint>
     </field>
+    <field name="approval_confirmation_mode" type="C" size="2" />
+    <field name="approval_require_comment" type="C" size="2" />
     <!-- verify_email is no longer used (as of v2.0.0), but we can't
          drop the column since that would break changelog history -->
     <field name="verify_email" type="L" />
@@ -1335,6 +1443,7 @@
     <field name="type" type="C" size="32" />
     <field name="login" type="L" />
     <field name="status" type="C" size="2" />
+    <field name="language" type="C" size="16" />
     <field name="co_person_id" type="I">
       <constraint>REFERENCES cm_co_people(id)</constraint>
     </field>
@@ -1396,6 +1505,9 @@
     </index>
     <index name="identifiers_i10">
       <col>organization_id</col>
+    </index>
+    <index name="identifiers_i11">
+      <col>co_group_id</col>
     </index>
   </table>
 
@@ -1615,6 +1727,7 @@
     <field name="url" type="C" size="256" />
     <field name="description" type="C" size="128" />
     <field name="type" type="C" size="32" />
+    <field name="language" type="C" size="16" />
     <field name="co_person_id" type="I">
       <constraint>REFERENCES cm_co_people(id)</constraint>
     </field>
@@ -1705,6 +1818,43 @@
     </index>
     <index name="ad_hoc_attributes_i5">
       <col>organization_id</col>
+    </index>
+  </table>
+  
+  <table name="contacts">
+    <field name="id" type="I">
+      <key />
+      <autoincrement />
+    </field>
+    <field name="given" type="C" size="128" />
+    <field name="family" type="C" size="128" />
+    <field name="company" type="C" size="128" />
+    <field name="number" type="C" size="64" />
+    <field name="mail" type="C" size="128" />
+    <field name="type" type="C" size="32" />
+    <field name="organization_id" type="I">
+      <constraint>REFERENCES cm_organizations(id)</constraint>
+    </field>
+    <field name="co_department_id" type="I">
+      <constraint>REFERENCES cm_co_departments(id)</constraint>
+    </field>
+    <field name="created" type="T" />
+    <field name="modified" type="T" />
+    <field name="contact_id" type="I">
+      <constraint>REFERENCES cm_contacts(id)</constraint>
+    </field>
+    <field name="revision" type="I" />
+    <field name="deleted" type="L" />
+    <field name="actor_identifier" type="C" size="256" />
+    
+    <index name="contacts_i1">
+      <col>co_department_id</col>
+    </index>
+    <index name="contacts_i2">
+      <col>organization_id</col>
+    </index>
+    <index name="contacts_i3">
+      <col>contact_id</col>
     </index>
   </table>
   
@@ -2101,6 +2251,9 @@
     <field name="co_enrollment_attribute_id" type="I">
       <constraint>REFERENCES cm_co_enrollment_attributes(id)</constraint>
     </field>
+    <field name="configuration_label_id" type="I">
+      <constraint>REFERENCES cm_configuration_labels(id)</constraint>
+    </field>
     <field name="revision" type="I" />
     <field name="deleted" type="L" />
     <field name="actor_identifier" type="C" size="256" />
@@ -2111,6 +2264,10 @@
     
     <index name="co_enrollment_attributes_i2">
       <col>co_enrollment_attribute_id</col>
+    </index>
+
+    <index name="co_enrollment_attributes_i2">
+      <col>configuration_label_id</col>
     </index>
   </table>
   
@@ -2488,6 +2645,7 @@
     <field name="algorithm" type="C" size="2" />
     <field name="plugin" type="C" size="64" />
     <field name="format" type="C" size="256" />
+    <field name="minimum_length" type="I" />
     <field name="minimum" type="I" />
     <field name="maximum" type="I" />
     <field name="permitted" type="C" size="2" />

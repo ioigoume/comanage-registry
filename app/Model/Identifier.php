@@ -108,12 +108,14 @@ class Identifier extends AppModel {
                               'default' => array(IdentifierEnum::AffiliateSOR,
                                                  IdentifierEnum::Badge,
                                                  IdentifierEnum::Enterprise,
+                                                 IdentifierEnum::EntityID,
                                                  IdentifierEnum::ePPN,
                                                  IdentifierEnum::ePTID,
                                                  IdentifierEnum::ePUID,
                                                  IdentifierEnum::GuestSOR,
                                                  IdentifierEnum::HRSOR,
                                                  IdentifierEnum::Mail,
+                                                 IdentifierEnum::Name,
                                                  IdentifierEnum::National,
                                                  IdentifierEnum::Network,
                                                  IdentifierEnum::OIDCsub,
@@ -143,6 +145,13 @@ class Identifier extends AppModel {
                                         SuspendableStatusEnum::Suspended)),
         'required' => true,
         'allowEmpty' => false
+      )
+    ),
+    'language' => array(
+      'content' => array(
+        'rule'       => array('validateLanguage'),
+        'required'   => false,
+        'allowEmpty' => true
       )
     ),
     'co_person_id' => array(
@@ -461,21 +470,24 @@ class Identifier extends AppModel {
    * @param  integer $coId  CO ID to constrain search to
    * @param  string  $q     String to search for
    * @param  integer $limit Search limit
-   * @return Array Array of search results, as from find('all)
+   * @return Array Array of search results, as from find('all')
    */
   
   public function search($coId, $q, $limit) {
     $args = array();
-    $args['conditions']['Identifier.identifier'] = $q;
+    $args['conditions']['LOWER(Identifier.identifier) LIKE'] = '%' . strtolower($q) . '%';
     $args['conditions']['OR'] = array(
       'CoPerson.co_id' => $coId,
-      'CoGroup.co_id' => $coId
+      'CoGroup.co_id' => $coId,
+// CO-2810
+      'Organization.co_id' => $coId
     );
     $args['order'] = array('Identifier.identifier');
     $args['limit'] = $limit;
     $args['contain'] = array(
       'CoGroup',
-      'CoPerson' => 'PrimaryName'
+      'CoPerson' => 'PrimaryName',
+      'Organization'
     );
     
     return $this->find('all', $args);

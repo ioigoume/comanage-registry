@@ -546,8 +546,11 @@ class CoPetitionsController extends StandardController {
                 $enrollmentAttributes = $this->CoPetition
                                              ->CoEnrollmentFlow
                                              ->CoEnrollmentAttribute
-                                             ->mapEnvAttributes($enrollmentAttributes,
-                                                                $envValues);
+                                             ->mapEnvAttributes(
+                                                $this->cur_co['Co']['id'],
+                                                $enrollmentAttributes,
+                                                $envValues
+                                              );
               }
             }
           }
@@ -555,7 +558,11 @@ class CoPetitionsController extends StandardController {
           $enrollmentAttributes = $this->CoPetition
                                        ->CoEnrollmentFlow
                                        ->CoEnrollmentAttribute
-                                       ->mapEnvAttributes($enrollmentAttributes, array());
+                                       ->mapEnvAttributes(
+                                          $this->cur_co['Co']['id'], 
+                                          $enrollmentAttributes, 
+                                          array()
+                                        );
         
           // As a special case, we need to figure out who the default sponsor is,
           // if any, and lookup their information for rendering (when People Pickers
@@ -1445,6 +1452,9 @@ class CoPetitionsController extends StandardController {
     } elseif(isset($this->request->params['named']['coef'])) {
       // calculateImpliedCO should verify this is valid and in the current CO
       $this->cachedEnrollmentFlowID = $this->request->params['named']['coef'];
+    } elseif(isset($this->request->params['named']['search.enrollmentFlow'])) {
+        // calculateImpliedCO should verify this is valid and in the current CO
+        $this->cachedEnrollmentFlowID = $this->request->params['named']['search.enrollmentFlow'];
     } elseif(isset($this->request->data['CoPetition']['co_enrollment_flow_id'])) {
       // We can trust this element since form tampering checks mean it's the
       // same value the view emitted.
@@ -2569,7 +2579,8 @@ class CoPetitionsController extends StandardController {
                    || ($pool
                        && !$roles['copersonid']
                        && ($roles['admin'] || $roles['subadmin']))
-                   || $this->Role->isApprover($roles['copersonid']));
+                   || $this->Role->isApprover($roles['copersonid']))
+                   || ($enrollmentFlowId > 0 && $this->Role->isApproverForFlow($roles['copersonid'], $enrollmentFlowId));
 
     // Search all existing CO Petitions?
     $p['search'] = $p['index'];

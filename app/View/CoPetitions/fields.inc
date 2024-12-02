@@ -101,6 +101,10 @@
 
   $l = 0;
   
+  // Approval confirmation mode and commenting 
+  $approvalConfirmationMode = $co_petitions[0]['CoEnrollmentFlow']['approval_confirmation_mode'] ?? EnrollmentApprovalConfirmationModeEnum::Never;
+  $approvalRequireComment = $co_petitions[0]['CoEnrollmentFlow']['approval_require_comment'] ?? EnrollmentApprovalConfirmationModeEnum::Never;
+  
   // Unlike most other views, CO Petitions dynamically generates attributes to be
   // completed according to a configuration, not according to a model. This is a
   // lot of logic to embed in a view file, and plausibly this code should be
@@ -114,13 +118,47 @@
         event.preventDefault();
         $(this).next(".fields").slideToggle("fast");
         // toggle the +/- icon:
-        if ($(this).find(".material-icons").text() == "indeterminate_check_box") {
-          $(this).find(".material-icons").text("add_box");
+        if ($(this).find(".material-icons").text() == "expand_less") {
+          $(this).find(".material-icons").text("expand_more");
+          $(this).attr('title','<?php print _txt('op.expand'); ?>');
+          $(this).attr('aria-expanded','false');
         } else {
-          $(this).find(".material-icons").text("indeterminate_check_box");
+          $(this).find(".material-icons").text("expand_less");
+          $(this).attr('title','<?php print _txt('op.collapse'); ?>');
+          $(this).attr('aria-expanded','true');
         }
       });
     });
+    
+    function confirmPetition(action, confirmationMode, requireCommentMode) {
+      // First check if we need to enforce the Comment box. We only need to do this with 
+      // JavaScript if the mode is "Approval Only" or "Denial Only". If the comment field is configured 
+      // to enforce "Always", we set the field to required and let the browser handle it directly.
+      if((action == 'approve' && requireCommentMode == 'AP') || (action == 'deny' && requireCommentMode == 'D')) {
+        if($('#CoPetitionApproverComment').val().trim() == '') {
+          msg = (action == 'approve' ? '<?php print (_txt('fd.ef.appr.invalid.appr')); ?>' : '<?php print (_txt('fd.ef.appr.invalid.deny')); ?>');
+          $('#approver-comment-field-error').text(msg).show();
+          $('#CoPetitionApproverComment').focus();
+          return false; 
+        }
+      }
+      
+      // Check the confirmation mode and provide confirmations as necessary
+      if(confirmationMode == 'AL' || (confirmationMode == 'AP' && action == 'approve') || (confirmationMode == 'D' && action == 'deny')) {
+        msg = (action == 'approve' ? '<?php print (_txt('fd.ef.appr.approve.confirm')); ?>' : '<?php print (_txt('fd.ef.appr.deny.confirm')); ?>');
+        confirmed = confirm(msg);
+      } else {
+        confirmed = true;
+      }
+  
+      if(confirmed) {
+        $('#approve-deny-buttons input').removeClass('nospin');
+        displaySpinner();
+        return true;
+      }
+      
+      return false;
+    }
   </script>
 
   <div id="<?php print $this->action; ?>_co_petitions" class="explorerContainer">
@@ -130,9 +168,9 @@
 
           <li id="fields-petition" class="fieldGroup">
 
-            <a href="#tabs-petition" class="fieldGroupName">
-              <em class="material-icons">indeterminate_check_box</em>
-              <?php print _txt('ct.co_petitions.1'); ?>
+            <a href="#tabs-petition" class="fieldGroupName" title="<?php print _txt('op.collapse') ?>" aria-expanded="true" aria-controls="<?php print $this->action; ?>_co_petition">
+              <em class="material-icons" aria-hidden="true">expand_less</em>
+              <h2><?php print _txt('ct.co_petitions.1'); ?></h2>
             </a>
 
             <ul id="<?php print $this->action; ?>_co_petition" class="fields form-list">
@@ -169,26 +207,41 @@
 
                       print $this->Form->create('CoPetition', $args);
 
+                      print '<div id="approve-deny-buttons">';  
+
                       if($co_petitions[0]['CoPetition']['status'] == PetitionStatusEnum::PendingApproval
                          && $permissions['approve']) {
                         print $this->Form->submit(_txt('op.approve'),
                           array(
-                            'class' => 'checkbutton approve-button',
-                            'name'  => 'action')
+                            'class' => 'approve-button btn btn-primary nospin',
+                            'name'  => 'action',
+                            'onclick' => "return confirmPetition('approve','" . $approvalConfirmationMode . "','" . $approvalRequireComment . "');")
                         );
                       }
                       print $this->Form->submit(_txt('op.deny'),
                         array(
-                          'class' => 'cancelbutton deny-button',
-                          'name'  => 'action')
+                          'class' => 'deny-button btn btn-primary nospin',
+                          'name'  => 'action',
+                          'onclick' => "return confirmPetition('deny','" . $approvalConfirmationMode . "','" . $approvalRequireComment . "');")
                       );
+                      
+                      print '</div>';
 
+                      $approverCommentLabel = _txt('fd.pt.approver_comment');
+                      $requireComment = false; 
+                      if($approvalRequireComment != EnrollmentApprovalConfirmationModeEnum::Never) {
+                        $approverCommentLabel = '<span class="required">*</span> ' . _txt('fd.pt.approver_comment');
+                        if($approvalRequireComment == EnrollmentApprovalConfirmationModeEnum::Always) {
+                          $requireComment = true; // for require on approval or denial, we must enforce this with JavaScript only
+                        }
+                      }
                       print $this->Form->input('approver_comment',
                                                array(
-                                                 'label' => _txt('fd.pt.approver_comment'),
-                                                 'placeholder' => _txt('en.required', null, RequiredEnum::Optional)
+                                                 'label' => $approverCommentLabel,
+                                                 'required' => $requireComment,
+                                                 'placeholder' => _txt('en.enrollment.confmode.placeholder', null, $approvalRequireComment)
                                               ));
-
+                      print '<div id="approver-comment-field-error" class="invalid-feedback" style="display: none;"></div>';
                       print '<div class="field-desc">' . _txt('fd.pt.approver_comment.desc') . '</div>';
 
                       print $this->Form->end();
@@ -326,9 +379,9 @@
           </li>
           
           <li id="identities-petition" class="fieldGroup">
-            <a href="#tabs-identities" class="fieldGroupName">
-              <em class="material-icons">indeterminate_check_box</em>
-              <?php print _txt('fd.pt.identities'); ?>
+            <a href="#tabs-identities" class="fieldGroupName" title="<?php print _txt('op.collapse') ?>" aria-expanded="true" aria-controls="co_petition_identities">
+              <em class="material-icons" aria-hidden="true">expand_less</em>
+              <h2><?php print _txt('fd.pt.identities'); ?></h2>
             </a>
 
             <ul id="co_petition_identities" class="fields form-list">
@@ -415,12 +468,12 @@
         <?php endif; // action != add ?>
         
         <li id="tabs-attributes" class="fieldGroup">
-          <a href="#tabs-attributes" class="fieldGroupName">
-            <em class="material-icons">indeterminate_check_box</em>
-            <?php print _txt('fd.attrs.pet'); ?>
+          <a href="#tabs-attributes" class="fieldGroupName" title="<?php print _txt('op.collapse') ?>" aria-expanded="true" aria-controls="tabs-petition-attributes">
+            <em class="material-icons" aria-hidden="true">expand_less</em>
+            <h2><?php print _txt('fd.attrs.pet'); ?></h2>
           </a>
 
-          <div class="fields">
+          <div id="tabs-petition-attributes" class="fields">
             <?php include('petition-attributes.inc'); ?>
           </div>
         </li>
@@ -451,9 +504,9 @@
           ?>
 
           <!--    Petition History    -->
-          <a href="#tabs-history" class="fieldGroupName">
-            <em class="material-icons">indeterminate_check_box</em>
-            <?php print _txt('fd.history.pt'); ?>
+          <a href="#tabs-history" class="fieldGroupName" title="<?php print _txt('op.collapse') ?>" aria-expanded="true" aria-controls="tabs-history">
+            <em class="material-icons" aria-hidden="true">expand_less</em>
+            <h2><?php print _txt('fd.history.pt'); ?></h2>
           </a>
           <ul id="tabs-history" class="fields data-list data-table">
             <li>
@@ -471,7 +524,7 @@
                     <tr class="line<?php print ($l % 2); $l++; ?>">
                       <td><?php print $hr['action']; ?></td>
                       <td><?php print (!empty($hr['ActorCoPerson']['PrimaryName']) ? filter_var(generateCn($hr['ActorCoPerson']['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS) : _txt('fd.actor.self')); ?></td>
-                      <td><?php print $hr['comment']; ?></td>
+                      <td><?php print filter_var($hr['comment'],FILTER_SANITIZE_SPECIAL_CHARS); ?></td>
                       <td><?php print $this->Time->nice($hr['created'], $vv_tz); ?></td>
                     </tr>
                   <?php endforeach; // CoPetitionHistoryRecord ?>
